@@ -59,13 +59,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
-    // Maia3 — MIT neural net (ONNX Runtime WASM)
+    // Maia3 — MIT neural net (needs bundled ONNX Runtime, CDN doesn't work)
     engines.add(_EngineOption(
       name: 'Maia3',
-      description: 'Neural net — plays like a human (~21MB download)',
+      description: 'Neural net — plays like a human (coming soon)',
       elo: '~1500',
       license: 'MIT',
-      available: kIsWeb,
+      available: false,
     ));
 
     // Frozenight — MIT, available on all platforms
