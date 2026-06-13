@@ -21,6 +21,7 @@ import 'maia3_dart/onnx_model.dart';
 import 'maia3_dart/onnx_model_native.dart';
 import 'maia3_dart/utils.dart';
 import 'maia3_dart/variants.dart';
+import 'uci_position.dart';
 
 /// Maia3 engine with all logic in Dart + platform ONNX inference.
 class Maia3DartEngine implements ChessEngine {
@@ -195,14 +196,5 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.disposed;
   }
 
-  String _extractFen(String cmd) {
-    final parts = cmd.split(' ');
-    if (parts.length >= 2 && parts[1] == 'fen') {
-      final mi = parts.indexOf('moves');
-      return mi > 0
-          ? parts.sublist(2, mi).join(' ')
-          : parts.sublist(2).join(' ');
-    }
-    return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-  }
+  String _extractFen(String cmd) => fenFromPositionCommand(cmd);
 }
