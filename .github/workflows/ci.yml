@@ -66,6 +66,27 @@ jobs:
           path: native/frozenight/target/release/libfrozenight_ffi.dylib
           retention-days: 14
 
+  # Build Frozenight for iOS (arm64 static library)
+  frozenight-ios:
+    name: Frozenight (iOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+      - name: Build Frozenight for iOS arm64
+        run: cargo build --release --target aarch64-apple-ios
+        working-directory: native/frozenight
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-ios-arm64
+          path: native/frozenight/target/aarch64-apple-ios/release/libfrozenight_ffi.a
+          retention-days: 14
+
   # Build Frozenight for Android (arm64)
   frozenight-android:
     name: Frozenight (Android arm64)

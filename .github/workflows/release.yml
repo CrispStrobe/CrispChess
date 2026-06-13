@@ -79,6 +79,38 @@ jobs:
           name: linux-x64-frozenight
           path: CrispChess-linux-x64-frozenight.tar.gz
 
+  build-frozenight-libs:
+    name: Frozenight Native Libraries
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+
+      - name: Build macOS
+        run: cargo build --release
+        working-directory: native/frozenight
+
+      - name: Build iOS arm64
+        run: cargo build --release --target aarch64-apple-ios
+        working-directory: native/frozenight
+
+      - name: Package libraries
+        run: |
+          mkdir -p frozenight-libs
+          cp native/frozenight/target/release/libfrozenight_ffi.dylib frozenight-libs/
+          cp native/frozenight/target/aarch64-apple-ios/release/libfrozenight_ffi.a frozenight-libs/
+          tar czf frozenight-libs.tar.gz frozenight-libs/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-libs
+          path: frozenight-libs.tar.gz
+
   build-web:
     name: Web (WASM)
     runs-on: ubuntu-latest
@@ -104,7 +136,7 @@ jobs:
 
   create-release:
     name: GitHub Release
-    needs: [build-android, build-linux, build-linux-frozenight, build-web]
+    needs: [build-android, build-linux, build-linux-frozenight, build-frozenight-libs, build-web]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -119,3 +151,4 @@ jobs:
             artifacts/linux-x64/CrispChess-linux-x64.tar.gz
             artifacts/linux-x64-frozenight/CrispChess-linux-x64-frozenight.tar.gz
             artifacts/web/CrispChess-web.tar.gz
+            artifacts/frozenight-libs/frozenight-libs.tar.gz

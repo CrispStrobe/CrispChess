@@ -37,7 +37,7 @@ CrispChess App (MIT)
 - [x] CI compiles for Linux + macOS
 - [x] Bundle job packages .so with Flutter build
 - [x] Android NDK cross-compilation (CI job)
-- [ ] iOS static library
+- [x] iOS static library (CI job)
 
 ### Phase 4: Optional Stockfish (GPL, non-iOS)
 - [x] StockfishEngine stub wrapper
@@ -49,7 +49,7 @@ CrispChess App (MIT)
 - [x] CI/CD for all platforms + Rust
 - [x] WASM headers in vercel.json
 - [x] App icon source image + flutter_launcher_icons config
-- [ ] Run dart run flutter_launcher_icons (needs Flutter SDK)
+- [x] App icons generated for Android, iOS, Web
 - [x] Buy me a coffee (in About screen)
 - [x] Privacy policy
 - [x] Release workflow with binaries
