@@ -66,6 +66,31 @@ jobs:
           path: native/frozenight/target/release/libfrozenight_ffi.dylib
           retention-days: 14
 
+  # Build Frozenight WASM for web
+  frozenight-wasm:
+    name: Frozenight (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight-wasm
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build Frozenight WASM
+        run: wasm-pack build --target web --release
+        working-directory: native/frozenight-wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-wasm
+          path: |
+            native/frozenight-wasm/pkg/frozenight_wasm.js
+            native/frozenight-wasm/pkg/frozenight_wasm_bg.wasm
+          retention-days: 14
+
   # Build Frozenight for iOS (arm64 static library)
   frozenight-ios:
     name: Frozenight (iOS)

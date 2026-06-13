@@ -52,6 +52,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       available: kIsWeb, // Web ready now, native needs JS bridge
     ));
 
+    // Frozenight — MIT, available on all platforms
+    engines.add(_EngineOption(
+      name: 'Frozenight',
+      description: kIsWeb
+          ? 'NNUE engine (Rust→WASM)'
+          : 'NNUE engine (Rust FFI)',
+      elo: '~3226',
+      license: 'MIT/Apache-2.0',
+      available: kIsWeb, // Web WASM ready, native needs lib
+    ));
+
     if (kIsWeb) {
       engines.add(_EngineOption(
         name: 'Stockfish',
@@ -62,16 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         gplNotice: true,
       ));
     } else {
-      final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
-      engines.add(_EngineOption(
-        name: 'Frozenight',
-        description: isIOS
-            ? 'NNUE engine — strongest on iOS (MIT)'
-            : 'NNUE engine (Rust FFI)',
-        elo: '~2960',
-        license: 'MIT/Apache-2.0',
-        available: false, // True when native lib is bundled
-      ));
+      // On native, Frozenight already listed above
       // Stockfish — desktop + Android via process, iOS via JS bridge
       engines.add(_EngineOption(
         name: 'Stockfish',

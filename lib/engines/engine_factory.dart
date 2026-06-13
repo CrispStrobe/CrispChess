@@ -7,7 +7,10 @@ import 'maia3_engine.dart';
 import 'stockfish_engine.dart'
     if (dart.library.js_interop) 'stockfish_web_engine.dart';
 
-// Maia3: web uses JS interop, native uses stub
+import 'frozenight_engine.dart'
+    if (dart.library.js_interop) 'frozenight_web_engine.dart'
+    as frozenight_impl;
+
 import 'maia3_engine.dart'
     if (dart.library.js_interop) 'maia3_web_engine.dart'
     as maia3_impl;
@@ -17,6 +20,11 @@ ChessEngine createEngine(String name, {int? playerElo}) {
   switch (name) {
     case 'Stockfish':
       return StockfishEngine();
+    case 'Frozenight':
+      if (kIsWeb) {
+        return frozenight_impl.FrozenightWebEngine();
+      }
+      return frozenight_impl.FrozenightEngine();
     case 'Maia3':
       if (kIsWeb) {
         return maia3_impl.Maia3WebEngine(playerElo: playerElo ?? 1500);
