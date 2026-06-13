@@ -1,19 +1,15 @@
-// Frozenight WASM build — single-threaded for browser.
-// MIT/Apache-2.0 licensed. ~2960 ELO NNUE engine.
-//
-// Compiled with: wasm-pack build --target web --release
-// Output: pkg/frozenight_wasm.js + frozenight_wasm_bg.wasm
-
 use wasm_bindgen::prelude::*;
 use cozy_chess::Board;
-use frozenight::{Eval, Frozenight, TimeConstraint};
+use frozenight::{Frozenight, TimeConstraint};
 
 static mut ENGINE: Option<Frozenight> = None;
+static mut CURRENT_BOARD: Option<Board> = None;
 
 #[wasm_bindgen]
 pub fn init(hash_mb: u32) {
     unsafe {
         ENGINE = Some(Frozenight::new(hash_mb as usize));
+        CURRENT_BOARD = Some(Board::default());
     }
 }
 
@@ -46,6 +42,9 @@ pub fn set_position(fen: &str, moves: &str) {
             }
         }
 
+        // Store the final board position for debugging
+        CURRENT_BOARD = Some(current);
+
         engine.set_position(board, move_list.into_iter());
     }
 }
@@ -65,13 +64,25 @@ pub fn search(depth: i32) -> String {
 
         let result = engine.search(tc, |_| {});
 
-        let uci = format!("{}{}", result.best_move.from, result.best_move.to);
-        let promo = match result.best_move.promotion {
-            Some(p) => format!("{}", p).to_lowercase(),
-            None => String::new(),
-        };
+        format!("{}{}{}",
+            result.best_move.from,
+            result.best_move.to,
+            match result.best_move.promotion {
+                Some(p) => format!("{}", p).to_lowercase(),
+                None => String::new(),
+            }
+        )
+    }
+}
 
-        format!("{}{}", uci, promo)
+/// Returns the FEN of the current board position (for debugging).
+#[wasm_bindgen]
+pub fn get_fen() -> String {
+    unsafe {
+        match &CURRENT_BOARD {
+            Some(b) => b.to_string(),
+            None => String::from("no board"),
+        }
     }
 }
 
@@ -98,6 +109,7 @@ pub fn get_eval() -> i32 {
 pub fn dispose() {
     unsafe {
         ENGINE = None;
+        CURRENT_BOARD = None;
     }
 }
 

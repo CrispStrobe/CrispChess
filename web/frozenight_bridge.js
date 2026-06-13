@@ -25,6 +25,9 @@ function frozenightSetPosition(fen, moves) {
   if (!frozenightModule) throw new Error('Not loaded');
   console.log('[Frozenight WASM] set_position(' + fen + ', ' + (moves || '') + ')');
   frozenightModule.set_position(fen, moves || '');
+  // Verify position was applied
+  const currentFen = frozenightModule.get_fen();
+  console.log('[Frozenight WASM] Board after set_position: ' + currentFen);
 }
 
 function frozenightSearch(depth) {

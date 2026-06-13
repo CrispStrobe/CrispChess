@@ -16,8 +16,9 @@ async function maia3Load(variant, onProgress) {
       throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
     }
 
-    // Set WASM paths to CDN (only the ~10MB WASM binary is fetched on demand)
+    // Configure ONNX Runtime for browser (single-threaded, CDN WASM)
     if (globalThis.ort.env) {
+      globalThis.ort.env.wasm.numThreads = 1; // No SharedArrayBuffer without COOP/COEP
       globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
     }
 
