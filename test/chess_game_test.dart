@@ -82,18 +82,17 @@ void main() {
       // a2a4, b7b5, a4b5 (capture), ... this takes too many moves.
       // Instead, let's just test the promotion suffix parsing:
       // Play enough moves to promote. Use a crafted sequence:
-      game.makeMove('a2a4');
-      game.makeMove('b7b5');
-      game.makeMove('a4b5'); // capture
-      game.makeMove('a7a6');
-      game.makeMove('b5a6'); // capture
+      game.makeMove('b2b4');
+      game.makeMove('a7a5');
+      game.makeMove('b4a5'); // capture
+      game.makeMove('b7b6');
+      game.makeMove('a5b6'); // capture
       game.makeMove('c7c6');
-      game.makeMove('a6a7'); // pawn on 7th rank
+      game.makeMove('b6b7'); // pawn on 7th rank
       game.makeMove('c6c5');
-      // Now promote: a7a8q
-      final result = game.makeMove('a7a8q');
+      // Promote by capturing rook on a8
+      final result = game.makeMove('b7a8q');
       expect(result, isTrue);
-      // The board should have a white queen on a8
       final board = game.board;
       expect(board[0][0]!.type, PieceType.queen);
       expect(board[0][0]!.color, PieceColor.white);
