@@ -209,10 +209,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _requestEngineMove() {
-    debugPrint('[CrispChess] Requesting engine move: depth=${3 + _state.strengthLevel} skill=${_state.strengthLevel}');
+    debugPrint('[CrispChess] Requesting engine move: skill=${_state.strengthLevel}');
     _engineService.requestMove(
       _game.positionCommand,
-      depth: 3 + _state.strengthLevel, // depth 3-23
       skillLevel: _state.strengthLevel,
     );
   }

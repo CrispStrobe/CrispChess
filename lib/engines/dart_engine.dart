@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
@@ -6,39 +7,39 @@ import 'dart_engine/search.dart';
 
 /// Built-in chess engine written in pure Dart.
 ///
-/// Uses alpha-beta pruning with iterative deepening, piece-square tables,
-/// quiescence search, transposition table, and move ordering.
-/// No native code required — works on all platforms including web.
+/// Alpha-beta pruning + iterative deepening + transposition table +
+/// quiescence search + move ordering. No native code needed.
+///
+/// Skill level 0-20 controls both search depth and move randomness:
+/// - Level 0: depth 2, picks randomly among top-5 moves
+/// - Level 10: depth 6, picks randomly among top-3 moves
+/// - Level 20: depth 10, always picks the best move
 class DartEngine implements ChessEngine {
   final chess.Chess _game = chess.Chess();
   AlphaBetaSearch? _search;
   bool _disposed = false;
+  final _rng = Random();
 
   final ValueNotifier<EngineState> _stateNotifier =
       ValueNotifier(EngineState.idle);
 
   @override
   String get name => 'Built-in';
-
   @override
   String get version => '1.1.0';
-
   @override
   String get license => 'MIT';
-
   @override
   int get estimatedElo => 1800;
-
   @override
   EngineState get state => _stateNotifier.value;
-
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
-    debugPrint('[DartEngine] Initialized (kIsWeb=$kIsWeb)');
+    debugPrint('[Built-in] Initialized (kIsWeb=$kIsWeb)');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -54,7 +55,8 @@ class DartEngine implements ChessEngine {
 
     _applyPosition(positionCommand);
 
-    int searchDepth = depth ?? _depthFromSkill(skillLevel ?? 10);
+    final skill = skillLevel ?? 10;
+    final searchDepth = depth ?? _depthFromSkill(skill);
 
     SearchResult? result;
     if (kIsWeb) {
@@ -69,14 +71,37 @@ class DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.ready;
 
     if (result == null) throw StateError('No legal moves');
+
+    // At low skill levels, sometimes pick a suboptimal move
+    if (skill < 20) {
+      final weakened = await _weakenMove(result.bestMove, skill);
+      if (weakened != null) return weakened;
+    }
+
     return result.bestMove;
   }
 
-  /// Non-blocking incremental search for web.
-  /// Runs one depth at a time, yielding to the UI between each.
+  /// At low skill levels, occasionally pick a random legal move
+  /// instead of the best move. Lower skill = more random.
+  Future<String?> _weakenMove(String bestMove, int skill) async {
+    // Probability of playing a random move (0-100%)
+    // Skill 0: 60% random, Skill 10: 20% random, Skill 18+: 0%
+    final randomChance = ((18 - skill) * 3.3).clamp(0, 60).toInt();
+    if (_rng.nextInt(100) >= randomChance) return null; // Play best move
+
+    // Pick a random legal move
+    final moves = _game.generate_moves();
+    if (moves.isEmpty) return null;
+    final randomMove = moves[_rng.nextInt(moves.length)];
+    final uci = '${randomMove.fromAlgebraic}${randomMove.toAlgebraic}'
+        '${randomMove.promotion?.name ?? ''}';
+    debugPrint('[Built-in] Weakened: $bestMove → $uci (skill=$skill)');
+    return uci;
+  }
+
   Future<SearchResult?> _searchWeb(int maxDepth) async {
     final webDepth = maxDepth.clamp(1, 7);
-    debugPrint('[DartEngine] Web incremental search: maxDepth=$webDepth');
+    debugPrint('[Built-in] Web search: maxDepth=$webDepth');
     final sw = Stopwatch()..start();
 
     final game = chess.Chess();
@@ -85,7 +110,6 @@ class DartEngine implements ChessEngine {
     SearchResult? best;
 
     for (int d = 1; d <= webDepth; d++) {
-      // Yield to UI between each depth iteration
       await Future.delayed(Duration.zero);
       if (_disposed) break;
 
@@ -93,17 +117,12 @@ class DartEngine implements ChessEngine {
       final result = search.search(d);
       if (result != null) {
         best = result;
-        debugPrint('[DartEngine] depth=$d: ${result.bestMove} score=${result.score} nodes=${result.nodesSearched} ${depthSw.elapsedMilliseconds}ms');
+        debugPrint('[Built-in] depth=$d: ${result.bestMove} ${depthSw.elapsedMilliseconds}ms');
       }
-
-      // If any single depth takes >500ms, stop — deeper will be too slow
-      if (depthSw.elapsedMilliseconds > 500) {
-        debugPrint('[DartEngine] Stopping: depth $d took ${depthSw.elapsedMilliseconds}ms');
-        break;
-      }
+      if (depthSw.elapsedMilliseconds > 500) break;
     }
 
-    debugPrint('[DartEngine] Total: ${sw.elapsedMilliseconds}ms move=${best?.bestMove}');
+    debugPrint('[Built-in] Total: ${sw.elapsedMilliseconds}ms');
     return best;
   }
 
@@ -111,15 +130,12 @@ class DartEngine implements ChessEngine {
   Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
     if (_disposed) return;
     _stateNotifier.value = EngineState.thinking;
-
     _applyPosition(positionCommand);
     final maxDepth = depth ?? 20;
-
     _search = AlphaBetaSearch(_game);
 
     for (int d = 1; d <= maxDepth; d++) {
       if (_disposed) break;
-
       SearchResult? result;
       if (kIsWeb) {
         await Future.delayed(Duration.zero);
@@ -132,23 +148,18 @@ class DartEngine implements ChessEngine {
           _SearchRequest(fen: _game.fen, depth: d),
         );
       }
-
       if (result == null || _disposed) break;
-
       yield EvalInfo(
         score: result.score / 100.0,
         depth: result.depth,
         bestMove: result.bestMove,
       );
     }
-
     if (!_disposed) _stateNotifier.value = EngineState.ready;
   }
 
   @override
-  void stop() {
-    _search?.stop();
-  }
+  void stop() => _search?.stop();
 
   @override
   void dispose() {
@@ -160,7 +171,6 @@ class DartEngine implements ChessEngine {
   void _applyPosition(String positionCommand) {
     _game.reset();
     final parts = positionCommand.split(' ');
-
     if (parts.length >= 2 && parts[1] == 'fen') {
       final fenEnd = parts.indexOf('moves');
       final fen = fenEnd > 0
@@ -168,16 +178,12 @@ class DartEngine implements ChessEngine {
           : parts.sublist(2).join(' ');
       _game.load(fen);
       if (fenEnd > 0) {
-        for (final move in parts.sublist(fenEnd + 1)) {
-          _makeUciMove(move);
-        }
+        for (final move in parts.sublist(fenEnd + 1)) _makeUciMove(move);
       }
     } else {
       final movesIndex = parts.indexOf('moves');
       if (movesIndex > 0) {
-        for (final move in parts.sublist(movesIndex + 1)) {
-          _makeUciMove(move);
-        }
+        for (final move in parts.sublist(movesIndex + 1)) _makeUciMove(move);
       }
     }
   }
@@ -191,6 +197,7 @@ class DartEngine implements ChessEngine {
     });
   }
 
+  /// Map skill 0-20 to search depth 2-10.
   int _depthFromSkill(int skillLevel) {
     return 2 + (skillLevel * 8 ~/ 20).clamp(0, 8);
   }
