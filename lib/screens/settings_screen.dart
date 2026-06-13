@@ -11,7 +11,7 @@ class SettingsScreen extends StatefulWidget {
     Key? key,
     required this.strengthLevel,
     required this.hintDepth,
-    this.currentEngine = 'Dart Alpha-Beta',
+    this.currentEngine = 'Built-in',
     this.playAsBlack = false,
   }) : super(key: key);
 
@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<_EngineOption> get _availableEngines {
     final engines = <_EngineOption>[
       _EngineOption(
-        name: 'Dart Alpha-Beta',
+        name: 'Built-in',
         description: 'Built-in (alpha-beta + TT, pure Dart)',
         elo: '~1800',
         license: 'MIT',
