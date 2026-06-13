@@ -75,7 +75,7 @@ class DartEngine implements ChessEngine {
   /// Non-blocking incremental search for web.
   /// Runs one depth at a time, yielding to the UI between each.
   Future<SearchResult?> _searchWeb(int maxDepth) async {
-    final webDepth = maxDepth.clamp(1, 5);
+    final webDepth = maxDepth.clamp(1, 7);
     debugPrint('[DartEngine] Web incremental search: maxDepth=$webDepth');
     final sw = Stopwatch()..start();
 

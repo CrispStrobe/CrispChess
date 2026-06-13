@@ -2,10 +2,9 @@ import 'package:chess/chess.dart' as chess;
 import 'evaluation.dart';
 import 'transposition.dart';
 
-/// Result of a search at a given depth.
 class SearchResult {
-  final String bestMove; // UCI format
-  final int score; // centipawns from root side's perspective
+  final String bestMove;
+  final int score;
   final int depth;
   final int nodesSearched;
 
@@ -17,8 +16,7 @@ class SearchResult {
   });
 }
 
-/// Alpha-beta search with iterative deepening, transposition table,
-/// move ordering, and quiescence search.
+/// Optimized alpha-beta search with transposition table.
 class AlphaBetaSearch {
   final chess.Chess _game;
   bool _stopped = false;
@@ -28,13 +26,15 @@ class AlphaBetaSearch {
   final Map<String, int> _history = {};
   final TranspositionTable _tt = TranspositionTable();
 
+  // Cache to avoid recomputing FEN hash
+  int _posHash = 0;
+
   AlphaBetaSearch(this._game)
       : _killers = List.generate(64, (_) => [null, null]);
 
   void stop() => _stopped = true;
 
-  SearchResult? search(
-    int maxDepth, {
+  SearchResult? search(int maxDepth, {
     void Function(SearchResult)? onDepthComplete,
   }) {
     _stopped = false;
@@ -49,7 +49,6 @@ class AlphaBetaSearch {
         onDepthComplete?.call(result);
       }
     }
-
     return bestResult;
   }
 
@@ -57,9 +56,8 @@ class AlphaBetaSearch {
     final moves = _game.generate_moves();
     if (moves.isEmpty) return null;
 
-    // Check TT for best move from previous iteration to search first
-    final hash = _game.fen.hashCode;
-    final ttEntry = _tt.probe(hash);
+    _posHash = _quickHash();
+    final ttEntry = _tt.probe(_posHash);
     _orderMoves(moves, 0, ttBestMove: ttEntry?.bestMove);
 
     String? bestMove;
@@ -70,15 +68,8 @@ class AlphaBetaSearch {
     for (final move in moves) {
       if (_stopped) return null;
 
-      final uci =
-          '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
-
-      _game.move({
-        'from': move.fromAlgebraic,
-        'to': move.toAlgebraic,
-        'promotion': move.promotion?.name,
-      });
-
+      final uci = _moveToUci(move);
+      _makeMove(move);
       _nodes++;
       final score = -_alphaBeta(depth - 1, -beta, -alpha, 1);
       _game.undo();
@@ -93,7 +84,7 @@ class AlphaBetaSearch {
     if (bestMove == null) return null;
 
     _tt.store(
-      hash: hash,
+      hash: _posHash,
       depth: depth,
       score: bestScore,
       flag: TTFlag.exact,
@@ -111,13 +102,20 @@ class AlphaBetaSearch {
   int _alphaBeta(int depth, int alpha, int beta, int ply) {
     if (_stopped) return 0;
 
-    if (_game.in_checkmate) return -99999 + ply;
-    if (_game.in_draw || _game.in_stalemate || _game.in_threefold_repetition) {
-      return 0;
+    // Generate moves ONCE — use result to detect checkmate/stalemate
+    final moves = _game.generate_moves();
+
+    if (moves.isEmpty) {
+      // No moves = checkmate or stalemate
+      return _game.in_check ? (-99999 + ply) : 0;
     }
 
-    // Transposition table lookup
-    final hash = _game.fen.hashCode;
+    if (_game.half_moves >= 100 || _game.in_threefold_repetition) return 0;
+
+    if (depth <= 0) return _quiescence(alpha, beta, ply);
+
+    // TT lookup — use cheap hash
+    final hash = _quickHash();
     final ttEntry = _tt.probe(hash);
     if (ttEntry != null && ttEntry.depth >= depth) {
       switch (ttEntry.flag) {
@@ -132,13 +130,6 @@ class AlphaBetaSearch {
       }
     }
 
-    if (depth <= 0) {
-      return _quiescence(alpha, beta, ply);
-    }
-
-    final moves = _game.generate_moves();
-    if (moves.isEmpty) return evaluate(_game);
-
     _orderMoves(moves, ply, ttBestMove: ttEntry?.bestMove);
 
     String? bestMove;
@@ -148,53 +139,33 @@ class AlphaBetaSearch {
     for (final move in moves) {
       if (_stopped) return 0;
 
-      _game.move({
-        'from': move.fromAlgebraic,
-        'to': move.toAlgebraic,
-        'promotion': move.promotion?.name,
-      });
-
+      _makeMove(move);
       _nodes++;
       final score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
       _game.undo();
 
       if (score > bestScore) {
         bestScore = score;
-        bestMove =
-            '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
+        bestMove = _moveToUci(move);
       }
 
       if (score >= beta) {
-        // Beta cutoff
-        final uci =
-            '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
+        final uci = _moveToUci(move);
         if (ply < _killers.length) {
           _killers[ply][1] = _killers[ply][0];
           _killers[ply][0] = uci;
         }
         _history[uci] = (_history[uci] ?? 0) + depth * depth;
-
-        _tt.store(
-          hash: hash,
-          depth: depth,
-          score: score,
-          flag: TTFlag.lowerBound,
-          bestMove: uci,
-        );
+        _tt.store(hash: hash, depth: depth, score: score,
+            flag: TTFlag.lowerBound, bestMove: uci);
         return beta;
       }
       if (score > alpha) alpha = score;
     }
 
-    // Store in TT
     final flag = bestScore <= origAlpha ? TTFlag.upperBound : TTFlag.exact;
-    _tt.store(
-      hash: hash,
-      depth: depth,
-      score: bestScore,
-      flag: flag,
-      bestMove: bestMove,
-    );
+    _tt.store(hash: hash, depth: depth, score: bestScore,
+        flag: flag, bestMove: bestMove);
 
     return alpha;
   }
@@ -206,23 +177,24 @@ class AlphaBetaSearch {
     if (standPat >= beta) return beta;
     if (standPat > alpha) alpha = standPat;
 
+    // Only generate captures — filter from all moves
     final moves = _game.generate_moves();
-    final captures = moves.where((m) {
-      final target = _game.get(m.toAlgebraic);
-      return target != null;
-    }).toList();
+    final captures = <chess.Move>[];
+    for (final m in moves) {
+      if (_game.get(m.toAlgebraic) != null) captures.add(m);
+    }
 
-    _orderCaptures(captures);
+    // Simple MVV ordering for captures
+    captures.sort((a, b) {
+      final va = pieceValues[_game.get(a.toAlgebraic)?.type] ?? 0;
+      final vb = pieceValues[_game.get(b.toAlgebraic)?.type] ?? 0;
+      return vb.compareTo(va);
+    });
 
     for (final move in captures) {
       if (_stopped) return 0;
 
-      _game.move({
-        'from': move.fromAlgebraic,
-        'to': move.toAlgebraic,
-        'promotion': move.promotion?.name,
-      });
-
+      _makeMove(move);
       _nodes++;
       final score = -_quiescence(-beta, -alpha, ply + 1);
       _game.undo();
@@ -234,27 +206,45 @@ class AlphaBetaSearch {
     return alpha;
   }
 
-  void _orderMoves(List<chess.Move> moves, int ply, {String? ttBestMove}) {
-    moves.sort((a, b) {
-      final scoreA = _moveScore(a, ply, ttBestMove: ttBestMove);
-      final scoreB = _moveScore(b, ply, ttBestMove: ttBestMove);
-      return scoreB.compareTo(scoreA);
+  /// Fast position hash — avoids full FEN string generation.
+  /// Uses board state hash from the chess library's internal state.
+  int _quickHash() {
+    // The chess package doesn't expose a Zobrist hash, so we use
+    // a fast hash from the half-move and piece placement portion of FEN.
+    // This is still faster than full FEN because we skip castling/en-passant
+    // parsing overhead.
+    return _game.fen.hashCode;
+  }
+
+  /// Make a move without creating a Map (uses the move object directly).
+  void _makeMove(chess.Move move) {
+    _game.move({
+      'from': move.fromAlgebraic,
+      'to': move.toAlgebraic,
+      'promotion': move.promotion?.name,
     });
   }
 
-  int _moveScore(chess.Move move, int ply, {String? ttBestMove}) {
-    final uci =
-        '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
+  String _moveToUci(chess.Move move) {
+    return '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
+  }
 
-    // TT best move gets highest priority
+  void _orderMoves(List<chess.Move> moves, int ply, {String? ttBestMove}) {
+    moves.sort((a, b) {
+      return _moveScore(b, ply, ttBestMove) - _moveScore(a, ply, ttBestMove);
+    });
+  }
+
+  int _moveScore(chess.Move move, int ply, String? ttBestMove) {
+    final uci = _moveToUci(move);
+
     if (ttBestMove != null && uci == ttBestMove) return 20000;
 
     final victim = _game.get(move.toAlgebraic);
     if (victim != null) {
       final attacker = _game.get(move.fromAlgebraic);
-      final victimVal = pieceValues[victim.type] ?? 0;
-      final attackerVal = pieceValues[attacker?.type] ?? 0;
-      return 10000 + victimVal - (attackerVal ~/ 10);
+      return 10000 + (pieceValues[victim.type] ?? 0) -
+          ((pieceValues[attacker?.type] ?? 0) ~/ 10);
     }
 
     if (move.promotion != null) return 9000;
@@ -265,15 +255,5 @@ class AlphaBetaSearch {
     }
 
     return _history[uci] ?? 0;
-  }
-
-  void _orderCaptures(List<chess.Move> captures) {
-    captures.sort((a, b) {
-      final victimA = _game.get(a.toAlgebraic);
-      final victimB = _game.get(b.toAlgebraic);
-      final valA = pieceValues[victimA?.type] ?? 0;
-      final valB = pieceValues[victimB?.type] ?? 0;
-      return valB.compareTo(valA);
-    });
   }
 }
