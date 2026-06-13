@@ -104,10 +104,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       name: 'Frozenight',
       description: kIsWeb
           ? 'NNUE engine (Rust→WASM)'
-          : 'NNUE engine (Rust FFI)',
+          : 'NNUE engine (Rust FFI — needs native lib)',
       elo: '~3226',
       license: 'MIT/Apache-2.0',
-      available: kIsWeb,
+      available: true, // Web WASM + native FFI (if lib present)
     ));
 
     // Stockfish — downloaded at runtime, never linked into app

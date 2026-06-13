@@ -141,6 +141,25 @@ jobs:
           path: native/frozenight/target/aarch64-linux-android/release/libfrozenight_ffi.so
           retention-days: 14
 
+  # Build Frozenight for Windows
+  frozenight-windows:
+    name: Frozenight (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+      - name: Build Frozenight FFI
+        run: cargo build --release
+        working-directory: native/frozenight
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-windows
+          path: native/frozenight/target/release/frozenight_ffi.dll
+          retention-days: 14
+
   # Flutter builds (no Frozenight dependency — DartEngine only)
   build-android:
     name: Build Android
