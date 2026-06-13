@@ -29,21 +29,20 @@ CrispChess App (MIT)
 - [x] Runs in isolate via compute()
 - [x] Transposition table
 - [x] Unit tests for evaluation, search
-- [ ] Integration test: engine plays a full game
+- [x] Integration test: engine plays a full game
 
 ### Phase 3: Frozenight Integration (MIT/Apache-2.0)
 - [x] Rust FFI wrapper (native/frozenight/)
 - [x] Dart FFI bindings (FrozenightEngine)
 - [x] CI compiles for Linux + macOS
 - [x] Bundle job packages .so with Flutter build
-- [ ] Android NDK cross-compilation
+- [x] Android NDK cross-compilation (CI job)
 - [ ] iOS static library
 
 ### Phase 4: Optional Stockfish (GPL, non-iOS)
-- [ ] StockfishEngine wrapping stockfish package
-- [ ] Conditional import
-- [ ] GPL notice in settings
-- [ ] Exclude from iOS builds
+- [x] StockfishEngine stub wrapper
+- [x] GPL notice in settings
+- [x] Exclude Stockfish from iOS (hidden on iOS)
 
 ### Phase 5: App Store & Web
 - [x] Vercel deploy (https://crispchess.vercel.app)

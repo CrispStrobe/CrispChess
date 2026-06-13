@@ -43,15 +43,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
-    // Frozenight only on native platforms (can't import dart:ffi on web)
+    // Native-only engines (dart:ffi not available on web)
     if (!kIsWeb) {
       engines.add(_EngineOption(
         name: 'Frozenight',
         description: 'NNUE engine (Rust)',
         elo: '~2960',
         license: 'MIT/Apache-2.0',
-        available: false, // Will be true when native lib is installed
+        available: false, // True when native lib installed
       ));
+      // Stockfish: GPL — show on non-iOS only
+      final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+      if (!isIOS) {
+        engines.add(_EngineOption(
+          name: 'Stockfish',
+          description: 'Strongest engine (GPL)',
+          elo: '~3600',
+          license: 'GPL-3.0',
+          available: false, // True when stockfish package added
+          gplNotice: true,
+        ));
+      }
     }
 
     return engines;
@@ -112,10 +124,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-                  subtitle: Text(
-                    '${engine.description} (${engine.license})'
-                    '${engine.available ? '' : ' — not installed'}',
-                    style: const TextStyle(fontSize: 12),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${engine.description} (${engine.license})'
+                        '${engine.available ? '' : ' — not installed'}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      if (engine.gplNotice)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Note: GPL-3.0 — bundling Stockfish makes the '
+                            'entire app binary GPL-licensed.',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange.shade700,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 );
               }).toList(),
@@ -280,6 +310,7 @@ class _EngineOption {
   final String elo;
   final String license;
   final bool available;
+  final bool gplNotice;
 
   _EngineOption({
     required this.name,
@@ -287,5 +318,6 @@ class _EngineOption {
     required this.elo,
     required this.license,
     required this.available,
+    this.gplNotice = false,
   });
 }

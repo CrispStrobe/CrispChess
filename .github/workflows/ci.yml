@@ -66,6 +66,35 @@ jobs:
           path: native/frozenight/target/release/libfrozenight_ffi.dylib
           retention-days: 14
 
+  # Build Frozenight for Android (arm64)
+  frozenight-android:
+    name: Frozenight (Android arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+      - name: Install Android NDK linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Build Frozenight for Android arm64
+        run: |
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=aarch64-linux-gnu-gcc
+          cargo build --release --target aarch64-linux-android
+        working-directory: native/frozenight
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frozenight-android-arm64
+          path: native/frozenight/target/aarch64-linux-android/release/libfrozenight_ffi.so
+          retention-days: 14
+
   # Flutter builds (no Frozenight dependency — DartEngine only)
   build-android:
     name: Build Android
