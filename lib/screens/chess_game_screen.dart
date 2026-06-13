@@ -124,6 +124,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (_game.makeMove(uciMove)) {
       setState(() {
         _state = _state.copyWith(
+          lastMoveUci: uciMove,
           lastMove: '${_engineService.engineName}: $uciMove',
           statusMessage:
               _game.isGameOver ? 'Game Over!' : 'Your turn ($_playerColorName)',
@@ -180,7 +181,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
     if (_game.makeMove(uciMove)) {
       setState(() {
-        _state = _state.copyWith(lastMove: 'You: $uciMove', hintMove: null);
+        _state = _state.copyWith(lastMove: 'You: $uciMove', hintMove: null, lastMoveUci: uciMove);
 
         if (_game.isGameOver) {
           _state = _state.copyWith(
@@ -498,6 +499,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           isCheck: _game.inCheck,
                           animateMoves: _state.animateMoves,
                           pieceTheme: _state.pieceTheme,
+                          lastMoveUci: _state.lastMoveUci,
                         ),
                       );
                     },

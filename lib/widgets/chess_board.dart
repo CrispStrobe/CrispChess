@@ -15,6 +15,7 @@ class ChessBoard extends StatefulWidget {
   final bool isCheck;
   final bool animateMoves;
   final String pieceTheme;
+  final String? lastMoveUci; // e.g. "e2e4" — triggers slide animation
 
   const ChessBoard({
     Key? key,
@@ -30,6 +31,7 @@ class ChessBoard extends StatefulWidget {
     this.isCheck = false,
     this.animateMoves = true,
     this.pieceTheme = 'chessnut',
+    this.lastMoveUci,
   }) : super(key: key);
 
   @override
@@ -38,47 +40,68 @@ class ChessBoard extends StatefulWidget {
 
 class _ChessBoardState extends State<ChessBoard>
     with SingleTickerProviderStateMixin {
-  AnimationController? _animationController;
-  Animation<Offset>? _animation;
-  String? _animatingMove;
+  late AnimationController _animController;
+  String? _lastProcessedMove;
+
+  // Animation state: piece sliding from one square to another
+  int? _animFromRow, _animFromCol, _animToRow, _animToCol;
+  ChessPiece? _animPiece;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
+    _animController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _animPiece = null;
+          _animFromRow = null;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(ChessBoard old) {
+    super.didUpdateWidget(old);
+    // Trigger animation when lastMoveUci changes
+    if (widget.lastMoveUci != null &&
+        widget.lastMoveUci != _lastProcessedMove &&
+        widget.animateMoves) {
+      _lastProcessedMove = widget.lastMoveUci;
+      _startMoveAnimation(widget.lastMoveUci!);
+    }
+  }
+
+  void _startMoveAnimation(String uci) {
+    if (uci.length < 4) return;
+    final fromCol = uci.codeUnitAt(0) - 97; // 'a' = 0
+    final fromRow = 8 - int.parse(uci[1]);
+    final toCol = uci.codeUnitAt(2) - 97;
+    final toRow = 8 - int.parse(uci[3]);
+
+    // The piece is already at the destination in the board state.
+    // We grab it and animate it FROM the source TO the destination.
+    final piece = widget.board[toRow][toCol];
+    if (piece == null) return;
+
+    setState(() {
+      _animPiece = piece;
+      _animFromRow = fromRow;
+      _animFromCol = fromCol;
+      _animToRow = toRow;
+      _animToCol = toCol;
+    });
+    _animController.forward(from: 0);
   }
 
   @override
   void dispose() {
-    _animationController?.dispose();
+    _animController.dispose();
     super.dispose();
-  }
-
-  void _animateMove(int fromRow, int fromCol, int toRow, int toCol) {
-    if (!widget.animateMoves) return;
-
-    final dx = (toCol - fromCol).toDouble();
-    final dy = (toRow - fromRow).toDouble();
-
-    _animation = Tween<Offset>(
-      begin: Offset.zero,
-      end: Offset(dx, dy),
-    ).animate(CurvedAnimation(
-      parent: _animationController!,
-      curve: Curves.easeInOut,
-    ));
-
-    _animatingMove = '${fromRow}_$fromCol';
-    _animationController!.forward(from: 0).then((_) {
-      if (mounted) {
-        setState(() {
-          _animatingMove = null;
-        });
-      }
-    });
   }
 
   @override
@@ -99,6 +122,8 @@ class _ChessBoardState extends State<ChessBoard>
       hintTo = widget.hintMove!.substring(2, 4);
     }
 
+    final isAnimating = _animPiece != null;
+
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
@@ -106,12 +131,18 @@ class _ChessBoardState extends State<ChessBoard>
           border: Border.all(color: Colors.brown, width: 2),
         ),
         child: RepaintBoundary(
-          child: Column(
-            children: List.generate(8, (row) {
-              return Expanded(
-                child: Row(
-                  children: List.generate(8, (col) {
-                    final piece = widget.board[row][col];
+          child: Stack(
+            children: [
+              Column(
+                children: List.generate(8, (row) {
+                  return Expanded(
+                    child: Row(
+                      children: List.generate(8, (col) {
+                    // During animation, hide piece at destination
+                    final hideForAnim = isAnimating &&
+                        row == _animToRow && col == _animToCol;
+                    final piece = hideForAnim ? null : widget.board[row][col];
+
                     final squareName =
                         widget.squareToAlgebraic(row, col);
                     final isLight = (row + col) % 2 == 0;
@@ -124,20 +155,17 @@ class _ChessBoardState extends State<ChessBoard>
 
                     bool isKingInDanger = false;
                     if (widget.isCheck &&
-                        piece != null &&
-                        piece.type == PieceType.king) {
+                        widget.board[row][col] != null &&
+                        widget.board[row][col]!.type == PieceType.king) {
                       if (widget.whiteToMove &&
-                          piece.color == PieceColor.white) {
+                          widget.board[row][col]!.color == PieceColor.white) {
                         isKingInDanger = true;
                       }
                       if (!widget.whiteToMove &&
-                          piece.color == PieceColor.black) {
+                          widget.board[row][col]!.color == PieceColor.black) {
                         isKingInDanger = true;
                       }
                     }
-
-                    final isAnimating =
-                        _animatingMove == '${row}_$col';
 
                     return _ChessSquare(
                       row: row,
@@ -150,17 +178,42 @@ class _ChessBoardState extends State<ChessBoard>
                       isHintFrom: isHintFrom,
                       isHintTo: isHintTo,
                       isKingInDanger: isKingInDanger,
-                      isAnimating: isAnimating,
-                      animation: _animation,
                       onSquareTap: widget.onSquareTap,
                       onMove: widget.onMove,
-                      animateMove: _animateMove,
                       pieceTheme: widget.pieceTheme,
                     );
                   }),
                 ),
               );
             }),
+          ),
+              // Animated piece overlay
+              if (isAnimating && _animFromRow != null)
+                AnimatedBuilder(
+                  animation: _animController,
+                  builder: (context, child) {
+                    final t = Curves.easeInOut.transform(_animController.value);
+                    final fromX = _animFromCol! / 8.0;
+                    final fromY = _animFromRow! / 8.0;
+                    final toX = _animToCol! / 8.0;
+                    final toY = _animToRow! / 8.0;
+                    final x = fromX + (toX - fromX) * t;
+                    final y = fromY + (toY - fromY) * t;
+                    return Positioned(
+                      left: x * (context.size?.width ?? 300),
+                      top: y * (context.size?.height ?? 300),
+                      width: (context.size?.width ?? 300) / 8,
+                      height: (context.size?.height ?? 300) / 8,
+                      child: IgnorePointer(
+                        child: _PieceWidget(
+                          piece: _animPiece!,
+                          theme: widget.pieceTheme,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
         ),
       ),
@@ -179,12 +232,8 @@ class _ChessSquare extends StatelessWidget {
   final bool isHintFrom;
   final bool isHintTo;
   final bool isKingInDanger;
-  final bool isAnimating;
-  final Animation<Offset>? animation;
   final Function(int row, int col)? onSquareTap;
   final Function(int fromRow, int fromCol, int toRow, int toCol)? onMove;
-  final void Function(int fromRow, int fromCol, int toRow, int toCol)
-      animateMove;
   final String pieceTheme;
 
   const _ChessSquare({
@@ -198,11 +247,8 @@ class _ChessSquare extends StatelessWidget {
     required this.isHintFrom,
     required this.isHintTo,
     required this.isKingInDanger,
-    required this.isAnimating,
-    required this.animation,
     required this.onSquareTap,
     required this.onMove,
-    required this.animateMove,
     required this.pieceTheme,
   });
 
@@ -216,12 +262,8 @@ class _ChessSquare extends StatelessWidget {
         child: DragTarget<Map<String, int>>(
           onWillAcceptWithDetails: (details) => true,
           onAcceptWithDetails: (details) {
-            if (onMove != null) {
-              animateMove(
-                  details.data['row']!, details.data['col']!, row, col);
-              onMove!(
-                  details.data['row']!, details.data['col']!, row, col);
-            }
+            onMove?.call(
+                details.data['row']!, details.data['col']!, row, col);
           },
           builder: (context, candidateData, rejectedData) {
             Color? bgColor;
@@ -274,31 +316,12 @@ class _ChessSquare extends StatelessWidget {
                       ),
                     ),
                   if (piece != null)
-                    isAnimating && animation != null
-                        ? AnimatedBuilder(
-                            animation: animation!,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(
-                                  animation!.value.dx *
-                                      MediaQuery.of(context).size.width /
-                                      8,
-                                  animation!.value.dy *
-                                      MediaQuery.of(context).size.height /
-                                      8,
-                                ),
-                                child: child,
-                              );
-                            },
-                            child: _PieceWidget(piece: piece!, theme: pieceTheme),
-                          )
-                        : Draggable<Map<String, int>>(
-                            data: {'row': row, 'col': col},
-                            feedback:
-                                _PieceWidget(piece: piece!, size: 60, theme: pieceTheme),
-                            childWhenDragging: Container(),
-                            child: _PieceWidget(piece: piece!, theme: pieceTheme),
-                          ),
+                    Draggable<Map<String, int>>(
+                      data: {'row': row, 'col': col},
+                      feedback: _PieceWidget(piece: piece!, size: 60, theme: pieceTheme),
+                      childWhenDragging: Container(),
+                      child: _PieceWidget(piece: piece!, theme: pieceTheme),
+                    ),
                 ],
               ),
             );

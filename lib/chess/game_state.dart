@@ -15,6 +15,7 @@ class GameState {
   final String? currentBestMove;
   final bool playAsBlack;
   final String pieceTheme;
+  final String? lastMoveUci;
 
   const GameState({
     this.strengthLevel = 10,
@@ -33,6 +34,7 @@ class GameState {
     this.currentBestMove,
     this.playAsBlack = false,
     this.pieceTheme = 'chessnut',
+    this.lastMoveUci,
   });
 
   static const _sentinel = Object();
@@ -54,6 +56,7 @@ class GameState {
     Object? currentBestMove = _sentinel,
     bool? playAsBlack,
     String? pieceTheme,
+    Object? lastMoveUci = _sentinel,
   }) =>
       GameState(
         strengthLevel: strengthLevel ?? this.strengthLevel,
@@ -80,5 +83,8 @@ class GameState {
             : currentBestMove as String?,
         playAsBlack: playAsBlack ?? this.playAsBlack,
         pieceTheme: pieceTheme ?? this.pieceTheme,
+        lastMoveUci: identical(lastMoveUci, _sentinel)
+            ? this.lastMoveUci
+            : lastMoveUci as String?,
       );
 }
