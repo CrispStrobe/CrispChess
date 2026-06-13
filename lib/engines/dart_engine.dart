@@ -18,7 +18,7 @@ class DartEngine implements ChessEngine {
       ValueNotifier(EngineState.idle);
 
   @override
-  String get name => 'CrispEngine';
+  String get name => 'Dart Alpha-Beta';
 
   @override
   String get version => '1.1.0';

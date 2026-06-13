@@ -5,12 +5,14 @@ class SettingsScreen extends StatefulWidget {
   final int strengthLevel;
   final int hintDepth;
   final String currentEngine;
+  final bool playAsBlack;
 
   const SettingsScreen({
     Key? key,
     required this.strengthLevel,
     required this.hintDepth,
-    this.currentEngine = 'CrispEngine',
+    this.currentEngine = 'Dart Alpha-Beta',
+    this.playAsBlack = false,
   }) : super(key: key);
 
   @override
@@ -23,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _selectedEngine;
   bool _showValidMoves = true;
   bool _animateMoves = true;
+  bool _playAsBlack = false;
 
   @override
   void initState() {
@@ -30,26 +33,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _strengthLevel = widget.strengthLevel;
     _hintDepth = widget.hintDepth;
     _selectedEngine = widget.currentEngine;
+    _playAsBlack = widget.playAsBlack;
   }
 
   List<_EngineOption> get _availableEngines {
     final engines = <_EngineOption>[
       _EngineOption(
-        name: 'CrispEngine',
-        description: 'Built-in Dart engine',
+        name: 'Dart Alpha-Beta',
+        description: 'Built-in (alpha-beta + TT, pure Dart)',
         elo: '~1800',
         license: 'MIT',
         available: true,
       ),
     ];
 
-    // Maia3 — available everywhere (MIT, ONNX Runtime)
+    // Maia3 — MIT neural net (needs bundled maia3-js + ONNX Runtime)
     engines.add(_EngineOption(
       name: 'Maia3',
-      description: 'Neural net — plays like a human (~21MB download)',
+      description: 'Neural net — plays like a human (~21MB)',
       elo: '~1500',
       license: 'MIT',
-      available: kIsWeb, // Web ready now, native needs JS bridge
+      available: false, // Needs bundled maia3-js (CDN import has dep issues)
     ));
 
     // Frozenight — MIT, available on all platforms
@@ -157,8 +161,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'GPL-3.0 engine — downloaded separately, not '
-                            'compiled into this app. App remains MIT.',
+                            'GPL-3.0 engine — downloaded separately, '
+                            'not compiled into this app.',
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.grey.shade600,
@@ -249,12 +253,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
-          // Visual settings
-          Text('Display', style: Theme.of(context).textTheme.titleLarge),
+          // Game settings
+          Text('Game', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
               children: [
+                SwitchListTile(
+                  title: const Text('Play as Black'),
+                  subtitle: const Text('Engine makes the first move'),
+                  value: _playAsBlack,
+                  onChanged: (value) =>
+                      setState(() => _playAsBlack = value),
+                ),
+                const Divider(height: 1),
                 SwitchListTile(
                   title: const Text('Show Valid Moves'),
                   subtitle:
@@ -315,6 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'hintDepth': _hintDepth,
             'showValidMoves': _showValidMoves,
             'animateMoves': _animateMoves,
+            'playAsBlack': _playAsBlack,
             'engine': _selectedEngine,
           });
         },

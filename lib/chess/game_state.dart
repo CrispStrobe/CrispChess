@@ -13,6 +13,7 @@ class GameState {
   final bool waitingForHint;
   final bool analysisExpanded;
   final String? currentBestMove;
+  final bool playAsBlack;
 
   const GameState({
     this.strengthLevel = 10,
@@ -29,6 +30,7 @@ class GameState {
     this.waitingForHint = false,
     this.analysisExpanded = false,
     this.currentBestMove,
+    this.playAsBlack = false,
   });
 
   static const _sentinel = Object();
@@ -48,6 +50,7 @@ class GameState {
     bool? waitingForHint,
     bool? analysisExpanded,
     Object? currentBestMove = _sentinel,
+    bool? playAsBlack,
   }) =>
       GameState(
         strengthLevel: strengthLevel ?? this.strengthLevel,
@@ -72,5 +75,6 @@ class GameState {
         currentBestMove: identical(currentBestMove, _sentinel)
             ? this.currentBestMove
             : currentBestMove as String?,
+        playAsBlack: playAsBlack ?? this.playAsBlack,
       );
 }

@@ -67,7 +67,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         debugPrint('[CrispChess] Engine state: $state');
         if (state == EngineState.ready) {
           setState(() {
-            _state = _state.copyWith(statusMessage: 'Your turn (White)');
+            _state = _state.copyWith(statusMessage: 'Your turn ($_playerColorName)');
           });
         } else if (state == EngineState.error) {
           setState(() {
@@ -90,10 +90,22 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
+  /// Is it the human player's turn?
+  bool get _isPlayerTurn {
+    if (_state.playAsBlack) return !_game.whiteToMove;
+    return _game.whiteToMove;
+  }
+
+  /// The player's piece color.
+  PieceColor get _playerColor =>
+      _state.playAsBlack ? PieceColor.black : PieceColor.white;
+
+  String get _playerColorName => _state.playAsBlack ? 'Black' : 'White';
+
   List<String> _getValidMovesForSquare(int row, int col) {
     final square = _game.squareToAlgebraic(row, col);
     final piece = _game.board[row][col];
-    if (piece == null || piece.color != PieceColor.white) return [];
+    if (piece == null || piece.color != _playerColor) return [];
     return _game.getLegalMoves().where((m) => m.startsWith(square)).toList();
   }
 
@@ -115,7 +127,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _state = _state.copyWith(
           lastMove: '${_engineService.engineName}: $uciMove',
           statusMessage:
-              _game.isGameOver ? 'Game Over!' : 'Your turn (White)',
+              _game.isGameOver ? 'Game Over!' : 'Your turn ($_playerColorName)',
           isThinking: false,
         );
       });
@@ -124,7 +136,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _onSquareTap(int row, int col) {
-    if (!_game.whiteToMove || _state.isThinking) return;
+    if (!_isPlayerTurn || _state.isThinking) return;
 
     final piece = _game.board[row][col];
 
@@ -137,7 +149,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           validMoves: const [],
         );
       });
-    } else if (piece != null && piece.color == PieceColor.white) {
+    } else if (piece != null && piece.color == _playerColor) {
       setState(() {
         _state = _state.copyWith(
           selectedRow: row,
@@ -152,7 +164,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onMove(int fromRow, int fromCol, int toRow, int toCol) {
     debugPrint('[CrispChess] _onMove($fromRow,$fromCol -> $toRow,$toCol) whiteToMove=${_game.whiteToMove} isThinking=${_state.isThinking} engineState=${_engineService.state}');
-    if (!_game.whiteToMove || _state.isThinking) return;
+    if (!_isPlayerTurn || _state.isThinking) return;
 
     if (_engineService.state != EngineState.ready) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -212,7 +224,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       );
       return;
     }
-    if (!_game.whiteToMove || _state.isThinking) return;
+    if (!_isPlayerTurn || _state.isThinking) return;
 
     setState(() {
       _state = _state.copyWith(
@@ -236,7 +248,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _game.undoMove();
       _game.undoMove();
       _state = _state.copyWith(
-        statusMessage: 'Your turn (White)',
+        statusMessage: 'Your turn ($_playerColorName)',
         hintMove: null,
         isThinking: false,
       );
@@ -249,13 +261,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     setState(() {
       _game.reset();
       _state = _state.copyWith(
-        statusMessage: 'Your turn (White)',
-        isThinking: false,
+        statusMessage: _state.playAsBlack
+            ? '${_engineService.engineName} is thinking...'
+            : 'Your turn ($_playerColorName)',
+        isThinking: _state.playAsBlack,
         hintMove: null,
         lastMove: '',
         currentBestMove: null,
       );
     });
+
+    // If playing as black, engine makes the first move
+    if (_state.playAsBlack) {
+      _requestEngineMove();
+    }
   }
 
   void _showGameOverDialog() {
@@ -293,18 +312,28 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           strengthLevel: _state.strengthLevel,
           hintDepth: _state.hintDepth,
           currentEngine: _engineService.engineName,
+          playAsBlack: _state.playAsBlack,
         ),
       ),
     );
     if (result != null) {
+      final newPlayAsBlack = result['playAsBlack'] as bool? ?? false;
+      final colorChanged = newPlayAsBlack != _state.playAsBlack;
+
       setState(() {
         _state = _state.copyWith(
           strengthLevel: result['strengthLevel']! as int,
           hintDepth: result['hintDepth']! as int,
           showValidMoves: result['showValidMoves']! as bool,
           animateMoves: result['animateMoves']! as bool,
+          playAsBlack: newPlayAsBlack,
         );
       });
+
+      // If color changed, start a new game
+      if (colorChanged) {
+        _newGame();
+      }
 
       // Switch engine if changed
       final selectedEngine = result['engine'] as String?;
