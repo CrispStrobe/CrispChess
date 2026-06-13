@@ -58,12 +58,13 @@ practical purposes on iOS.
 - [ ] Integration test: engine plays a full game
 
 ### Phase 3: Frozenight Integration (MIT/Apache-2.0)
-- [ ] Add Rust build toolchain for iOS/Android/desktop
-- [ ] Create Dart FFI bindings for Frozenight
-- [ ] Implement FrozenightEngine using UCI protocol over FFI
-- [ ] Add NNUE network file management
-- [ ] Test on all platforms
+- [x] Create Rust FFI wrapper (native/frozenight/)
+- [x] Create Dart FFI bindings (FrozenightEngine)
+- [x] Implement FrozenightEngine with ChessEngine interface
+- [x] Build script for Linux/macOS/iOS
+- [ ] Android NDK cross-compilation
 - [ ] CI/CD for Rust cross-compilation
+- [ ] Test on all platforms
 
 ### Phase 4: Optional Stockfish (GPL, non-iOS)
 - [ ] Implement StockfishEngine wrapping existing stockfish package

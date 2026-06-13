@@ -1,0 +1,17 @@
+[package]
+name = "frozenight-ffi"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+name = "frozenight_ffi"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+frozenight = { git = "https://github.com/MinusKelvin/frozenight", branch = "master" }
+cozy-chess = "0.3"
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = 3

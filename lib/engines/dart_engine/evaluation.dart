@@ -1,7 +1,7 @@
 import 'package:chess/chess.dart' as chess;
 
 /// Material values in centipawns.
-const pieceValues = {
+final pieceValues = {
   chess.PieceType.PAWN: 100,
   chess.PieceType.KNIGHT: 320,
   chess.PieceType.BISHOP: 330,
@@ -90,7 +90,7 @@ const _kingEndgameTable = [
   -50,-30,-30,-30,-30,-30,-30,-50,
 ];
 
-const _pstTables = {
+final _pstTables = {
   chess.PieceType.PAWN: _pawnTable,
   chess.PieceType.KNIGHT: _knightTable,
   chess.PieceType.BISHOP: _bishopTable,
@@ -124,11 +124,11 @@ int evaluate(chess.Chess game) {
 
   for (final entry in chess.Chess.SQUARES.entries) {
     final sq = entry.key;
-    final sqIndex = entry.value;
+    final int sqIndex = entry.value as int;
     final piece = game.get(sq);
     if (piece == null) continue;
 
-    final materialValue = pieceValues[piece.type] ?? 0;
+    final int materialValue = pieceValues[piece.type] ?? 0;
 
     // Piece-square table index
     // Chess.SQUARES maps 'a8'->0, 'b8'->1, ..., 'h1'->63
@@ -142,15 +142,15 @@ int evaluate(chess.Chess game) {
     int pstValue;
     if (piece.type == chess.PieceType.KING) {
       final table = isEndgame ? _kingEndgameTable : _kingMiddlegameTable;
-      pstValue = piece.color == chess.Color.WHITE
+      pstValue = (piece.color == chess.Color.WHITE
           ? table[whiteTableIndex]
-          : table[blackTableIndex];
+          : table[blackTableIndex]) as int;
     } else {
       final table = _pstTables[piece.type];
       if (table != null) {
-        pstValue = piece.color == chess.Color.WHITE
+        pstValue = (piece.color == chess.Color.WHITE
             ? table[whiteTableIndex]
-            : table[blackTableIndex];
+            : table[blackTableIndex]) as int;
       } else {
         pstValue = 0;
       }

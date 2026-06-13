@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   chess: ^0.8.1
+  ffi: ^2.0.0
   flutter_svg: ^2.2.3
   logging: ^1.2.0
 
