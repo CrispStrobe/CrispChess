@@ -7,6 +7,7 @@ class SettingsScreen extends StatefulWidget {
   final String currentEngine;
   final bool playAsBlack;
   final String maia3Variant;
+  final int animationSpeed;
 
   const SettingsScreen({
     Key? key,
@@ -15,6 +16,7 @@ class SettingsScreen extends StatefulWidget {
     this.currentEngine = 'Built-in',
     this.playAsBlack = false,
     this.maia3Variant = '5m',
+    this.animationSpeed = 2,
   }) : super(key: key);
 
   @override
@@ -27,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _selectedEngine;
   late String _maia3Variant;
   bool _showValidMoves = true;
-  bool _animateMoves = true;
+  int _animationSpeed = 2;
   bool _playAsBlack = false;
   String _pieceTheme = 'chessnut';
 
@@ -56,6 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedEngine = widget.currentEngine;
     _playAsBlack = widget.playAsBlack;
     _maia3Variant = widget.maia3Variant;
+    _animationSpeed = widget.animationSpeed;
   }
 
   bool get _isMaiaEngine =>
@@ -152,6 +155,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   int _getEstimatedElo(int level) => 800 + (level * 80);
   int _getSearchDepth(int level) => 3 + level;
+
+  static String _animationSpeedLabel(int speed) {
+    switch (speed) {
+      case 0: return 'Instant';
+      case 1: return 'Fast';
+      case 2: return 'Normal';
+      case 3: return 'Slow';
+      default: return 'Normal';
+    }
+  }
 
   Color _getColorForStrength(int level) {
     if (level <= 6) return Colors.green;
@@ -348,12 +361,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _showValidMoves = value),
                 ),
                 const Divider(height: 1),
-                SwitchListTile(
-                  title: const Text('Animate Moves'),
-                  subtitle: const Text('Smooth piece movement animation'),
-                  value: _animateMoves,
-                  onChanged: (value) =>
-                      setState(() => _animateMoves = value),
+                ListTile(
+                  title: const Text('Animation Speed'),
+                  subtitle: Slider(
+                    value: _animationSpeed.toDouble(),
+                    min: 0,
+                    max: 3,
+                    divisions: 3,
+                    label: _animationSpeedLabel(_animationSpeed),
+                    onChanged: (value) =>
+                        setState(() => _animationSpeed = value.round()),
+                  ),
+                  trailing: Text(
+                    _animationSpeedLabel(_animationSpeed),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -421,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'strengthLevel': _strengthLevel,
             'hintDepth': _hintDepth,
             'showValidMoves': _showValidMoves,
-            'animateMoves': _animateMoves,
+            'animationSpeed': _animationSpeed,
             'playAsBlack': _playAsBlack,
             'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,

@@ -2,7 +2,7 @@ class GameState {
   final int strengthLevel;
   final int hintDepth;
   final bool showValidMoves;
-  final bool animateMoves;
+  final int animationSpeed; // 0=instant, 1=fast, 2=normal, 3=slow
   final int? selectedRow;
   final int? selectedCol;
   final List<String> validMoves;
@@ -21,7 +21,7 @@ class GameState {
     this.strengthLevel = 10,
     this.hintDepth = 15,
     this.showValidMoves = true,
-    this.animateMoves = true,
+    this.animationSpeed = 2,
     this.selectedRow,
     this.selectedCol,
     this.validMoves = const [],
@@ -37,13 +37,27 @@ class GameState {
     this.lastMoveUci,
   });
 
+  /// Whether animation is enabled (speed > 0).
+  bool get animateMoves => animationSpeed > 0;
+
+  /// Animation duration in milliseconds based on speed setting.
+  int get animationDurationMs {
+    switch (animationSpeed) {
+      case 0: return 0;
+      case 1: return 200;
+      case 2: return 450;
+      case 3: return 800;
+      default: return 450;
+    }
+  }
+
   static const _sentinel = Object();
 
   GameState copyWith({
     int? strengthLevel,
     int? hintDepth,
     bool? showValidMoves,
-    bool? animateMoves,
+    int? animationSpeed,
     Object? selectedRow = _sentinel,
     Object? selectedCol = _sentinel,
     List<String>? validMoves,
@@ -62,7 +76,7 @@ class GameState {
         strengthLevel: strengthLevel ?? this.strengthLevel,
         hintDepth: hintDepth ?? this.hintDepth,
         showValidMoves: showValidMoves ?? this.showValidMoves,
-        animateMoves: animateMoves ?? this.animateMoves,
+        animationSpeed: animationSpeed ?? this.animationSpeed,
         selectedRow: identical(selectedRow, _sentinel)
             ? this.selectedRow
             : selectedRow as int?,

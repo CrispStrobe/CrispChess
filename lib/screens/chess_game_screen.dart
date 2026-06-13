@@ -319,6 +319,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           currentEngine: _engineService.engineName,
           playAsBlack: _state.playAsBlack,
           maia3Variant: _maia3Variant,
+          animationSpeed: _state.animationSpeed,
         ),
       ),
     );
@@ -332,7 +333,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           strengthLevel: result['strengthLevel']! as int,
           hintDepth: result['hintDepth']! as int,
           showValidMoves: result['showValidMoves']! as bool,
-          animateMoves: result['animateMoves']! as bool,
+          animationSpeed: result['animationSpeed'] as int? ?? 2,
           playAsBlack: newPlayAsBlack,
           pieceTheme: result['pieceTheme'] as String? ?? 'chessnut',
         );
@@ -539,7 +540,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           validMoves: _state.validMoves,
                           hintMove: _state.hintMove,
                           isCheck: _game.inCheck,
-                          animateMoves: _state.animateMoves,
+                          animationDurationMs: _state.animationDurationMs,
                           pieceTheme: _state.pieceTheme,
                           lastMoveUci: _state.lastMoveUci,
                         ),
