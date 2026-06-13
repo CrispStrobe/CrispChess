@@ -431,12 +431,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ],
         ),
         actions: [
-          // Game controls in app bar
-          IconButton(
-            icon: const Icon(Icons.refresh, size: 20),
-            tooltip: 'New Game',
-            onPressed: _newGame,
-          ),
           IconButton(
             icon: const Icon(Icons.undo, size: 20),
             tooltip: 'Undo',
@@ -447,18 +441,30 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             tooltip: 'Hint',
             onPressed: (!_isPlayerTurn || _state.isThinking) ? null : _getHint,
           ),
-          IconButton(
-            icon: const Icon(Icons.info_outline, size: 20),
-            tooltip: 'About',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AboutScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, size: 20),
-            tooltip: 'Settings',
-            onPressed: _openSettings,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (value) {
+              switch (value) {
+                case 'new':
+                  _newGame();
+                case 'settings':
+                  _openSettings();
+                case 'about':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AboutScreen()));
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'new', child: ListTile(
+                leading: Icon(Icons.refresh), title: Text('New Game'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'settings', child: ListTile(
+                leading: Icon(Icons.settings), title: Text('Settings'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'about', child: ListTile(
+                leading: Icon(Icons.info_outline), title: Text('About'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+            ],
           ),
         ],
       ),
