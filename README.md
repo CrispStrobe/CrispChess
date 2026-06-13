@@ -8,15 +8,17 @@ Built with Flutter. Runs on Android, iOS, macOS, Linux, Windows, and Web.
 
 CrispChess uses a plugin architecture that lets you swap between different chess engines at runtime.
 
-| Engine | License | ~ELO | Language | Bundled | Platforms |
-|--------|---------|------|----------|---------|-----------|
-| **CrispEngine** | MIT | 1600 | Pure Dart | Yes | All (incl. Web) |
-| **Frozenight** | MIT / Apache-2.0 | 2960 | Rust (FFI) | Yes | Linux, macOS, iOS, Android, Windows |
-| **Stockfish** | GPL-3.0 | 3600 | C++ (FFI) | No | Android, Linux, macOS, Windows |
+| Engine | License | ~ELO | Bundled | Platforms |
+|--------|---------|------|---------|-----------|
+| **CrispEngine** | MIT | 1800 | Yes | All (incl. Web WASM) |
+| **Frozenight** | MIT / Apache-2.0 | 2960 | Via CI | Linux, macOS, iOS, Android, Windows |
+| **Stockfish** | GPL-3.0 | 3600 | Downloaded | All (incl. iOS via JavaScriptCore) |
+| **Lc0 (Leela)** | GPL-3.0 | 1100-3300 | Optional | iOS, Android (via package) |
 
-- **CrispEngine** is built in — no native dependencies. It uses alpha-beta pruning with iterative deepening, piece-square tables, quiescence search, and killer/history move ordering. Strong enough to beat most casual players.
-- **Frozenight** is an NNUE-based engine written in Rust. Compiled via FFI for native platforms. Stronger than any human player, fully permissively licensed.
-- **Stockfish** is the strongest chess engine in the world. Available as an optional backend on non-iOS platforms. Because it is GPL-3.0 licensed, it is not bundled — it must be installed separately.
+- **CrispEngine** — built-in pure Dart engine. Alpha-beta + transposition table + WASM on web. No native deps.
+- **Frozenight** — NNUE-based Rust engine (MIT). Compiled in CI for all native platforms. Stronger than any human.
+- **Stockfish** — strongest engine. Downloaded at runtime, not linked into app binary. Runs via Web Worker (web), JavaScriptCore (iOS), or separate process (desktop). App stays MIT.
+- **Lc0 (Leela Chess Zero)** — neural network engine with human-like play. Uses Maia weights trained on real human games. Optional `leela_chess_zero` package.
 
 ## Features
 

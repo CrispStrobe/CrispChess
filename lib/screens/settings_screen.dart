@@ -63,20 +63,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         license: 'MIT/Apache-2.0',
         available: false, // True when native lib is bundled
       ));
-      // Stockfish as separate process — desktop + Android, not iOS
-      if (!isIOS) {
-        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-        engines.add(_EngineOption(
-          name: 'Stockfish',
-          description: isAndroid
-              ? 'Bundled binary (arm64)'
-              : 'Separate process (install stockfish)',
-          elo: '~3600',
-          license: 'GPL-3.0 (not linked)',
-          available: true,
-          gplNotice: true,
-        ));
-      }
+      // Stockfish — desktop + Android via process, iOS via JS bridge
+      engines.add(_EngineOption(
+        name: 'Stockfish',
+        description: isIOS
+            ? 'Downloaded engine (JavaScriptCore)'
+            : 'Separate process (install stockfish)',
+        elo: isIOS ? '~3200' : '~3600',
+        license: 'GPL-3.0 (not linked)',
+        available: true,
+        gplNotice: true,
+      ));
+
+      // Lc0 — neural network engine with human-like play
+      engines.add(_EngineOption(
+        name: 'Lc0',
+        description: 'Neural net engine (Maia weights)',
+        elo: '~1900',
+        license: 'GPL-3.0',
+        available: false, // Add leela_chess_zero package to enable
+        gplNotice: true,
+      ));
     }
 
     return engines;

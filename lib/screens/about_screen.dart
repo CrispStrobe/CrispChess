@@ -71,8 +71,14 @@ class AboutScreen extends StatelessWidget {
                   'Available on native platforms via FFI.'),
               SizedBox(height: 12),
               _EngineInfo('Stockfish', '~3600 ELO', 'GPL-3.0',
-                  'Optional. Not bundled. Requires separate installation. '
-                  'Not available on iOS due to GPL restrictions.'),
+                  'Optional download. Runs as separate process (desktop) '
+                  'or via JavaScriptCore/Web Worker (mobile/web). '
+                  'Not linked into app binary — app stays MIT.'),
+              SizedBox(height: 12),
+              _EngineInfo('Lc0 (Leela)', '~1900 ELO', 'GPL-3.0',
+                  'Neural network engine using MCTS (Monte Carlo Tree Search). '
+                  'Plays human-like with Maia weights. '
+                  'Optional — add leela_chess_zero package to enable.'),
             ],
           )),
 
