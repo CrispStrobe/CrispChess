@@ -443,6 +443,21 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ],
         ),
         actions: [
+          // Abort button — visible when thinking
+          if (_state.isThinking)
+            IconButton(
+              icon: Icon(Icons.cancel, size: 20, color: Colors.red.shade300),
+              tooltip: 'Abort',
+              onPressed: () {
+                _engineService.stop();
+                setState(() {
+                  _state = _state.copyWith(
+                    isThinking: false,
+                    statusMessage: 'Your turn ($_playerColorName)',
+                  );
+                });
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.undo, size: 20),
             tooltip: 'Undo',

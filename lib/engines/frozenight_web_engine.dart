@@ -133,6 +133,7 @@ class FrozenightEngine implements ChessEngine {
   }
 
   void _applyPosition(String positionCommand) {
+    debugPrint('[FrozenightWASM] Position: $positionCommand');
     final parts = positionCommand.split(' ');
     String fen = 'startpos';
     String moves = '';
