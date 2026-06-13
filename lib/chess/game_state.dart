@@ -18,6 +18,7 @@ class GameState {
   final String? currentBestMove;
   final bool playAsBlack;
   final String pieceTheme;
+  final bool boardFlipped;
   final String? lastMoveUci;
 
   const GameState({
@@ -38,6 +39,7 @@ class GameState {
     this.currentBestMove,
     this.playAsBlack = false,
     this.pieceTheme = 'chessnut',
+    this.boardFlipped = false,
     this.lastMoveUci,
   });
 
@@ -75,6 +77,7 @@ class GameState {
     Object? currentBestMove = _sentinel,
     bool? playAsBlack,
     String? pieceTheme,
+    bool? boardFlipped,
     Object? lastMoveUci = _sentinel,
   }) =>
       GameState(
@@ -103,6 +106,7 @@ class GameState {
             : currentBestMove as String?,
         playAsBlack: playAsBlack ?? this.playAsBlack,
         pieceTheme: pieceTheme ?? this.pieceTheme,
+        boardFlipped: boardFlipped ?? this.boardFlipped,
         lastMoveUci: identical(lastMoveUci, _sentinel)
             ? this.lastMoveUci
             : lastMoveUci as String?,

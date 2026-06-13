@@ -604,6 +604,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _exportPgn();
                 case 'import_pgn':
                   _importPgn();
+                case 'flip':
+                  setState(() {
+                    _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
+                  });
                 case 'settings':
                   _openSettings();
                 case 'about':
@@ -620,6 +624,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'import_pgn', child: ListTile(
                 leading: Icon(Icons.paste), title: Text('Paste PGN'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'flip', child: ListTile(
+                leading: Icon(Icons.swap_vert), title: Text('Flip Board'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'settings', child: ListTile(
                 leading: Icon(Icons.settings), title: Text('Settings'),
@@ -668,6 +675,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           hintMove: _state.hintMove,
                           isCheck: _game.inCheck,
                           animationDurationMs: _state.animationDurationMs,
+                          flipped: _state.boardFlipped,
                           pieceTheme: _state.pieceTheme,
                           lastMoveUci: _state.lastMoveUci,
                         ),

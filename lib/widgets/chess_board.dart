@@ -15,6 +15,7 @@ class ChessBoard extends StatefulWidget {
   final bool isCheck;
   final int animationDurationMs; // 0 = instant (no animation)
   final String pieceTheme;
+  final bool flipped;
   final String? lastMoveUci; // e.g. "e2e4" — triggers slide animation
 
   const ChessBoard({
@@ -31,6 +32,7 @@ class ChessBoard extends StatefulWidget {
     this.isCheck = false,
     this.animationDurationMs = 450,
     this.pieceTheme = 'chessnut',
+    this.flipped = false,
     this.lastMoveUci,
   }) : super(key: key);
 
@@ -155,10 +157,14 @@ class _ChessBoardState extends State<ChessBoard>
                 children: [
                   // Board grid
                   Column(
-                    children: List.generate(8, (row) {
+                    children: List.generate(8, (visualRow) {
                       return Expanded(
                         child: Row(
-                          children: List.generate(8, (col) {
+                          children: List.generate(8, (visualCol) {
+                            // Map visual → board coordinates
+                            final row = widget.flipped ? 7 - visualRow : visualRow;
+                            final col = widget.flipped ? 7 - visualCol : visualCol;
+
                             // During animation, hide piece at destination
                             final hideForAnim = isAnimating &&
                                 row == _animToRow && col == _animToCol;
@@ -219,8 +225,13 @@ class _ChessBoardState extends State<ChessBoard>
                       animation: _curvedAnim,
                       builder: (context, child) {
                         final t = _curvedAnim.value;
-                        final x = (_animFromCol! + (_animToCol! - _animFromCol!) * t) * squareSize;
-                        final y = (_animFromRow! + (_animToRow! - _animFromRow!) * t) * squareSize;
+                        // Map board coords to visual coords for flip
+                        final vFromCol = widget.flipped ? 7 - _animFromCol! : _animFromCol!;
+                        final vFromRow = widget.flipped ? 7 - _animFromRow! : _animFromRow!;
+                        final vToCol = widget.flipped ? 7 - _animToCol! : _animToCol!;
+                        final vToRow = widget.flipped ? 7 - _animToRow! : _animToRow!;
+                        final x = (vFromCol + (vToCol - vFromCol) * t) * squareSize;
+                        final y = (vFromRow + (vToRow - vFromRow) * t) * squareSize;
 
                         // Slight lift at midpoint for depth effect
                         final lift = 1.0 + 0.08 * (4 * t * (1 - t));
