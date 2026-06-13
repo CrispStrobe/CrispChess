@@ -57,10 +57,18 @@ class DartEngine implements ChessEngine {
     // Adjust depth based on skill level (0-20 scale)
     int searchDepth = depth ?? _depthFromSkill(skillLevel ?? 10);
 
-    final result = await compute(
-      _searchInIsolate,
-      _SearchRequest(fen: _game.fen, depth: searchDepth),
-    );
+    SearchResult? result;
+    if (kIsWeb) {
+      // Web doesn't support isolates — run search synchronously
+      // Use lower depth on web to avoid blocking UI too long
+      final webDepth = searchDepth.clamp(1, 6);
+      result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: webDepth));
+    } else {
+      result = await compute(
+        _searchInIsolate,
+        _SearchRequest(fen: _game.fen, depth: searchDepth),
+      );
+    }
 
     _stateNotifier.value = EngineState.ready;
 
@@ -82,10 +90,15 @@ class DartEngine implements ChessEngine {
     for (int d = 1; d <= maxDepth; d++) {
       if (_disposed) break;
 
-      final result = await compute(
-        _searchInIsolate,
-        _SearchRequest(fen: _game.fen, depth: d),
-      );
+      SearchResult? result;
+      if (kIsWeb) {
+        result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: d));
+      } else {
+        result = await compute(
+          _searchInIsolate,
+          _SearchRequest(fen: _game.fen, depth: d),
+        );
+      }
 
       if (result == null || _disposed) break;
 
