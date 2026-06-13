@@ -1,9 +1,8 @@
-// Maia3 bridge — loads onnxruntime-web UMD build + maia3-js for browser.
-// MIT licensed.
+// Maia3 bridge — uses locally bundled maia3-bundle.js + ort.min.js
+// No CDN dependencies at runtime.
 
 let maia3Instance = null;
 let maia3Loading = false;
-let maia3Available = false;
 
 async function maia3Load(variant, onProgress) {
   if (maia3Instance) return;
@@ -11,40 +10,35 @@ async function maia3Load(variant, onProgress) {
   maia3Loading = true;
 
   try {
-    // Step 1: Load ONNX Runtime Web (UMD build that works in browsers)
+    // ort.min.js is loaded via <script> tag in index.html
+    // It sets globalThis.ort which maia3-bundle.js uses
     if (typeof globalThis.ort === 'undefined') {
-      console.log('[Maia3] Loading ONNX Runtime Web...');
-      await loadScript('ort.min.js'); // bundled locally
-      // Point WASM backend to CDN (avoids bundling 10-19MB WASM files)
-      if (globalThis.ort && globalThis.ort.env) {
-        globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
-      }
-      console.log('[Maia3] ONNX Runtime loaded');
+      throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
     }
 
-    // Step 2: Load maia3-js
-    console.log('[Maia3] Loading maia3-js...');
-    const module = await import('https://esm.sh/maia3-js@latest/web?external=onnxruntime-web');
-    const Maia3 = module.Maia3 || module.default;
-
-    if (!Maia3) {
-      throw new Error('Could not find Maia3 class in module exports: ' + Object.keys(module));
+    // Set WASM paths to CDN (only the ~10MB WASM binary is fetched on demand)
+    if (globalThis.ort.env) {
+      globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
     }
 
-    maia3Instance = new Maia3({
+    // maia3-bundle.js is loaded via <script> tag — sets globalThis.Maia3Class
+    if (typeof globalThis.Maia3Class === 'undefined') {
+      throw new Error('Maia3 bundle not loaded — check maia3-bundle.js in index.html');
+    }
+
+    console.log('[Maia3] Creating instance (variant: ' + (variant || '5m') + ')');
+    maia3Instance = new globalThis.Maia3Class({
       variant: variant || '5m',
       onProgress: (loaded, total) => {
-        console.log(`[Maia3] Downloading model: ${Math.round(loaded/total*100)}%`);
+        console.log('[Maia3] Model: ' + Math.round(loaded / total * 100) + '%');
       },
     });
 
     await maia3Instance.load();
-    maia3Available = true;
-    console.log('[Maia3] Ready (variant: ' + (variant || '5m') + ')');
+    console.log('[Maia3] Ready');
   } catch (e) {
     console.error('[Maia3] Failed:', e.message || e);
     maia3Instance = null;
-    maia3Available = false;
     throw e;
   } finally {
     maia3Loading = false;
@@ -62,19 +56,6 @@ async function maia3Close() {
     await maia3Instance.close();
     maia3Instance = null;
   }
-}
-
-// Helper: load a script tag and wait for it
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Failed to load: ' + src));
-    document.head.appendChild(s);
-  });
 }
 
 globalThis.maia3Load = maia3Load;

@@ -59,13 +59,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
-    // Maia3 — needs npm-bundled maia3-js (CDN imports unreliable)
+    // Maia3 — bundled maia3-js + ONNX Runtime
     engines.add(_EngineOption(
       name: 'Maia3',
-      description: 'Neural net — human-like play (coming soon)',
+      description: 'Neural net — human-like play (~21MB model)',
       elo: '~1500',
       license: 'MIT',
-      available: false,
+      available: kIsWeb,
     ));
 
     // Frozenight — MIT, available on all platforms
