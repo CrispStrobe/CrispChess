@@ -43,24 +43,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
-    // Native-only engines (dart:ffi not available on web)
-    if (!kIsWeb) {
+    if (kIsWeb) {
+      // On web, Stockfish runs via WASM Web Worker
+      engines.add(_EngineOption(
+        name: 'Stockfish',
+        description: 'WASM engine (Web Worker)',
+        elo: '~3200',
+        license: 'GPL-3.0',
+        available: true,
+        gplNotice: true,
+      ));
+    } else {
+      // Native: Frozenight via FFI
       engines.add(_EngineOption(
         name: 'Frozenight',
         description: 'NNUE engine (Rust)',
         elo: '~2960',
         license: 'MIT/Apache-2.0',
-        available: false, // True when native lib installed
+        available: false,
       ));
-      // Stockfish: GPL — show on non-iOS only
+      // Stockfish native — not on iOS
       final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
       if (!isIOS) {
         engines.add(_EngineOption(
           name: 'Stockfish',
-          description: 'Strongest engine (GPL)',
+          description: 'Strongest engine (native)',
           elo: '~3600',
           license: 'GPL-3.0',
-          available: false, // True when stockfish package added
+          available: false,
           gplNotice: true,
         ));
       }
