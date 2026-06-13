@@ -7,7 +7,6 @@ import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
 import '../widgets/chess_board.dart';
-import '../widgets/horizontal_evaluation_bar.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
 
@@ -381,25 +380,91 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CrispChess'),
+        titleSpacing: 8,
+        title: Row(
+          children: [
+            // Status indicator
+            if (_state.isThinking)
+              const SizedBox(
+                width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(Icons.circle, size: 10,
+                  color: _engineService.state == EngineState.ready
+                      ? Colors.green : Colors.grey),
+            const SizedBox(width: 8),
+            // Status text
+            Expanded(
+              child: Text(
+                _state.isThinking
+                    ? 'Thinking...'
+                    : _state.lastMove.isNotEmpty
+                        ? _state.lastMove
+                        : 'Your turn',
+                style: const TextStyle(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // Eval badge
+            ValueListenableBuilder<double?>(
+              valueListenable: _evalNotifier,
+              builder: (context, eval, _) {
+                if (eval == null) return const SizedBox.shrink();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  margin: const EdgeInsets.only(right: 4),
+                  decoration: BoxDecoration(
+                    color: eval >= 0 ? Colors.blue.shade100 : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    eval >= 0 ? '+${eval.toStringAsFixed(1)}' : eval.toStringAsFixed(1),
+                    style: TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold,
+                      color: eval >= 0 ? Colors.blue.shade700 : Colors.orange.shade700,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
         actions: [
+          // Game controls in app bar
           IconButton(
-            icon: const Icon(Icons.info_outline),
+            icon: const Icon(Icons.refresh, size: 20),
+            tooltip: 'New Game',
+            onPressed: _newGame,
+          ),
+          IconButton(
+            icon: const Icon(Icons.undo, size: 20),
+            tooltip: 'Undo',
+            onPressed: _state.isThinking ? null : _undoMove,
+          ),
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline, size: 20),
+            tooltip: 'Hint',
+            onPressed: (!_isPlayerTurn || _state.isThinking) ? null : _getHint,
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline, size: 20),
+            tooltip: 'About',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AboutScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, size: 20),
+            tooltip: 'Settings',
             onPressed: _openSettings,
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildCompactHeader(),
-          _buildAnalysisPanel(),
+          // Board takes all available space
           Expanded(
             child: ListenableBuilder(
               listenable: _game,
@@ -433,210 +498,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               },
             ),
           ),
+          // Move history at bottom
           ListenableBuilder(
             listenable: _game,
             builder: (context, _) => _buildMoveHistory(),
           ),
-          _buildControlButtons(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: _state.isThinking
-            ? Colors.orange.shade100
-            : Colors.blue.shade100,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _state.isThinking ? Icons.hourglass_empty : Icons.check_circle,
-            size: 20,
-            color: _state.isThinking ? Colors.orange : Colors.green,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_state.statusMessage,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.bold)),
-                if (_state.lastMove.isNotEmpty)
-                  Text(_state.lastMove,
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade700)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _engineStatusColor(),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              _engineStatusText(),
-              style: const TextStyle(color: Colors.white, fontSize: 11),
-            ),
-          ),
-          if (_state.isThinking)
-            const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: SizedBox(
-                width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnalysisPanel() {
-    if (_evalNotifier.value == null && _game.annotations.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final annotations = _game.annotations;
-    final playerAnn =
-        annotations.length >= 2 ? annotations[annotations.length - 2] : null;
-    final engineAnn = annotations.isNotEmpty ? annotations.last : null;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _state = _state.copyWith(
-                analysisExpanded: !_state.analysisExpanded)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  Icon(Icons.analytics, size: 16, color: Colors.blue.shade700),
-                  const SizedBox(width: 8),
-                  Text('Analysis',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.blue.shade700)),
-                  const Spacer(),
-                  if (!_state.analysisExpanded)
-                    ValueListenableBuilder<double?>(
-                      valueListenable: _evalNotifier,
-                      builder: (context, eval, _) {
-                        if (eval == null) return const SizedBox.shrink();
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: eval >= 0
-                                ? Colors.blue.shade100
-                                : Colors.orange.shade100,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            eval >= 0
-                                ? '+${eval.toStringAsFixed(1)}'
-                                : eval.toStringAsFixed(1),
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: eval >= 0
-                                    ? Colors.blue.shade700
-                                    : Colors.orange.shade700),
-                          ),
-                        );
-                      },
-                    ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _state.analysisExpanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_state.analysisExpanded) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: ValueListenableBuilder<double?>(
-                valueListenable: _evalNotifier,
-                builder: (context, eval, _) {
-                  return ValueListenableBuilder<int>(
-                    valueListenable: _depthNotifier,
-                    builder: (context, depth, _) {
-                      return HorizontalEvaluationBar(
-                          evaluation: eval, depth: depth);
-                    },
-                  );
-                },
-              ),
-            ),
-            if (playerAnn != null || engineAnn != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (playerAnn != null)
-                      Expanded(
-                        child: _annotationCard(
-                            'You', playerAnn, Colors.blue, Icons.person),
-                      ),
-                    const SizedBox(width: 8),
-                    if (engineAnn != null)
-                      Expanded(
-                        child: _annotationCard('Engine', engineAnn,
-                            Colors.grey, Icons.computer),
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _annotationCard(String label, dynamic ann, MaterialColor color,
-      IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(icon, size: 14, color: color.shade700),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text('$label: ${ann.move}',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      color: color.shade700)),
-            ),
-          ]),
-          const SizedBox(height: 4),
-          Text(ann.getFullDescription(),
-              style: const TextStyle(fontSize: 10)),
         ],
       ),
     );
@@ -689,36 +555,4 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
-  Widget _buildControlButtons() {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _btn(Icons.refresh, 'New', _newGame),
-          _btn(Icons.undo, 'Undo', _state.isThinking ? null : _undoMove),
-          _btn(Icons.lightbulb_outline, 'Hint',
-              (!_game.whiteToMove || _state.isThinking) ? null : _getHint),
-        ],
-      ),
-    );
-  }
-
-  Widget _btn(IconData icon, String label, VoidCallback? onPressed) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8)),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 20),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 11)),
-          ]),
-        ),
-      ),
-    );
-  }
 }
