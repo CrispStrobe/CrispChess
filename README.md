@@ -1,115 +1,147 @@
 # CrispChess
 
-A cross-platform chess app with pluggable engine backends. Play against AI opponents ranging from beginner-friendly to grandmaster-crushing — all under permissive licensing.
+A cross-platform chess app with pluggable engine backends. Play against AI opponents ranging from beginner-friendly to grandmaster-level — all under permissive licensing.
 
-Built with Flutter. Runs on Android, iOS, macOS, Linux, Windows, and Web.
+Built with Flutter. Runs on Android, iOS, macOS, Linux, Windows, and Web (WASM).
+
+**Live demo:** [crispchess.vercel.app](https://crispchess.vercel.app)
 
 ## Engines
 
-CrispChess uses a plugin architecture that lets you swap between different chess engines at runtime.
+CrispChess uses a plugin architecture that lets you swap between chess engines at runtime via the settings screen.
 
-| Engine | License | ~ELO | Bundled | Platforms |
-|--------|---------|------|---------|-----------|
-| **CrispEngine** | MIT | 1800 | Yes | All (incl. Web WASM) |
-| **Frozenight** | MIT / Apache-2.0 | 2960 | Via CI | Linux, macOS, iOS, Android, Windows |
-| **Stockfish** | GPL-3.0 | 3600 | Downloaded | All (incl. iOS via JavaScriptCore) |
-| **Lc0 (Leela)** | GPL-3.0 | 1100-3300 | Optional | iOS, Android (via package) |
+| Engine | License | ~ELO | Platforms | Notes |
+|--------|---------|------|-----------|-------|
+| **Built-in** | MIT | ~1800 | All | Pure Dart, alpha-beta + TT |
+| **Maia3 (JS)** | MIT | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
+| **Maia3 Dart** | MIT | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
+| **Frozenight** | MIT / Apache-2.0 | ~3226 | Web (WASM) | Rust NNUE engine |
+| **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
+| **Lc0** | GPL-3.0 | ~1100–3300 | Mobile/Desktop | MCTS + neural net, downloaded separately |
 
-- **CrispEngine** — built-in pure Dart engine. Alpha-beta + transposition table + WASM on web. No native deps.
-- **Frozenight** — NNUE-based Rust engine (MIT). Compiled in CI for all native platforms. Stronger than any human.
-- **Stockfish** — strongest engine. Downloaded at runtime, not linked into app binary. Runs via Web Worker (web), JavaScriptCore (iOS), or separate process (desktop). App stays MIT.
-- **Lc0 (Leela Chess Zero)** — neural network engine with human-like play. Uses Maia weights trained on real human games. Optional `leela_chess_zero` package.
+- **Built-in** — pure Dart engine with alpha-beta pruning, transposition table, quiescence search, and piece-square table evaluation. Works everywhere including Web WASM. No native dependencies.
+- **Maia3** — ELO-conditioned neural network trained on human games. Plays like a real human at the specified rating. Three model sizes: 5M (~25MB, ~1800 ELO), 23M (~92MB, ~2200 ELO), 79M (~313MB, ~2500 ELO). Selectable in settings. The Dart version ports all tokenization/sampling to Dart with platform-specific ONNX inference.
+- **Frozenight** — NNUE-based Rust engine compiled to WASM for web. Stronger than any human.
+- **Stockfish** — strongest traditional engine. Runs as a Web Worker (web), via JavaScriptCore (iOS), or as a separate process (desktop/Android). Downloaded at runtime — app binary stays MIT.
+- **Lc0 (Leela Chess Zero)** — AlphaZero-style neural network engine with MCTS. Uses Maia weights for human-like play. Mobile/desktop only (no web build available). Downloaded separately.
+
+GPL-3.0 engines (Stockfish, Lc0) are never compiled into the app binary. They run as separate processes or are downloaded at runtime, keeping the app itself MIT-licensed.
 
 ## Features
 
-- Play as White against the engine
+- Play as White or Black (configurable)
+- 6 selectable chess engines with hot-swapping
+- Maia3 model variant selection (5M / 23M / 79M)
+- Adjustable engine strength (0–20 skill levels, ~800–2400 ELO)
 - Move hints (engine suggests your best move)
-- Live position evaluation with depth indicator
-- Move analysis with tactical pattern detection (forks, pins, material gain)
-- Move quality annotations (brilliant, good, dubious, blunder)
-- Adjustable engine strength (0–20 skill levels)
-- Drag-and-drop and tap-to-move piece interaction
+- Live position evaluation
+- Animated piece movement
+- Drag-and-drop and tap-to-move interaction
 - Legal move highlighting
 - Move history display
 - Undo support
+- Abort button to cancel engine thinking
+- Engine status indicator (loading / ready / thinking)
+- 8 piece themes (Chessnut, Rhosgfx, Fantasy, Spatial, Celtic, Kiwen Suwi, Totoy, Papercut)
 - SVG piece rendering
-
-## Screenshots
-
-*Coming soon*
+- Responsive layout (desktop + mobile)
+- About screen with license info, version, and git hash
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
-- For Frozenight: [Rust toolchain](https://rustup.rs/) (to compile the native engine)
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel, Dart 3.5+)
+- For Frozenight WASM: [Rust toolchain](https://rustup.rs/) + `wasm-pack`
 
 ### Build and Run
 
 ```bash
-# Clone the repo
 git clone https://github.com/CrispStrobe/CrispChess.git
 cd CrispChess
-
-# Get dependencies
 flutter pub get
-
-# Run on your platform
 flutter run
 ```
 
 The app works immediately with the built-in Dart engine. No native compilation needed.
 
-### Build Frozenight (optional)
+### Build for Web (WASM)
 
-To enable the Frozenight engine (~2960 ELO):
+```bash
+flutter build web --release --wasm
+```
+
+### Build Frozenight WASM (optional)
+
+```bash
+cd native/frozenight-wasm
+wasm-pack build --target web --release
+cp pkg/frozenight_wasm.js ../../web/
+cp pkg/frozenight_wasm_bg.wasm ../../web/
+```
+
+### Build Frozenight Native (optional)
 
 ```bash
 cd native/frozenight
 cargo build --release
-# Linux: copy target/release/libfrozenight_ffi.so to your app's lib/ directory
-# macOS: copy target/release/libfrozenight_ffi.dylib alongside the app bundle
+# Copy the library to your platform's expected location
 ```
-
-### Build for Web
-
-```bash
-flutter build web --release
-```
-
-The web build uses the pure Dart engine — no native code required.
 
 ## Architecture
 
 ```
 lib/
   engines/
-    chess_engine.dart           # Abstract ChessEngine interface
-    dart_engine.dart            # Built-in Dart engine (MIT)
+    chess_engine.dart             # Abstract ChessEngine interface
+    engine_factory.dart           # Engine creation with conditional imports
+    uci_position.dart             # UCI position command → FEN parser
+    dart_engine.dart              # Built-in Dart engine (MIT)
     dart_engine/
-      evaluation.dart           # Piece-square tables, material eval
-      search.dart               # Alpha-beta, iterative deepening, quiescence
-    frozenight_engine.dart      # Frozenight FFI bindings (MIT/Apache-2.0)
+      evaluation.dart             # Piece-square tables, material eval
+      search.dart                 # Alpha-beta, quiescence search, TT
+      transposition.dart          # Transposition table
+    maia3_web_engine.dart         # Maia3 via JS bridge (web)
+    maia3_engine.dart             # Maia3 native stub
+    maia3_dart_engine.dart        # Maia3 Dart — native ONNX
+    maia3_dart_web_engine.dart    # Maia3 Dart — web ONNX bridge
+    maia3_dart/
+      encoding.dart               # Board tokenization (64×96 tensor)
+      moves.dart                  # Move vocabulary (4352 UCI strings)
+      utils.dart                  # Softmax, sampling, WDL
+      history.dart                # FEN history resolution
+      variants.dart               # Model variant registry (5m/23m/79m)
+      onnx_model.dart             # Abstract ONNX model interface
+      onnx_model_native.dart      # Native ONNX via onnxruntime package
+      onnx_model_web.dart         # Web ONNX via JS bridge
+    frozenight_web_engine.dart    # Frozenight WASM (web)
+    frozenight_engine.dart        # Frozenight FFI (native)
+    stockfish_web_engine.dart     # Stockfish Web Worker (web)
+    stockfish_engine.dart         # Stockfish process (native)
+    lc0_engine.dart               # Leela Chess Zero stub
   services/
-    engine_service.dart         # Engine lifecycle + event stream
+    engine_service.dart           # Engine lifecycle + event stream
   chess/
-    chess_game.dart             # Game state (ChangeNotifier)
-    game_state.dart             # Immutable UI state with copyWith
-    move_analyzer.dart          # Tactical pattern detection
+    chess_game.dart               # Game state (ChangeNotifier)
+    game_state.dart               # Immutable UI state with copyWith
   screens/
-    chess_game_screen.dart      # Main game UI
-    settings_screen.dart        # Strength & display settings
+    chess_game_screen.dart        # Main game UI
+    settings_screen.dart          # Engine, strength, display settings
+    about_screen.dart             # License info, version, privacy
   widgets/
-    chess_board.dart            # Board with RepaintBoundary + drag/drop
-    horizontal_evaluation_bar.dart
-  main.dart
+    chess_board.dart              # Board with animation + drag/drop
+
+web/
+  frozenight_bridge.js            # Frozenight WASM ↔ Dart bridge
+  maia3_bridge.js                 # Maia3-js ↔ Dart bridge
+  maia3_onnx_bridge.js            # Raw ONNX inference bridge for Maia3 Dart
+  maia3-bundle.js                 # Bundled maia3-js (esbuild)
+  ort.min.js                      # ONNX Runtime Web (bundled)
+  stockfish.js                    # Stockfish Web Worker
 
 native/
-  frozenight/                   # Rust FFI wrapper for Frozenight engine
-    Cargo.toml
-    src/lib.rs
-    build.sh
+  frozenight-wasm/                # Rust → WASM (wasm-pack)
+  frozenight/                     # Rust → native FFI (cdylib)
 ```
 
 ### Engine Interface
@@ -122,6 +154,7 @@ abstract class ChessEngine {
   String get license;
   int get estimatedElo;
   EngineState get state;
+  ValueNotifier<EngineState> get stateNotifier;
 
   Future<void> initialize();
   Future<String> bestMove(String positionCommand, {int? depth, int? skillLevel});
@@ -133,52 +166,51 @@ abstract class ChessEngine {
 
 Engines are hot-swappable at runtime via `EngineService.switchEngine()`.
 
-## Testing
-
-```bash
-# Run unit and widget tests
-flutter test
-
-# Run integration tests (requires a connected device or emulator)
-flutter test integration_test/
+Platform-specific code uses Dart conditional imports:
+```dart
+import 'frozenight_engine.dart'
+    if (dart.library.js_interop) 'frozenight_web_engine.dart';
 ```
-
-80+ tests covering game logic, engine interface, evaluation, state management, and widgets.
 
 ## CI/CD
 
-GitHub Actions builds and tests on every push:
+GitHub Actions on every push to `main`:
 
 - **Analyze & Test** — Dart analyzer + unit tests
-- **Frozenight (Linux)** — Compiles Rust FFI library → `libfrozenight_ffi.so`
-- **Frozenight (macOS)** — Compiles Rust FFI library → `libfrozenight_ffi.dylib`
-- **Build Android** — Release APK
-- **Build iOS** — Release (no codesign)
-- **Build macOS** — Release .app
-- **Build Linux** — Release tarball
-- **Build Web** — Release web app
-- **Bundle Linux + Frozenight** — Packages Flutter app with native engine
+- **Frozenight** — Compiles for WASM, Linux, macOS, iOS, Android arm64
+- **Build** — Android APK, iOS, macOS, Linux, Web (WASM)
+- **Deploy Web** — Builds Flutter WASM + Frozenight WASM, deploys to Vercel
+
+## Testing
+
+```bash
+flutter test                      # Unit and widget tests
+flutter test integration_test/    # Integration tests (needs device)
+```
 
 ## License
 
 **MIT** — see [LICENSE](LICENSE).
 
-The app code, built-in Dart engine, and all original code in this repository are MIT licensed. You are free to use, modify, and distribute this software.
+The app code, built-in Dart engine, Maia3 Dart port, and all original code are MIT licensed.
 
 ### Engine Licenses
 
-| Component | License | Bundled |
-|-----------|---------|---------|
-| CrispChess app | MIT | Yes |
-| CrispEngine (Dart) | MIT | Yes |
-| Frozenight | MIT + Apache-2.0 | Yes |
-| Stockfish | GPL-3.0 | No (optional download) |
+| Component | License | Bundled in binary |
+|-----------|---------|-------------------|
+| CrispChess app + Built-in engine | MIT | Yes |
+| Maia3 Dart (tokenization + sampling) | MIT | Yes |
+| ONNX model weights (maia3-onnx) | Research use | Downloaded at runtime |
+| Frozenight | MIT + Apache-2.0 | Yes (WASM) |
+| ONNX Runtime Web | MIT | Yes (bundled JS) |
+| Stockfish | GPL-3.0 | No — downloaded separately |
+| Lc0 | GPL-3.0 | No — downloaded separately |
 
-When Stockfish is included in a build, that build must comply with GPL-3.0. Builds without Stockfish are fully MIT.
+Piece themes are from [Lichess](https://github.com/lichess-org/lila) under MIT, CC0, or CC-BY 4.0.
 
 ### Dependencies
 
-All Flutter/Dart dependencies use permissive licenses (BSD-2, BSD-3, MIT). See the [license survey](https://github.com/CrispStrobe/crisp-repos/blob/main/stockfish-license-survey.md) for details.
+All Flutter/Dart dependencies use permissive licenses (BSD-2, BSD-3, MIT).
 
 ## Contributing
 
@@ -186,14 +218,11 @@ Contributions welcome. Please open an issue first for major changes.
 
 ## Roadmap
 
-- [ ] Play as Black
-- [ ] Engine selection in settings UI
 - [ ] Opening book integration
 - [ ] Time controls
 - [ ] PGN export/import
-- [ ] Board flip
+- [ ] Board flip animation
 - [ ] Sound effects
-- [ ] Android NDK cross-compilation for Frozenight
-- [ ] iOS static library for Frozenight
+- [ ] Frozenight native FFI on all platforms
+- [ ] Lc0 web support (pending upstream WASM build)
 - [ ] App Store / Play Store release
-- [ ] "Buy me a coffee" support
