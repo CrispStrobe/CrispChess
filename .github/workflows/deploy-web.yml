@@ -21,22 +21,19 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Web (WASM)
-        run: flutter build web --release --wasm
-        continue-on-error: true
+      - name: Build Web
+        run: flutter build web --release
 
-      - name: Fallback to JS
+      - name: Prepare deploy
         run: |
-          if [ ! -d "build/web" ]; then
-            flutter build web --release
-          fi
+          cp vercel.json build/web/vercel.json
+          mkdir -p build/web/.vercel
+          echo '{"orgId":"${{ secrets.VERCEL_ORG_ID }}","projectId":"${{ secrets.VERCEL_PROJECT_ID }}"}' > build/web/.vercel/project.json
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
 
       - name: Deploy to Vercel
         if: github.ref == 'refs/heads/main'
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: build/web
-          vercel-args: --prod
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        working-directory: build/web
