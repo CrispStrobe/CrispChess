@@ -48,7 +48,8 @@ CrispChess App (MIT)
 - [x] Vercel deploy (https://crispchess.vercel.app)
 - [x] CI/CD for all platforms + Rust
 - [x] WASM headers in vercel.json
-- [ ] App icon and splash screen
+- [x] App icon source image + flutter_launcher_icons config
+- [ ] Run dart run flutter_launcher_icons (needs Flutter SDK)
 - [x] Buy me a coffee (in About screen)
 - [x] Privacy policy
 - [x] Release workflow with binaries
