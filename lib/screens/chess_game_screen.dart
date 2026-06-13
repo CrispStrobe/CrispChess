@@ -8,6 +8,7 @@ import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/chess_board.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
@@ -26,6 +27,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   GameState _state = const GameState();
   ChessClock? _clock;
+  final SoundService _sound = SoundService();
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
@@ -129,6 +131,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _makeEngineMove(String uciMove) {
     if (_game.makeMove(uciMove)) {
+      _playMoveSound(uciMove);
       _clock?.switchTurn();
       setState(() {
         _state = _state.copyWith(
@@ -191,12 +194,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _game.squareToAlgebraic(toRow, toCol);
 
     if (_game.makeMove(uciMove)) {
+      _playMoveSound(uciMove);
       _clock?.switchTurn();
       setState(() {
         _state = _state.copyWith(lastMove: 'You: $uciMove', hintMove: null, lastMoveUci: uciMove);
 
         if (_game.isGameOver) {
           _clock?.pause();
+          _sound.play(ChessSound.gameEnd);
           _state = _state.copyWith(
             isThinking: false,
             statusMessage: 'Game Over: ${_game.gameOverReason}',
@@ -211,6 +216,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         }
       });
     } else {
+      _sound.play(ChessSound.illegal);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Illegal Move!'),
@@ -268,6 +274,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _newGame() {
+    _sound.play(ChessSound.gameStart);
     _evalNotifier.value = null;
     _depthNotifier.value = 0;
     _clock?.dispose();
@@ -408,9 +415,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _evalNotifier.dispose();
     _depthNotifier.dispose();
     _clock?.dispose();
+    _sound.dispose();
     _game.dispose();
     _engineService.dispose();
     super.dispose();
+  }
+
+  void _playMoveSound(String uci) {
+    if (_game.inCheck) {
+      _sound.play(ChessSound.check);
+    } else if (uci.length > 4) {
+      _sound.play(ChessSound.promote);
+    } else if (uci == 'e1g1' || uci == 'e1c1' || uci == 'e8g8' || uci == 'e8c8') {
+      _sound.play(ChessSound.castle);
+    } else {
+      // Simplified: we don't track captures here, so just play move sound
+      _sound.play(ChessSound.move);
+    }
   }
 
   void _exportPgn() {
