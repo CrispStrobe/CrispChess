@@ -23,10 +23,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: native/frozenight-wasm
+          shared-key: frozenight-wasm-v2
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - name: Build Frozenight WASM
-        run: wasm-pack build --target web --release
+      - name: Clean and Build Frozenight WASM
+        run: |
+          cargo clean
+          wasm-pack build --target web --release
         working-directory: native/frozenight-wasm
         continue-on-error: true
       - name: Copy Frozenight WASM to web/
