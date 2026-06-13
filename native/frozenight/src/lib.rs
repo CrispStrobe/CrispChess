@@ -1,34 +1,45 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
-use cozy_chess::Board;
-use frozenight::{Eval, MtFrozenight, TimeConstraint};
+use cozy_chess::{Board, Move};
+use frozenight::{Eval, MtFrozenight, SearchInfo, TimeConstraint};
 
-/// Global engine instance behind a mutex for FFI safety.
-static ENGINE: Mutex<Option<MtFrozenight>> = Mutex::new(None);
-static LAST_BEST_MOVE: Mutex<Option<CString>> = Mutex::new(None);
-static LAST_EVAL: Mutex<(i32, i32)> = Mutex::new((0, 0)); // (score_cp, depth)
+struct EngineState {
+    engine: MtFrozenight,
+    board: Board,
+    moves: Vec<Move>,
+}
 
-/// Initialize the engine with the given hash size in MB.
+static STATE: Mutex<Option<EngineState>> = Mutex::new(None);
+static RESULT: Mutex<Option<SearchResult>> = Mutex::new(None);
+static SEARCH_DONE: (Mutex<bool>, Condvar) = (Mutex::new(false), Condvar::new());
+
+struct SearchResult {
+    best_move: CString,
+    score_cp: i32,
+    depth: i32,
+}
+
 #[no_mangle]
 pub extern "C" fn frozenight_init(hash_mb: u32) -> i32 {
     let engine = MtFrozenight::new(hash_mb as usize);
-    *ENGINE.lock().unwrap() = Some(engine);
-    0 // success
+    *STATE.lock().unwrap() = Some(EngineState {
+        engine,
+        board: Board::default(),
+        moves: Vec::new(),
+    });
+    0
 }
 
-/// Set the position from a FEN string, then apply moves.
-/// `fen` is a null-terminated FEN string (or "startpos").
-/// `moves` is a null-terminated space-separated UCI moves string (or null for none).
 #[no_mangle]
-pub extern "C" fn frozenight_set_position(
-    fen: *const c_char,
-    moves: *const c_char,
-) -> i32 {
+pub extern "C" fn frozenight_set_position(fen: *const c_char, moves: *const c_char) -> i32 {
     let fen_str = unsafe {
         if fen.is_null() { return -1; }
-        CStr::from_ptr(fen).to_str().unwrap_or("startpos")
+        match CStr::from_ptr(fen).to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        }
     };
 
     let board = if fen_str == "startpos" {
@@ -40,104 +51,135 @@ pub extern "C" fn frozenight_set_position(
         }
     };
 
-    let mut engine = ENGINE.lock().unwrap();
-    let engine = match engine.as_mut() {
-        Some(e) => e,
-        None => return -2,
-    };
+    let mut move_list = Vec::new();
+    let mut current = board.clone();
 
-    engine.set_position(board.clone(), &[]);
-
-    // Apply moves if provided
     if !moves.is_null() {
-        let moves_str = unsafe { CStr::from_ptr(moves).to_str().unwrap_or("") };
-        if !moves_str.is_empty() {
-            let mut current = board;
-            let mut move_list = Vec::new();
-            for uci_move in moves_str.split_whitespace() {
-                if let Some(mv) = parse_uci_move(&current, uci_move) {
-                    current.play(mv);
-                    move_list.push(mv);
-                }
+        let moves_str = unsafe {
+            match CStr::from_ptr(moves).to_str() {
+                Ok(s) => s,
+                Err(_) => "",
             }
-            engine.set_position(board, &move_list);
+        };
+        for uci in moves_str.split_whitespace() {
+            if let Some(mv) = parse_uci_move(&current, uci) {
+                current.play(mv);
+                move_list.push(mv);
+            }
         }
     }
 
-    0
-}
-
-/// Search for the best move with the given depth limit.
-/// Returns 0 on success, stores result accessible via frozenight_get_best_move().
-#[no_mangle]
-pub extern "C" fn frozenight_search(depth: i32) -> i32 {
-    let mut engine = ENGINE.lock().unwrap();
-    let engine = match engine.as_mut() {
-        Some(e) => e,
-        None => return -1,
-    };
-
-    let tc = TimeConstraint::Depth(depth as i16);
-    let mut best_move = None;
-    let mut best_score = 0i32;
-    let mut best_depth = 0i32;
-
-    engine.search(tc, &mut |info| {
-        best_move = Some(info.best_move);
-        best_score = match info.eval {
-            Eval::Centipawns(cp) => cp as i32,
-            Eval::MateIn(m) => 30000 - m as i32,
-            Eval::MatedIn(m) => -30000 + m as i32,
-        };
-        best_depth = info.depth as i32;
-    });
-
-    if let Some(mv) = best_move {
-        let uci = format_uci_move(mv);
-        *LAST_BEST_MOVE.lock().unwrap() = CString::new(uci).ok();
-        *LAST_EVAL.lock().unwrap() = (best_score, best_depth);
+    let mut state = STATE.lock().unwrap();
+    if let Some(s) = state.as_mut() {
+        s.board = board.clone();
+        s.moves = move_list.clone();
+        s.engine.set_position(board, move_list.into_iter());
         0
     } else {
-        -1
+        -2
     }
 }
 
-/// Get the best move from the last search as a null-terminated string.
-/// Returns null if no search has been performed.
+/// Synchronous search — blocks until complete. Returns 0 on success.
+#[no_mangle]
+pub extern "C" fn frozenight_search(depth: i32) -> i32 {
+    // Set up synchronization
+    {
+        let mut done = SEARCH_DONE.0.lock().unwrap();
+        *done = false;
+    }
+
+    let result_holder: Arc<Mutex<Option<SearchResult>>> = Arc::new(Mutex::new(None));
+    let result_for_info = result_holder.clone();
+    let result_for_finish = result_holder.clone();
+
+    {
+        let mut state = STATE.lock().unwrap();
+        let s = match state.as_mut() {
+            Some(s) => s,
+            None => return -1,
+        };
+
+        let tc = TimeConstraint::Depth(depth as i16);
+
+        s.engine.search(
+            tc,
+            // info callback: update best result as search progresses
+            move |info: &SearchInfo| {
+                let uci = format_uci_move(info.best_move);
+                let score = match info.eval {
+                    Eval::Centipawns(cp) => cp as i32,
+                    Eval::MateIn(m) => 30000 - m as i32,
+                    Eval::MatedIn(m) => -30000 + m as i32,
+                };
+                *result_for_info.lock().unwrap() = Some(SearchResult {
+                    best_move: CString::new(uci).unwrap_or_default(),
+                    score_cp: score,
+                    depth: info.depth as i32,
+                });
+            },
+            // finish callback: signal completion
+            move |info: &SearchInfo| {
+                let uci = format_uci_move(info.best_move);
+                let score = match info.eval {
+                    Eval::Centipawns(cp) => cp as i32,
+                    Eval::MateIn(m) => 30000 - m as i32,
+                    Eval::MatedIn(m) => -30000 + m as i32,
+                };
+                *result_for_finish.lock().unwrap() = Some(SearchResult {
+                    best_move: CString::new(uci).unwrap_or_default(),
+                    score_cp: score,
+                    depth: info.depth as i32,
+                });
+                let mut done = SEARCH_DONE.0.lock().unwrap();
+                *done = true;
+                SEARCH_DONE.1.notify_all();
+            },
+        );
+    } // release STATE lock so search threads can proceed
+
+    // Wait for search to complete
+    let mut done = SEARCH_DONE.0.lock().unwrap();
+    while !*done {
+        done = SEARCH_DONE.1.wait(done).unwrap();
+    }
+
+    // Copy result to global
+    let final_result = result_holder.lock().unwrap().take();
+    *RESULT.lock().unwrap() = final_result;
+
+    if RESULT.lock().unwrap().is_some() { 0 } else { -1 }
+}
+
 #[no_mangle]
 pub extern "C" fn frozenight_get_best_move() -> *const c_char {
-    let guard = LAST_BEST_MOVE.lock().unwrap();
+    let guard = RESULT.lock().unwrap();
     match guard.as_ref() {
-        Some(s) => s.as_ptr(),
+        Some(r) => r.best_move.as_ptr(),
         None => std::ptr::null(),
     }
 }
 
-/// Get the evaluation score in centipawns from the last search.
 #[no_mangle]
 pub extern "C" fn frozenight_get_score() -> i32 {
-    LAST_EVAL.lock().unwrap().0
+    RESULT.lock().unwrap().as_ref().map(|r| r.score_cp).unwrap_or(0)
 }
 
-/// Get the search depth reached in the last search.
 #[no_mangle]
 pub extern "C" fn frozenight_get_depth() -> i32 {
-    LAST_EVAL.lock().unwrap().1
+    RESULT.lock().unwrap().as_ref().map(|r| r.depth).unwrap_or(0)
 }
 
-/// Dispose the engine and free resources.
 #[no_mangle]
 pub extern "C" fn frozenight_dispose() {
-    *ENGINE.lock().unwrap() = None;
-    *LAST_BEST_MOVE.lock().unwrap() = None;
+    *STATE.lock().unwrap() = None;
+    *RESULT.lock().unwrap() = None;
 }
 
-/// Parse a UCI move string (e.g. "e2e4", "e7e8q") into a cozy_chess Move.
-fn parse_uci_move(board: &Board, uci: &str) -> Option<cozy_chess::Move> {
+fn parse_uci_move(board: &Board, uci: &str) -> Option<Move> {
     if uci.len() < 4 { return None; }
-
-    let from = parse_square(&uci[0..2])?;
-    let to = parse_square(&uci[2..4])?;
+    let from = uci[0..2].parse().ok()?;
+    let to = uci[2..4].parse().ok()?;
     let promotion = if uci.len() > 4 {
         match uci.as_bytes()[4] {
             b'q' => Some(cozy_chess::Piece::Queen),
@@ -150,19 +192,15 @@ fn parse_uci_move(board: &Board, uci: &str) -> Option<cozy_chess::Move> {
         None
     };
 
-    // Find the matching legal move
     let mut result = None;
     board.generate_moves(|moves| {
         for mv in moves {
             if mv.from == from && mv.to == to {
-                if let Some(promo) = promotion {
-                    if mv.promotion == Some(promo) {
-                        result = Some(mv);
-                        return false;
-                    }
-                } else if mv.promotion.is_none() || mv.promotion == Some(cozy_chess::Piece::Queen) {
-                    result = Some(mv);
-                    return false;
+                match (promotion, mv.promotion) {
+                    (Some(p), Some(mp)) if p == mp => { result = Some(mv); return false; }
+                    (None, None) => { result = Some(mv); return false; }
+                    (None, Some(_)) => { /* auto-queen */ result = Some(mv); return false; }
+                    _ => {}
                 }
             }
         }
@@ -171,23 +209,7 @@ fn parse_uci_move(board: &Board, uci: &str) -> Option<cozy_chess::Move> {
     result
 }
 
-fn parse_square(s: &str) -> Option<cozy_chess::Square> {
-    let bytes = s.as_bytes();
-    if bytes.len() < 2 { return None; }
-    let file = match bytes[0] {
-        b'a'..=b'h' => cozy_chess::File::index((bytes[0] - b'a') as usize),
-        _ => return None,
-    };
-    let rank = match bytes[1] {
-        b'1'..=b'8' => cozy_chess::Rank::index((bytes[1] - b'1') as usize),
-        _ => return None,
-    };
-    Some(cozy_chess::Square::new(file, rank))
-}
-
-fn format_uci_move(mv: cozy_chess::Move) -> String {
-    let from = format!("{}{}", (b'a' + mv.from.file() as u8) as char, (b'1' + mv.from.rank() as u8) as char);
-    let to = format!("{}{}", (b'a' + mv.to.file() as u8) as char, (b'1' + mv.to.rank() as u8) as char);
+fn format_uci_move(mv: Move) -> String {
     let promo = match mv.promotion {
         Some(cozy_chess::Piece::Queen) => "q",
         Some(cozy_chess::Piece::Rook) => "r",
@@ -195,5 +217,5 @@ fn format_uci_move(mv: cozy_chess::Move) -> String {
         Some(cozy_chess::Piece::Knight) => "n",
         _ => "",
     };
-    format!("{}{}{}", from, to, promo)
+    format!("{}{}{}", mv.from, mv.to, promo)
 }

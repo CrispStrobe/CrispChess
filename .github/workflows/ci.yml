@@ -27,6 +27,45 @@ jobs:
         run: flutter test
         continue-on-error: true
 
+  # Build Frozenight native library for Linux
+  frozenight-linux:
+    name: Frozenight (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+      - name: Build Frozenight FFI
+        run: cargo build --release
+        working-directory: native/frozenight
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-linux
+          path: native/frozenight/target/release/libfrozenight_ffi.so
+          retention-days: 14
+
+  # Build Frozenight native library for macOS
+  frozenight-macos:
+    name: Frozenight (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight
+      - name: Build Frozenight FFI
+        run: cargo build --release
+        working-directory: native/frozenight
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozenight-macos
+          path: native/frozenight/target/release/libfrozenight_ffi.dylib
+          retention-days: 14
+
+  # Flutter builds (no Frozenight dependency — DartEngine only)
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
@@ -60,8 +99,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Build iOS
-        run: flutter build ios --no-codesign --release
+      - run: flutter build ios --no-codesign --release
 
   build-macos:
     name: Build macOS
@@ -74,8 +112,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Build macOS
-        run: flutter build macos --release
+      - run: flutter build macos --release
       - uses: actions/upload-artifact@v4
         with:
           name: macos-app
@@ -97,8 +134,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-      - name: Build Linux
-        run: flutter build linux --release
+      - run: flutter build linux --release
       - name: Package
         run: |
           cd build/linux/x64/release/bundle
@@ -120,10 +156,37 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Build Web
-        run: flutter build web --release
+      - run: flutter build web --release
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
           path: build/web/
+          retention-days: 14
+
+  # Bundle Frozenight with Linux build
+  bundle-linux-frozenight:
+    name: Bundle Linux + Frozenight
+    runs-on: ubuntu-latest
+    needs: [build-linux, frozenight-linux]
+    if: always() && needs.build-linux.result == 'success' && needs.frozenight-linux.result == 'success'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-x64
+          path: bundle/
+      - uses: actions/download-artifact@v4
+        with:
+          name: frozenight-linux
+          path: bundle/
+      - name: Package with Frozenight
+        run: |
+          cd bundle
+          mkdir -p app
+          tar xzf crispchess-linux-x64.tar.gz -C app/
+          cp libfrozenight_ffi.so app/lib/
+          cd app && tar czf $GITHUB_WORKSPACE/crispchess-linux-x64-frozenight.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-frozenight
+          path: crispchess-linux-x64-frozenight.tar.gz
           retention-days: 14
