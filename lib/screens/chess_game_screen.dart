@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../chess/chess_clock.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
@@ -412,6 +413,59 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     super.dispose();
   }
 
+  void _exportPgn() {
+    final pgn = _game.toPgn(
+      engineName: _engineService.engineName,
+      playAsBlack: _state.playAsBlack,
+    );
+    Clipboard.setData(ClipboardData(text: pgn));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PGN copied to clipboard')),
+      );
+    }
+  }
+
+  Future<void> _importPgn() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text == null || data!.text!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No PGN found in clipboard'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_game.loadPgn(data.text!)) {
+      _clock?.pause();
+      setState(() {
+        _state = _state.copyWith(
+          statusMessage: 'Game loaded from PGN',
+          isThinking: false,
+          hintMove: null,
+        );
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PGN loaded')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid PGN'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildClockBar(ClockSide side, {required bool isOpponent}) {
     final isLow = side.remaining.inSeconds < 30;
     final isExpired = side.isExpired;
@@ -546,6 +600,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               switch (value) {
                 case 'new':
                   _newGame();
+                case 'export_pgn':
+                  _exportPgn();
+                case 'import_pgn':
+                  _importPgn();
                 case 'settings':
                   _openSettings();
                 case 'about':
@@ -556,6 +614,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'new', child: ListTile(
                 leading: Icon(Icons.refresh), title: Text('New Game'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'export_pgn', child: ListTile(
+                leading: Icon(Icons.copy), title: Text('Copy PGN'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'import_pgn', child: ListTile(
+                leading: Icon(Icons.paste), title: Text('Paste PGN'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'settings', child: ListTile(
                 leading: Icon(Icons.settings), title: Text('Settings'),

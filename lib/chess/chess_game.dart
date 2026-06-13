@@ -1,6 +1,7 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'move_analyzer.dart';
+import 'pgn.dart';
 
 enum PieceType { pawn, knight, bishop, rook, queen, king }
 enum PieceColor { white, black }
@@ -224,6 +225,50 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     notifyListeners();
   }
   
+  /// Export current game as PGN string.
+  String toPgn({String engineName = 'Engine', bool playAsBlack = false}) {
+    final now = DateTime.now();
+    final date = '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
+    return exportPgn(
+      game: _game,
+      headers: PgnHeaders(
+        date: date,
+        white: playAsBlack ? engineName : 'Human',
+        black: playAsBlack ? 'Human' : engineName,
+        result: gameResult(_game),
+      ),
+    );
+  }
+
+  /// Load a game from PGN. Returns true on success.
+  bool loadPgn(String pgnText) {
+    final loaded = importPgn(pgnText);
+    if (loaded == null) return false;
+
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    // Replace the game state — chess package doesn't support direct assignment
+    // so we reset and replay
+    _game.reset();
+    _annotations.clear();
+    _lastEvaluation = null;
+    _lastDepth = null;
+
+    // Load the PGN into our game instance
+    final moveText = pgnText.split('\n')
+        .where((l) => !l.trim().startsWith('[') && l.trim().isNotEmpty)
+        .join(' ')
+        .trim();
+    if (moveText.isNotEmpty) {
+      _game.load_pgn(moveText);
+    }
+
+    _cachedBoard = null;
+    _cachedLegalMoves = null;
+    notifyListeners();
+    return true;
+  }
+
   void reset() {
     _cachedLegalMoves = null;
     _cachedBoard = null;
