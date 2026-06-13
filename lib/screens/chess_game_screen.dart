@@ -35,6 +35,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _initializeEngine() {
+    debugPrint('[CrispChess] Initializing engine...');
     _eventSubscription?.cancel();
     _eventSubscription = _engineService.events.listen(_onEngineEvent);
     _engineService.initialize();
@@ -42,6 +43,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onEngineEvent(EngineEvent event) {
     if (!mounted) return;
+    debugPrint('[CrispChess] Event: ${event.runtimeType}');
     switch (event) {
       case EvalUpdateEvent(:final eval, :final depth, :final bestMove):
         _evalNotifier.value = eval;
@@ -53,12 +55,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           });
         }
       case BestMoveEvent(:final move):
+        debugPrint('[CrispChess] Best move: $move');
         if (_state.waitingForHint) {
           _handleHintResponse(move);
         } else if (_state.isThinking) {
           _makeEngineMove(move);
         }
       case StateChangeEvent(:final state):
+        debugPrint('[CrispChess] Engine state: $state');
         if (state == EngineState.ready) {
           setState(() {
             _state = _state.copyWith(statusMessage: 'Your turn (White)');
@@ -72,7 +76,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           });
         }
       case EngineErrorEvent(:final message):
-        debugPrint('Engine error: $message');
+        debugPrint('[CrispChess] Engine error: $message');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -145,6 +149,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _onMove(int fromRow, int fromCol, int toRow, int toCol) {
+    debugPrint('[CrispChess] _onMove($fromRow,$fromCol -> $toRow,$toCol) whiteToMove=${_game.whiteToMove} isThinking=${_state.isThinking} engineState=${_engineService.state}');
     if (!_game.whiteToMove || _state.isThinking) return;
 
     if (_engineService.state != EngineState.ready) {
@@ -190,6 +195,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _requestEngineMove() {
+    debugPrint('[CrispChess] Requesting engine move: depth=${3 + _state.strengthLevel} skill=${_state.strengthLevel}');
     _engineService.requestMove(
       _game.positionCommand,
       depth: 3 + _state.strengthLevel, // depth 3-23

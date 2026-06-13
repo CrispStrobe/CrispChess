@@ -38,7 +38,7 @@ class DartEngine implements ChessEngine {
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
-    // Dart engine has no external deps, instant init
+    debugPrint('[DartEngine] Initialized (kIsWeb=$kIsWeb)');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -59,11 +59,12 @@ class DartEngine implements ChessEngine {
 
     SearchResult? result;
     if (kIsWeb) {
-      // Web doesn't support isolates — run synchronously with lower depth.
-      // Yield to UI first so the "thinking" state renders before blocking.
-      await Future.delayed(Duration.zero);
       final webDepth = searchDepth.clamp(1, 4);
+      debugPrint('[DartEngine] Web search: depth=$webDepth fen=${_game.fen.substring(0, 20)}...');
+      await Future.delayed(Duration.zero); // yield one frame
+      final sw = Stopwatch()..start();
       result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: webDepth));
+      debugPrint('[DartEngine] Web search done: ${sw.elapsedMilliseconds}ms move=${result?.bestMove} nodes=${result?.nodesSearched}');
     } else {
       result = await compute(
         _searchInIsolate,
