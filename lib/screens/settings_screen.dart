@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         gplNotice: true,
       ));
     } else {
-      // On native, Frozenight already listed above
+      final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
       // Stockfish — desktop + Android via process, iOS via JS bridge
       engines.add(_EngineOption(
         name: 'Stockfish',
@@ -81,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? 'Downloaded engine (JavaScriptCore)'
             : 'Separate process (install stockfish)',
         elo: isIOS ? '~3200' : '~3600',
-        license: 'GPL-3.0 (not linked)',
+        license: 'GPL-3.0',
         available: true,
         gplNotice: true,
       ));

@@ -31,7 +31,7 @@ external JSBoolean _frozenightIsLoaded();
 /// ~3226 ELO (CCRL). MIT/Apache-2.0 licensed.
 /// Single-threaded — search runs synchronously per depth.
 /// Uses incremental deepening with UI yields between depths.
-class FrozenightWebEngine implements ChessEngine {
+class FrozenightEngine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   bool _loaded = false;
 
