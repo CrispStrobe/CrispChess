@@ -6,6 +6,7 @@ class SettingsScreen extends StatefulWidget {
   final int hintDepth;
   final String currentEngine;
   final bool playAsBlack;
+  final String maia3Variant;
 
   const SettingsScreen({
     Key? key,
@@ -13,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
     required this.hintDepth,
     this.currentEngine = 'Built-in',
     this.playAsBlack = false,
+    this.maia3Variant = '5m',
   }) : super(key: key);
 
   @override
@@ -23,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late int _strengthLevel;
   late int _hintDepth;
   late String _selectedEngine;
+  late String _maia3Variant;
   bool _showValidMoves = true;
   bool _animateMoves = true;
   bool _playAsBlack = false;
@@ -39,6 +42,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ('papercut', 'Papercut', 'CC-BY 4.0'),
   ];
 
+  static const _maia3Variants = [
+    ('5m', 'Maia3 5M', '~25MB', '~1800 ELO'),
+    ('23m', 'Maia3 23M', '~92MB', '~2200 ELO'),
+    ('79m', 'Maia3 79M', '~313MB', '~2500 ELO'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -46,26 +55,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hintDepth = widget.hintDepth;
     _selectedEngine = widget.currentEngine;
     _playAsBlack = widget.playAsBlack;
+    _maia3Variant = widget.maia3Variant;
   }
+
+  bool get _isMaiaEngine =>
+      _selectedEngine == 'Maia3' || _selectedEngine == 'Maia3 Dart';
 
   List<_EngineOption> get _availableEngines {
     final engines = <_EngineOption>[
       _EngineOption(
         name: 'Built-in',
-        description: 'Built-in (alpha-beta + TT, pure Dart)',
+        description: 'Alpha-beta + TT, pure Dart',
         elo: '~1800',
         license: 'MIT',
         available: true,
       ),
     ];
 
-    // Maia3 — bundled maia3-js + ONNX Runtime
+    // Maia3 JS — bundled maia3-js + ONNX Runtime (web only)
     engines.add(_EngineOption(
       name: 'Maia3',
-      description: 'Neural net — human-like play (~21MB model)',
+      description: 'Neural net — human-like play (JS bridge)',
       elo: '~1500',
       license: 'MIT',
       available: kIsWeb,
+    ));
+
+    // Maia3 Dart — pure Dart port, works everywhere
+    engines.add(_EngineOption(
+      name: 'Maia3 Dart',
+      description: 'Neural net — human-like play (pure Dart + ONNX)',
+      elo: '~1500–2500',
+      license: 'MIT',
+      available: true,
+      hasVariants: true,
     ));
 
     // Frozenight — MIT, available on all platforms
@@ -76,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : 'NNUE engine (Rust FFI)',
       elo: '~3226',
       license: 'MIT/Apache-2.0',
-      available: kIsWeb, // Web WASM ready, native needs lib
+      available: kIsWeb,
     ));
 
     // Stockfish — downloaded at runtime, never linked into app
@@ -102,6 +125,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         gplNotice: true,
       ));
     }
+
+    // Lc0 — downloaded at runtime, GPL-3.0
+    engines.add(_EngineOption(
+      name: 'Lc0',
+      description: kIsWeb
+          ? 'MCTS + neural net (not available on web)'
+          : 'MCTS + neural net (downloaded separately)',
+      elo: '~1100–3300',
+      license: 'GPL-3.0',
+      available: !kIsWeb, // Mobile/desktop only
+      gplNotice: true,
+    ));
 
     return engines;
   }
@@ -166,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         '${engine.description} (${engine.license})'
-                        '${engine.available ? '' : ' — not installed'}',
+                        '${engine.available ? '' : ' — not available'}',
                         style: const TextStyle(fontSize: 12),
                       ),
                       if (engine.gplNotice)
@@ -188,6 +223,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }).toList(),
             ),
           ),
+
+          // Maia3 variant selector (shown when a Maia engine is selected)
+          if (_isMaiaEngine) ...[
+            const SizedBox(height: 16),
+            Text('Maia3 Model',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: _maia3Variants.map((v) {
+                  final (id, name, size, elo) = v;
+                  return RadioListTile<String>(
+                    value: id,
+                    groupValue: _maia3Variant,
+                    onChanged: (value) =>
+                        setState(() => _maia3Variant = value!),
+                    title: Text(name, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text('$size — $elo',
+                        style: const TextStyle(fontSize: 12)),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 24),
 
@@ -343,8 +403,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'MIT licensed chess app with pluggable engines.\n'
-                    'CrispEngine: Pure Dart, works everywhere including web.\n'
-                    'Frozenight: Rust NNUE engine for native platforms.',
+                    'Built-in: Pure Dart alpha-beta engine.\n'
+                    'Maia3 Dart: Neural net, human-like play (MIT).\n'
+                    'Frozenight: Rust NNUE engine (MIT/Apache-2.0).\n'
+                    'Stockfish/Lc0: GPL-3.0, downloaded separately.',
                     style: TextStyle(fontSize: 11, height: 1.5),
                   ),
                 ],
@@ -363,6 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'playAsBlack': _playAsBlack,
             'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,
+            'maia3Variant': _maia3Variant,
           });
         },
         icon: const Icon(Icons.check),
@@ -379,6 +442,7 @@ class _EngineOption {
   final String license;
   final bool available;
   final bool gplNotice;
+  final bool hasVariants;
 
   _EngineOption({
     required this.name,
@@ -387,5 +451,6 @@ class _EngineOption {
     required this.license,
     required this.available,
     this.gplNotice = false,
+    this.hasVariants = false,
   });
 }

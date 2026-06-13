@@ -3,22 +3,28 @@
 
 let maia3Instance = null;
 let maia3Loading = false;
+let maia3CurrentVariant = null;
 
 async function maia3Load(variant, onProgress) {
-  if (maia3Instance) return;
+  // If already loaded with same variant, skip
+  if (maia3Instance && maia3CurrentVariant === variant) return;
+
+  // If loading or different variant, close old instance
+  if (maia3Instance) {
+    await maia3Close();
+  }
   if (maia3Loading) return;
   maia3Loading = true;
 
   try {
     // ort.min.js is loaded via <script> tag in index.html
-    // It sets globalThis.ort which maia3-bundle.js uses
     if (typeof globalThis.ort === 'undefined') {
       throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
     }
 
     // Configure ONNX Runtime for browser (single-threaded, CDN WASM)
     if (globalThis.ort.env) {
-      globalThis.ort.env.wasm.numThreads = 1; // No SharedArrayBuffer without COOP/COEP
+      globalThis.ort.env.wasm.numThreads = 1;
       globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
     }
 
@@ -27,19 +33,22 @@ async function maia3Load(variant, onProgress) {
       throw new Error('Maia3 bundle not loaded — check maia3-bundle.js in index.html');
     }
 
-    console.log('[Maia3] Creating instance (variant: ' + (variant || '5m') + ')');
+    var v = variant || '5m';
+    console.log('[Maia3] Creating instance (variant: ' + v + ')');
     maia3Instance = new globalThis.Maia3Class({
-      variant: variant || '5m',
+      variant: v,
       onProgress: (loaded, total) => {
         console.log('[Maia3] Model: ' + Math.round(loaded / total * 100) + '%');
       },
     });
 
     await maia3Instance.load();
-    console.log('[Maia3] Ready');
+    maia3CurrentVariant = v;
+    console.log('[Maia3] Ready (variant: ' + v + ')');
   } catch (e) {
     console.error('[Maia3] Failed:', e.message || e);
     maia3Instance = null;
+    maia3CurrentVariant = null;
     throw e;
   } finally {
     maia3Loading = false;
@@ -56,6 +65,7 @@ async function maia3Close() {
   if (maia3Instance) {
     await maia3Instance.close();
     maia3Instance = null;
+    maia3CurrentVariant = null;
   }
 }
 

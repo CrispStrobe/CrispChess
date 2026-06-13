@@ -54,6 +54,7 @@ class Maia3Engine implements ChessEngine {
   Maia3Engine({
     this.variant = Maia3Variant.small,
     this.playerElo = 1500,
+    String variantStr = '5m', // unused on native, for API compat with web
   });
 
   @override

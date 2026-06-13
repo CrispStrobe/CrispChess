@@ -303,6 +303,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  String _maia3Variant = '5m';
+
   Future<void> _openSettings() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -312,12 +314,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           hintDepth: _state.hintDepth,
           currentEngine: _engineService.engineName,
           playAsBlack: _state.playAsBlack,
+          maia3Variant: _maia3Variant,
         ),
       ),
     );
     if (result != null) {
       final newPlayAsBlack = result['playAsBlack'] as bool? ?? false;
       final colorChanged = newPlayAsBlack != _state.playAsBlack;
+      final newVariant = result['maia3Variant'] as String? ?? '5m';
 
       setState(() {
         _state = _state.copyWith(
@@ -335,14 +339,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _newGame();
       }
 
-      // Switch engine if changed
+      // Switch engine if changed (or variant changed for Maia)
       final selectedEngine = result['engine'] as String?;
+      final variantChanged = newVariant != _maia3Variant;
+      _maia3Variant = newVariant;
+
       if (selectedEngine != null &&
-          selectedEngine != _engineService.engineName) {
-        debugPrint('[CrispChess] Switching engine to $selectedEngine');
-        // Map strength level to approximate ELO for Maia3
+          (selectedEngine != _engineService.engineName || variantChanged)) {
+        debugPrint('[CrispChess] Switching engine to $selectedEngine (variant: $_maia3Variant)');
         final elo = 800 + (_state.strengthLevel * 60);
-        final newEngine = createEngine(selectedEngine, playerElo: elo);
+        final newEngine = createEngine(
+          selectedEngine,
+          playerElo: elo,
+          maia3Variant: _maia3Variant,
+        );
         _engineService.switchEngine(newEngine);
       }
     }

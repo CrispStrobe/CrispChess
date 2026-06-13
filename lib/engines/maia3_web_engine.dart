@@ -1,5 +1,5 @@
 // Maia3 engine for web — calls maia3-js via JavaScript interop.
-// MIT licensed. Downloads ~21MB ONNX model on first use.
+// MIT licensed. Downloads ONNX model on first use.
 
 import 'dart:async';
 import 'dart:js_interop';
@@ -13,21 +13,21 @@ external JSPromise<JSAny?> _jsLoad(JSString variant, JSAny? onProgress);
 @JS('maia3Close')
 external JSPromise<JSAny?> _jsClose();
 
-// Predict returns a string (bestMove) for simplicity
-// The bridge will be updated to return just the best move string
+// Predict returns a string (bestMove)
 @JS('maia3PredictMove')
 external JSPromise<JSString> _jsPredictMove(JSString fen, JSNumber selfElo);
 
 class Maia3Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final int playerElo;
+  final String variant;
   bool _loaded = false;
   final List<String> _fenHistory = [];
 
-  Maia3Engine({this.playerElo = 1500, String variant = '5m'});
+  Maia3Engine({this.playerElo = 1500, this.variant = '5m'});
 
   @override
-  String get name => 'Maia3';
+  String get name => 'Maia3 ($variant)';
   @override
   String get version => '1.0';
   @override
@@ -43,10 +43,10 @@ class Maia3Engine implements ChessEngine {
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
     try {
-      await _jsLoad('5m'.toJS, null).toDart;
+      await _jsLoad(variant.toJS, null).toDart;
       _loaded = true;
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[Maia3] Ready');
+      debugPrint('[Maia3] Ready (variant: $variant)');
     } catch (e) {
       debugPrint('[Maia3] Failed: $e');
       _stateNotifier.value = EngineState.error;
