@@ -23,12 +23,15 @@ async function frozenightLoad() {
 
 function frozenightSetPosition(fen, moves) {
   if (!frozenightModule) throw new Error('Not loaded');
+  console.log('[Frozenight WASM] set_position(' + fen + ', ' + (moves || '') + ')');
   frozenightModule.set_position(fen, moves || '');
 }
 
 function frozenightSearch(depth) {
   if (!frozenightModule) throw new Error('Not loaded');
-  return frozenightModule.search(depth);
+  const move = frozenightModule.search(depth);
+  console.log('[Frozenight WASM] search(' + depth + ') = ' + move);
+  return move;
 }
 
 function frozenightGetEval() {
