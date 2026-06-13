@@ -19,7 +19,7 @@ async function maia3Load(variant, onProgress) {
     // Configure ONNX Runtime for browser (single-threaded, CDN WASM)
     if (globalThis.ort.env) {
       globalThis.ort.env.wasm.numThreads = 1; // No SharedArrayBuffer without COOP/COEP
-      globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
+      globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
     }
 
     // maia3-bundle.js is loaded via <script> tag — sets globalThis.Maia3Class

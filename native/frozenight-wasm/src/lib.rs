@@ -113,6 +113,54 @@ pub fn dispose() {
     }
 }
 
+/// Debug: try to parse a UCI move and return info about what happened.
+#[wasm_bindgen]
+pub fn debug_parse_move(fen: &str, uci_move: &str) -> String {
+    let board = if fen == "startpos" {
+        Board::default()
+    } else {
+        match fen.parse::<Board>() {
+            Ok(b) => b,
+            Err(e) => return format!("FEN parse error: {:?}", e),
+        }
+    };
+
+    if uci_move.len() < 4 {
+        return format!("Move too short: {}", uci_move);
+    }
+
+    let from_str = &uci_move[0..2];
+    let to_str = &uci_move[2..4];
+
+    let from: cozy_chess::Square = match from_str.parse() {
+        Ok(s) => s,
+        Err(_) => return format!("Cannot parse from square: '{}'", from_str),
+    };
+    let to: cozy_chess::Square = match to_str.parse() {
+        Ok(s) => s,
+        Err(_) => return format!("Cannot parse to square: '{}'", to_str),
+    };
+
+    // List all legal moves
+    let mut all_moves = Vec::new();
+    let mut matching = Vec::new();
+    board.generate_moves(|moves| {
+        for mv in moves {
+            all_moves.push(format!("{}{}", mv.from, mv.to));
+            if mv.from == from && mv.to == to {
+                matching.push(format!("{}{} promo={:?}", mv.from, mv.to, mv.promotion));
+            }
+        }
+        true
+    });
+
+    format!(
+        "from={} to={} matching={:?} total_moves={} side={:?}",
+        from, to, matching, all_moves.len(),
+        board.side_to_move()
+    )
+}
+
 fn parse_uci_move(board: &Board, uci: &str) -> Option<cozy_chess::Move> {
     if uci.len() < 4 { return None; }
     let from = uci[0..2].parse().ok()?;

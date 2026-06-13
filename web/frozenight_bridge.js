@@ -23,11 +23,17 @@ async function frozenightLoad() {
 
 function frozenightSetPosition(fen, moves) {
   if (!frozenightModule) throw new Error('Not loaded');
-  console.log('[Frozenight WASM] set_position(' + fen + ', ' + (moves || '') + ')');
+  console.log('[Frozenight WASM] set_position(' + fen + ', "' + (moves || '') + '")');
+
+  // Debug: test if the move parses
+  if (moves) {
+    const debugResult = frozenightModule.debug_parse_move(fen, moves.trim());
+    console.log('[Frozenight WASM] debug_parse_move: ' + debugResult);
+  }
+
   frozenightModule.set_position(fen, moves || '');
-  // Verify position was applied
   const currentFen = frozenightModule.get_fen();
-  console.log('[Frozenight WASM] Board after set_position: ' + currentFen);
+  console.log('[Frozenight WASM] Board after: ' + currentFen);
 }
 
 function frozenightSearch(depth) {
