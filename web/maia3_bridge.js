@@ -11,9 +11,9 @@ async function maia3Load(variant, onProgress) {
   maia3Loading = true;
 
   try {
-    // Dynamic import from CDN (ESM)
+    // Dynamic import via esm.sh (auto-resolves all transitive deps like chess.js)
     const { Maia3 } = await import(
-      'https://cdn.jsdelivr.net/npm/maia3-js@latest/dist/web/index.js'
+      'https://esm.sh/maia3-js/web'
     );
 
     maia3Instance = new Maia3({
