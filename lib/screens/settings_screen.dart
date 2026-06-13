@@ -44,7 +44,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ];
 
     if (kIsWeb) {
-      // On web, Stockfish runs via WASM Web Worker
       engines.add(_EngineOption(
         name: 'Stockfish',
         description: 'WASM engine (Web Worker)',
@@ -54,23 +53,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         gplNotice: true,
       ));
     } else {
-      // Native: Frozenight via FFI
       engines.add(_EngineOption(
         name: 'Frozenight',
-        description: 'NNUE engine (Rust)',
+        description: 'NNUE engine (Rust FFI)',
         elo: '~2960',
         license: 'MIT/Apache-2.0',
         available: false,
       ));
-      // Stockfish native — not on iOS
+      // Stockfish as separate process — works on desktop, not iOS
       final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
       if (!isIOS) {
         engines.add(_EngineOption(
           name: 'Stockfish',
-          description: 'Strongest engine (native)',
+          description: 'Separate process (install stockfish)',
           elo: '~3600',
-          license: 'GPL-3.0',
-          available: false,
+          license: 'GPL-3.0 (not linked)',
+          available: true, // Will try to find binary at runtime
           gplNotice: true,
         ));
       }
