@@ -17,3 +17,4 @@ web-time = "1"
 [profile.release]
 lto = true
 opt-level = "s"
+# Frozenight fork updated: search.rs + threading.rs patched
