@@ -1,24 +1,21 @@
-// Native Stockfish engine — runs stockfish binary as a separate process.
-// This file is used on non-web platforms (via conditional import in engine_factory.dart).
-// On web, stockfish_web_engine.dart is used instead.
+// Stockfish engine for native platforms.
+// Desktop: finds and runs system-installed stockfish binary.
+// Android: extracts bundled binary from assets, runs as process.
+// iOS: not available (no subprocess support — use Frozenight instead).
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'chess_engine.dart';
 
-/// Stockfish engine running as a separate process via UCI protocol.
-///
-/// Runs the `stockfish` binary (must be installed on the system).
-/// Since Stockfish runs as a separate process, the app binary itself
-/// is NOT a derivative work under GPL — the GPL applies only to the
-/// Stockfish binary, not to this wrapper code.
 class StockfishEngine implements ChessEngine {
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   Completer<String>? _moveCompleter;
   StreamSubscription? _stdoutSub;
+  final _evalController = StreamController<EvalInfo>.broadcast();
 
   static final _cpRegex = RegExp(r'score cp (-?\d+)');
   static final _depthRegex = RegExp(r'depth (\d+)');
@@ -39,14 +36,17 @@ class StockfishEngine implements ChessEngine {
 
   static bool get isAvailable {
     if (kIsWeb) return false;
-    return Platform.isLinux || Platform.isMacOS || Platform.isWindows;
+    // Available on desktop and Android (bundled binary)
+    return Platform.isLinux || Platform.isMacOS ||
+        Platform.isWindows || Platform.isAndroid;
   }
 
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
     try {
-      final path = await _findBinary();
+      final path = await _findOrExtractBinary();
+      debugPrint('[Stockfish] Starting: $path');
       _process = await Process.start(path, []);
 
       final ready = Completer<void>();
@@ -59,12 +59,12 @@ class StockfishEngine implements ChessEngine {
       });
 
       _process!.stdin.writeln('uci');
-      await ready.future.timeout(const Duration(seconds: 5),
+      await ready.future.timeout(const Duration(seconds: 10),
           onTimeout: () => debugPrint('[Stockfish] UCI timeout'));
 
       _process!.stdin.writeln('isready');
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[Stockfish] Ready: $path');
+      debugPrint('[Stockfish] Ready');
     } catch (e) {
       debugPrint('[Stockfish] Not available: $e');
       _stateNotifier.value = EngineState.error;
@@ -73,14 +73,20 @@ class StockfishEngine implements ChessEngine {
 
   void _handleLine(String line) {
     final t = line.trim();
+
     if (t.startsWith('info') && t.contains('depth')) {
       final cp = _cpRegex.firstMatch(t);
       final d = _depthRegex.firstMatch(t);
       final pv = _pvRegex.firstMatch(t);
       if (cp != null && d != null) {
-        // eval updates available via analyze() stream
+        _evalController.add(EvalInfo(
+          score: int.parse(cp.group(1)!) / 100.0,
+          depth: int.parse(d.group(1)!),
+          bestMove: pv?.group(1),
+        ));
       }
     }
+
     if (t.startsWith('bestmove')) {
       final parts = t.split(' ');
       if (parts.length >= 2 && parts[1] != '(none)') {
@@ -97,53 +103,28 @@ class StockfishEngine implements ChessEngine {
   }) async {
     if (_process == null) throw StateError('Not initialized');
     _stateNotifier.value = EngineState.thinking;
+
     if (skillLevel != null) {
       _process!.stdin.writeln('setoption name Skill Level value $skillLevel');
     }
     _process!.stdin.writeln(positionCommand);
     _moveCompleter = Completer<String>();
     _process!.stdin.writeln('go depth ${depth ?? 15}');
+
     return _moveCompleter!.future.timeout(const Duration(seconds: 30),
-        onTimeout: () { _process!.stdin.writeln('stop'); throw TimeoutException('timeout'); });
+        onTimeout: () {
+      _process!.stdin.writeln('stop');
+      throw TimeoutException('Search timed out');
+    });
   }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth}) {
-    // For full analysis, create a stream controller
-    final controller = StreamController<EvalInfo>();
-    if (_process == null) return controller.stream..drain();
-
+    if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
     _process!.stdin.writeln(positionCommand);
     _process!.stdin.writeln('go depth ${depth ?? 20}');
-
-    // Piggyback on stdout listener
-    late StreamSubscription sub;
-    sub = _process!.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
-      final t = line.trim();
-      if (t.startsWith('info') && t.contains('depth')) {
-        final cp = _cpRegex.firstMatch(t);
-        final d = _depthRegex.firstMatch(t);
-        final pv = _pvRegex.firstMatch(t);
-        if (cp != null && d != null) {
-          controller.add(EvalInfo(
-            score: int.parse(cp.group(1)!) / 100.0,
-            depth: int.parse(d.group(1)!),
-            bestMove: pv?.group(1),
-          ));
-        }
-      }
-      if (t.startsWith('bestmove')) {
-        _stateNotifier.value = EngineState.ready;
-        sub.cancel();
-        controller.close();
-      }
-    });
-
-    return controller.stream;
+    return _evalController.stream;
   }
 
   @override
@@ -156,24 +137,63 @@ class StockfishEngine implements ChessEngine {
   void dispose() {
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
+    _evalController.close();
     _process?.kill();
     _process = null;
     _stateNotifier.value = EngineState.disposed;
   }
 
-  static Future<String> _findBinary() async {
-    // Search common locations
+  /// Find or extract the Stockfish binary.
+  static Future<String> _findOrExtractBinary() async {
+    if (Platform.isAndroid) {
+      return _extractAndroidBinary();
+    }
+    return _findSystemBinary();
+  }
+
+  /// On Android: extract bundled stockfish binary from assets to app data dir.
+  static Future<String> _extractAndroidBinary() async {
+    // The binary is bundled as a Flutter asset
+    final dataDir = Directory('/data/data/${_getPackageName()}/files');
+    final binary = File('${dataDir.path}/stockfish');
+
+    if (!await binary.exists()) {
+      debugPrint('[Stockfish] Extracting Android binary...');
+      try {
+        final bytes = await rootBundle.load('assets/bin/stockfish-android');
+        await dataDir.create(recursive: true);
+        await binary.writeAsBytes(bytes.buffer.asUint8List());
+        await Process.run('chmod', ['+x', binary.path]);
+        debugPrint('[Stockfish] Extracted to ${binary.path}');
+      } catch (e) {
+        throw FileSystemException(
+            'Failed to extract Stockfish binary: $e');
+      }
+    }
+
+    return binary.path;
+  }
+
+  /// On desktop: find stockfish in system PATH.
+  static Future<String> _findSystemBinary() async {
+    final cmd = Platform.isWindows ? 'where' : 'which';
     for (final name in ['stockfish', 'stockfish.exe']) {
       try {
-        final result = await Process.run(
-            Platform.isWindows ? 'where' : 'which', [name]);
+        final result = await Process.run(cmd, [name]);
         if (result.exitCode == 0) {
           return (result.stdout as String).trim();
         }
       } catch (_) {}
     }
     throw FileSystemException(
-        'Stockfish not found. Install via package manager '
-        'or download from stockfishchess.org');
+        'Stockfish not found. Install via package manager:\n'
+        '  Linux: sudo apt install stockfish\n'
+        '  macOS: brew install stockfish\n'
+        '  Windows: download from stockfishchess.org');
+  }
+
+  static String _getPackageName() {
+    // Default package name — can be overridden
+    return 'com.crispstrobe.crispchess';
   }
 }

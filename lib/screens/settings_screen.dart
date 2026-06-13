@@ -53,22 +53,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         gplNotice: true,
       ));
     } else {
+      final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
       engines.add(_EngineOption(
         name: 'Frozenight',
-        description: 'NNUE engine (Rust FFI)',
+        description: isIOS
+            ? 'NNUE engine — strongest on iOS (MIT)'
+            : 'NNUE engine (Rust FFI)',
         elo: '~2960',
         license: 'MIT/Apache-2.0',
-        available: false,
+        available: false, // True when native lib is bundled
       ));
-      // Stockfish as separate process — works on desktop, not iOS
-      final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+      // Stockfish as separate process — desktop + Android, not iOS
       if (!isIOS) {
+        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
         engines.add(_EngineOption(
           name: 'Stockfish',
-          description: 'Separate process (install stockfish)',
+          description: isAndroid
+              ? 'Bundled binary (arm64)'
+              : 'Separate process (install stockfish)',
           elo: '~3600',
           license: 'GPL-3.0 (not linked)',
-          available: true, // Will try to find binary at runtime
+          available: true,
           gplNotice: true,
         ));
       }
