@@ -7,7 +7,6 @@ import '../engines/dart_engine.dart';
 import '../services/engine_service.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
-import '../engines/frozenight_engine.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
 
@@ -311,13 +310,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (selectedEngine != null &&
           selectedEngine != _engineService.engineName) {
         debugPrint('[CrispChess] Switching engine to $selectedEngine');
-        ChessEngine newEngine;
-        switch (selectedEngine) {
-          case 'Frozenight':
-            newEngine = FrozenightEngine();
-          default:
-            newEngine = DartEngine();
-        }
+        // For now, only DartEngine is fully integrated.
+        // Frozenight requires native lib and can't be imported on web.
+        final newEngine = DartEngine();
         _engineService.switchEngine(newEngine);
       }
     }

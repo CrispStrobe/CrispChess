@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../engines/chess_engine.dart';
-import '../engines/dart_engine.dart';
-import '../engines/frozenight_engine.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int strengthLevel;
@@ -46,14 +43,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
-    // Frozenight only on native platforms
+    // Frozenight only on native platforms (can't import dart:ffi on web)
     if (!kIsWeb) {
       engines.add(_EngineOption(
         name: 'Frozenight',
         description: 'NNUE engine (Rust)',
         elo: '~2960',
         license: 'MIT/Apache-2.0',
-        available: FrozenightEngine.isAvailable,
+        available: false, // Will be true when native lib is installed
       ));
     }
 
