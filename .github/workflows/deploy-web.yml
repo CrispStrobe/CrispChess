@@ -50,12 +50,12 @@ jobs:
 
       - name: Try WASM build
         id: wasm
-        run: flutter build web --release --wasm
+        run: flutter build web --release --wasm --dart-define=GIT_HASH=$(git rev-parse --short HEAD) --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d)
         continue-on-error: true
 
       - name: Fallback to JS build
         if: steps.wasm.outcome == 'failure'
-        run: flutter build web --release
+        run: flutter build web --release --dart-define=GIT_HASH=$(git rev-parse --short HEAD) --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d)
 
       - name: Log build type
         run: |

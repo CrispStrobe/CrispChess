@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
+  static const _version = '1.2.0';
+  static const _gitHash = String.fromEnvironment('GIT_HASH', defaultValue: 'dev');
+  static const _buildDate = String.fromEnvironment('BUILD_DATE', defaultValue: 'local');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,7 +37,7 @@ class AboutScreen extends StatelessWidget {
                         Text('CrispChess',
                             style: Theme.of(context).textTheme.headlineSmall),
                         const SizedBox(height: 4),
-                        Text('Version 1.1.0',
+                        Text('v$_version ($_gitHash) · $_buildDate',
                             style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(height: 4),
                         Text('Cross-platform chess with pluggable AI engines',
@@ -110,12 +114,6 @@ class AboutScreen extends StatelessWidget {
             'Contributions welcome. Open an issue first for major changes.',
           )),
 
-          _section(Icons.coffee, 'Support', const Text(
-            'CrispChess is free and open source. If you enjoy it, '
-            'consider buying the developer a coffee:\n\n'
-            'buymeacoffee.com/crispstrobe',
-          )),
-
           const SizedBox(height: 4),
           OutlinedButton.icon(
             icon: const Icon(Icons.description_outlined),
@@ -124,7 +122,7 @@ class AboutScreen extends StatelessWidget {
               showLicensePage(
                 context: context,
                 applicationName: 'CrispChess',
-                applicationVersion: '1.1.0',
+                applicationVersion: '$_version ($_gitHash)',
                 applicationLegalese: 'MIT License — CrispStrobe',
               );
             },
