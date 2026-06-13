@@ -14,6 +14,7 @@ class GameState {
   final bool analysisExpanded;
   final String? currentBestMove;
   final bool playAsBlack;
+  final String pieceTheme;
 
   const GameState({
     this.strengthLevel = 10,
@@ -31,6 +32,7 @@ class GameState {
     this.analysisExpanded = false,
     this.currentBestMove,
     this.playAsBlack = false,
+    this.pieceTheme = 'chessnut',
   });
 
   static const _sentinel = Object();
@@ -51,6 +53,7 @@ class GameState {
     bool? analysisExpanded,
     Object? currentBestMove = _sentinel,
     bool? playAsBlack,
+    String? pieceTheme,
   }) =>
       GameState(
         strengthLevel: strengthLevel ?? this.strengthLevel,
@@ -76,5 +79,6 @@ class GameState {
             ? this.currentBestMove
             : currentBestMove as String?,
         playAsBlack: playAsBlack ?? this.playAsBlack,
+        pieceTheme: pieceTheme ?? this.pieceTheme,
       );
 }

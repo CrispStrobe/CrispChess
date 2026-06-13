@@ -325,6 +325,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           showValidMoves: result['showValidMoves']! as bool,
           animateMoves: result['animateMoves']! as bool,
           playAsBlack: newPlayAsBlack,
+          pieceTheme: result['pieceTheme'] as String? ?? 'chessnut',
         );
       });
 
@@ -496,6 +497,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           hintMove: _state.hintMove,
                           isCheck: _game.inCheck,
                           animateMoves: _state.animateMoves,
+                          pieceTheme: _state.pieceTheme,
                         ),
                       );
                     },

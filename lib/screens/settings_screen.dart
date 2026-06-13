@@ -26,6 +26,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _showValidMoves = true;
   bool _animateMoves = true;
   bool _playAsBlack = false;
+  String _pieceTheme = 'chessnut';
+
+  static const _pieceThemes = [
+    ('chessnut', 'Chessnut', 'MIT'),
+    ('rhosgfx', 'Rhosgfx', 'CC0'),
+    ('fantasy', 'Fantasy', 'MIT'),
+    ('spatial', 'Spatial', 'MIT'),
+    ('celtic', 'Celtic', 'MIT'),
+    ('kiwen-suwi', 'Kiwen Suwi', 'CC-BY 4.0'),
+    ('totoy', 'Totoy', 'CC-BY 4.0'),
+    ('papercut', 'Papercut', 'CC-BY 4.0'),
+  ];
 
   @override
   void initState() {
@@ -289,6 +301,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Piece theme
+          Text('Piece Style', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          Card(
+            child: Column(
+              children: _pieceThemes.map((t) {
+                final (id, name, license) = t;
+                return RadioListTile<String>(
+                  value: id,
+                  groupValue: _pieceTheme,
+                  onChanged: (v) => setState(() => _pieceTheme = v!),
+                  title: Text(name, style: const TextStyle(fontSize: 14)),
+                  subtitle: Text(license, style: const TextStyle(fontSize: 11)),
+                  dense: true,
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // About
           Card(
             color: Colors.grey.shade50,
@@ -328,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'showValidMoves': _showValidMoves,
             'animateMoves': _animateMoves,
             'playAsBlack': _playAsBlack,
+            'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,
           });
         },

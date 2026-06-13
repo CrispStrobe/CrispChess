@@ -39,5 +39,12 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/pieces/
+    - assets/pieces/chessnut/
+    - assets/pieces/rhosgfx/
+    - assets/pieces/fantasy/
+    - assets/pieces/spatial/
+    - assets/pieces/celtic/
+    - assets/pieces/kiwen-suwi/
+    - assets/pieces/totoy/
+    - assets/pieces/papercut/
     - assets/stockfish.js

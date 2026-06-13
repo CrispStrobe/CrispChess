@@ -14,6 +14,7 @@ class ChessBoard extends StatefulWidget {
   final String? hintMove;
   final bool isCheck;
   final bool animateMoves;
+  final String pieceTheme;
 
   const ChessBoard({
     Key? key,
@@ -28,6 +29,7 @@ class ChessBoard extends StatefulWidget {
     this.hintMove,
     this.isCheck = false,
     this.animateMoves = true,
+    this.pieceTheme = 'chessnut',
   }) : super(key: key);
 
   @override
@@ -153,6 +155,7 @@ class _ChessBoardState extends State<ChessBoard>
                       onSquareTap: widget.onSquareTap,
                       onMove: widget.onMove,
                       animateMove: _animateMove,
+                      pieceTheme: widget.pieceTheme,
                     );
                   }),
                 ),
@@ -182,6 +185,7 @@ class _ChessSquare extends StatelessWidget {
   final Function(int fromRow, int fromCol, int toRow, int toCol)? onMove;
   final void Function(int fromRow, int fromCol, int toRow, int toCol)
       animateMove;
+  final String pieceTheme;
 
   const _ChessSquare({
     required this.row,
@@ -199,6 +203,7 @@ class _ChessSquare extends StatelessWidget {
     required this.onSquareTap,
     required this.onMove,
     required this.animateMove,
+    required this.pieceTheme,
   });
 
   @override
@@ -285,14 +290,14 @@ class _ChessSquare extends StatelessWidget {
                                 child: child,
                               );
                             },
-                            child: _PieceWidget(piece: piece!),
+                            child: _PieceWidget(piece: piece!, theme: pieceTheme),
                           )
                         : Draggable<Map<String, int>>(
                             data: {'row': row, 'col': col},
                             feedback:
-                                _PieceWidget(piece: piece!, size: 60),
+                                _PieceWidget(piece: piece!, size: 60, theme: pieceTheme),
                             childWhenDragging: Container(),
-                            child: _PieceWidget(piece: piece!),
+                            child: _PieceWidget(piece: piece!, theme: pieceTheme),
                           ),
                 ],
               ),
@@ -307,8 +312,9 @@ class _ChessSquare extends StatelessWidget {
 class _PieceWidget extends StatelessWidget {
   final ChessPiece piece;
   final double? size;
+  final String theme;
 
-  const _PieceWidget({required this.piece, this.size});
+  const _PieceWidget({required this.piece, this.size, this.theme = 'chessnut'});
 
   @override
   Widget build(BuildContext context) {
@@ -340,6 +346,6 @@ class _PieceWidget extends StatelessWidget {
         typeSuffix = 'K';
     }
 
-    return 'assets/pieces/$colorPrefix$typeSuffix.svg';
+    return 'assets/pieces/$theme/$colorPrefix$typeSuffix.svg';
   }
 }
