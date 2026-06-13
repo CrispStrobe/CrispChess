@@ -13,15 +13,18 @@ import 'maia3_engine.dart'
     if (dart.library.js_interop) 'maia3_web_engine.dart';
 
 /// Create a [ChessEngine] by name.
+///
+/// All engines are either MIT-licensed or downloaded separately
+/// (GPL engines run via JS runtime / separate process, never linked).
 ChessEngine createEngine(String name, {int? playerElo}) {
   switch (name) {
     case 'Stockfish':
-      return StockfishEngine();
+      return StockfishEngine(); // Downloaded, not linked
     case 'Frozenight':
-      return FrozenightEngine();
+      return FrozenightEngine(); // MIT/Apache-2.0
     case 'Maia3':
-      return Maia3Engine(playerElo: playerElo ?? 1500);
+      return Maia3Engine(playerElo: playerElo ?? 1500); // MIT
     default:
-      return DartEngine();
+      return DartEngine(); // MIT, built-in
   }
 }

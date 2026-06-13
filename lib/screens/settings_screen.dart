@@ -63,10 +63,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       available: kIsWeb, // Web WASM ready, native needs lib
     ));
 
+    // Stockfish — downloaded at runtime, never linked into app
     if (kIsWeb) {
       engines.add(_EngineOption(
         name: 'Stockfish',
-        description: 'WASM engine (Web Worker)',
+        description: 'Optional download (Web Worker)',
         elo: '~3200',
         license: 'GPL-3.0',
         available: true,
@@ -74,25 +75,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ));
     } else {
       final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
-      // Stockfish — desktop + Android via process, iOS via JS bridge
       engines.add(_EngineOption(
         name: 'Stockfish',
         description: isIOS
-            ? 'Downloaded engine (JavaScriptCore)'
-            : 'Separate process (install stockfish)',
+            ? 'Optional download (JavaScriptCore)'
+            : 'Optional — install stockfish separately',
         elo: isIOS ? '~3200' : '~3600',
         license: 'GPL-3.0',
         available: true,
-        gplNotice: true,
-      ));
-
-      // Lc0 — neural network engine with human-like play
-      engines.add(_EngineOption(
-        name: 'Lc0',
-        description: 'Neural net engine (Maia weights)',
-        elo: '~1900',
-        license: 'GPL-3.0',
-        available: false, // Add leela_chess_zero package to enable
         gplNotice: true,
       ));
     }
@@ -167,11 +157,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Note: GPL-3.0 — bundling Stockfish makes the '
-                            'entire app binary GPL-licensed.',
+                            'GPL-3.0 engine — downloaded separately, not '
+                            'compiled into this app. App remains MIT.',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.orange.shade700,
+                              color: Colors.grey.shade600,
                               fontStyle: FontStyle.italic,
                             ),
                           ),

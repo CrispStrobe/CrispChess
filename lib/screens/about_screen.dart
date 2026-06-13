@@ -70,16 +70,16 @@ class AboutScreen extends StatelessWidget {
                   'NNUE-based Rust engine by MinusKelvin. '
                   'Available on native platforms via FFI.'),
               SizedBox(height: 12),
-              _EngineInfo('Stockfish', '~3600 ELO', 'GPL-3.0',
-                  'Optional download. Runs as separate process (desktop) '
-                  'or via JavaScriptCore/Web Worker (mobile/web). '
-                  'Not linked into app binary — app stays MIT.'),
-              SizedBox(height: 12),
               _EngineInfo('Maia3', 'ELO-adaptive', 'MIT',
                   'Neural network that predicts human-like chess moves. '
                   'Trained on millions of real human games. '
                   'Set your ELO and it plays like a human at that level. '
                   '~21MB model downloaded on first use.'),
+              SizedBox(height: 12),
+              _EngineInfo('Stockfish', '~3600 ELO', 'GPL-3.0',
+                  'Optional download — never compiled into this app. '
+                  'Runs via Web Worker (web), JavaScriptCore (iOS), '
+                  'or separate process (desktop). App stays MIT.'),
             ],
           )),
 
