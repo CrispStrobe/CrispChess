@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../chess/opening_book.dart';
 import '../engines/chess_engine.dart';
+import '../engines/uci_position.dart';
 
 /// Events emitted by the engine service.
 sealed class EngineEvent {}
@@ -37,6 +39,7 @@ class EngineService {
   final _eventController = StreamController<EngineEvent>.broadcast();
   StreamSubscription<EvalInfo>? _analysisSubscription;
   VoidCallback? _stateListener;
+  bool useOpeningBook = true;
 
   Stream<EngineEvent> get events => _eventController.stream;
   EngineState get state => _engine.state;
@@ -75,6 +78,8 @@ class EngineService {
   }
 
   /// Request the best move for a position.
+  ///
+  /// Checks the opening book first (if enabled). Falls back to the engine.
   Future<void> requestMove(
     String positionCommand, {
     int? depth,
@@ -82,6 +87,17 @@ class EngineService {
     int? skillLevel,
   }) async {
     try {
+      // Try opening book first
+      if (useOpeningBook && depth == null) {
+        final fen = fenFromPositionCommand(positionCommand);
+        final bookMove = OpeningBook.pickMove(fen);
+        if (bookMove != null) {
+          debugPrint('[EngineService] Book move: $bookMove');
+          _eventController.add(BestMoveEvent(bookMove));
+          return;
+        }
+      }
+
       final move = await _engine.bestMove(
         positionCommand,
         depth: depth,
