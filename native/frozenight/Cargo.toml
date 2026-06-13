@@ -8,7 +8,7 @@ name = "frozenight_ffi"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-frozenight = { git = "https://github.com/MinusKelvin/frozenight", branch = "main" }
+frozenight = { git = "https://github.com/CrispStrobe/frozenight", branch = "main" }
 cozy-chess = "0.3"
 bytemuck = { version = "1", features = ["derive"] }
 

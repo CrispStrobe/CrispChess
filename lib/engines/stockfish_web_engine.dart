@@ -40,12 +40,16 @@ class StockfishEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
 
     try {
-      _worker = web.Worker('assets/stockfish.js'.toJS);
+      _worker = web.Worker('stockfish.js'.toJS);
+      debugPrint('[StockfishWeb] Worker created');
 
       final readyCompleter = Completer<void>();
 
       _worker!.onmessage = ((web.MessageEvent event) {
-        final line = (event.data as JSString).toDart;
+        final data = event.data;
+        if (data == null) return;
+        final line = data.toString();
+        debugPrint('[StockfishWeb] << $line');
         _handleOutput(line);
         if (line.contains('uciok') && !readyCompleter.isCompleted) {
           readyCompleter.complete();
@@ -55,9 +59,9 @@ class StockfishEngine implements ChessEngine {
       _send('uci');
 
       await readyCompleter.future.timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 15),
         onTimeout: () {
-          debugPrint('[StockfishWeb] UCI handshake timeout');
+          debugPrint('[StockfishWeb] UCI handshake timeout (15s)');
         },
       );
 
@@ -71,6 +75,7 @@ class StockfishEngine implements ChessEngine {
   }
 
   void _send(String command) {
+    debugPrint('[StockfishWeb] >> $command');
     _worker?.postMessage(command.toJS);
   }
 
