@@ -59,7 +59,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         debugPrint('[CrispChess] Best move: $move');
         if (_state.waitingForHint) {
           _handleHintResponse(move);
-        } else if (_state.isThinking) {
+        } else {
+          // Don't guard on isThinking — the StateChangeEvent(ready) may
+          // arrive before BestMoveEvent due to the stateNotifier firing
+          // synchronously inside bestMove(), while BestMoveEvent is added
+          // to the stream after bestMove() returns.
           _makeEngineMove(move);
         }
       case StateChangeEvent(:final state):
