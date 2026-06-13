@@ -19,7 +19,7 @@ CrispChess App (MIT)
 - [x] Refactor EngineService to use ChessEngine interface
 - [x] Refactor chess_game_screen.dart — no direct Stockfish refs
 - [x] Update imports (stockfish_example -> crispchess)
-- [ ] Settings screen: engine selector dropdown
+- [x] Settings screen: engine selector dropdown
 
 ### Phase 2: Built-in Dart Engine (MIT)
 - [x] Alpha-beta pruning with iterative deepening
@@ -27,7 +27,7 @@ CrispChess App (MIT)
 - [x] Move ordering (MVV-LVA, killer moves, history heuristic)
 - [x] Quiescence search
 - [x] Runs in isolate via compute()
-- [ ] Transposition table
+- [x] Transposition table
 - [x] Unit tests for evaluation, search
 - [ ] Integration test: engine plays a full game
 
@@ -51,5 +51,7 @@ CrispChess App (MIT)
 - [x] WASM headers in vercel.json
 - [ ] App icon and splash screen
 - [ ] Buy me a coffee / tip jar
-- [ ] Privacy policy
-- [ ] Release workflow with binaries
+- [x] Privacy policy
+- [x] Release workflow with binaries
+- [x] About screen with licenses, imprint, privacy
+- [x] WASM web build

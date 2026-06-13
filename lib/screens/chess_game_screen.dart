@@ -7,6 +7,8 @@ import '../engines/dart_engine.dart';
 import '../services/engine_service.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
+import '../engines/frozenight_engine.dart';
+import 'about_screen.dart';
 import 'settings_screen.dart';
 
 class ChessGameScreen extends StatefulWidget {
@@ -290,6 +292,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         builder: (context) => SettingsScreen(
           strengthLevel: _state.strengthLevel,
           hintDepth: _state.hintDepth,
+          currentEngine: _engineService.engineName,
         ),
       ),
     );
@@ -302,6 +305,21 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           animateMoves: result['animateMoves']! as bool,
         );
       });
+
+      // Switch engine if changed
+      final selectedEngine = result['engine'] as String?;
+      if (selectedEngine != null &&
+          selectedEngine != _engineService.engineName) {
+        debugPrint('[CrispChess] Switching engine to $selectedEngine');
+        ChessEngine newEngine;
+        switch (selectedEngine) {
+          case 'Frozenight':
+            newEngine = FrozenightEngine();
+          default:
+            newEngine = DartEngine();
+        }
+        _engineService.switchEngine(newEngine);
+      }
     }
   }
 
@@ -341,6 +359,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       appBar: AppBar(
         title: const Text('CrispChess'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: _openSettings,

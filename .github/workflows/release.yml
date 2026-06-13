@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - run: flutter build linux --release
+      - run: |
+          cd build/linux/x64/release/bundle
+          tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: CrispChess-linux-x64.tar.gz
+
+  build-linux-frozenight:
+    name: Linux + Frozenight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - run: cargo build --release
+        working-directory: native/frozenight
+      - run: flutter build linux --release
+      - run: |
+          cp native/frozenight/target/release/libfrozenight_ffi.so build/linux/x64/release/bundle/lib/
+          cd build/linux/x64/release/bundle
+          tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64-frozenight.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-frozenight
+          path: CrispChess-linux-x64-frozenight.tar.gz
+
+  build-web:
+    name: Web (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Try WASM
+        run: flutter build web --release --wasm
+        continue-on-error: true
+      - name: Fallback JS
+        run: |
+          if [ ! -d "build/web" ]; then flutter build web --release; fi
+      - run: |
+          cd build/web
+          tar czf $GITHUB_WORKSPACE/CrispChess-web.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: CrispChess-web.tar.gz
+
+  create-release:
+    name: GitHub Release
+    needs: [build-android, build-linux, build-linux-frozenight, build-web]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/android-apk/app-release.apk
+            artifacts/linux-x64/CrispChess-linux-x64.tar.gz
+            artifacts/linux-x64-frozenight/CrispChess-linux-x64-frozenight.tar.gz
+            artifacts/web/CrispChess-web.tar.gz
