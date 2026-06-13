@@ -1,25 +1,41 @@
 // Bridge between Dart and maia3-js on web.
-// Loaded by the Flutter web app to provide Maia3 inference.
-// maia3-js and onnxruntime-web are loaded from CDN on first use.
+// MIT licensed neural network chess engine.
 
 let maia3Instance = null;
 let maia3Loading = false;
 
 async function maia3Load(variant, onProgress) {
-  if (maia3Instance && maia3Instance.isLoaded()) return;
+  if (maia3Instance) return;
   if (maia3Loading) return;
   maia3Loading = true;
 
   try {
-    // Dynamic import via esm.sh (auto-resolves all transitive deps like chess.js)
-    const { Maia3 } = await import(
-      'https://esm.sh/maia3-js/web'
-    );
+    // Configure ONNX Runtime WASM paths before importing maia3
+    // This prevents the "module.require is not implemented" error
+    if (typeof globalThis.ort === 'undefined') {
+      // Load ONNX Runtime Web first
+      const ortModule = await import('https://esm.sh/onnxruntime-web@1.20.1');
+      globalThis.ort = ortModule;
+
+      // Set WASM paths to CDN
+      if (ortModule.env && ortModule.env.wasm) {
+        ortModule.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+      }
+    }
+
+    // Now import maia3-js
+    const maia3Module = await import('https://esm.sh/maia3-js@latest/web?external=onnxruntime-web');
+    const Maia3 = maia3Module.Maia3 || maia3Module.default?.Maia3;
+
+    if (!Maia3) {
+      throw new Error('Maia3 class not found in module');
+    }
 
     maia3Instance = new Maia3({
       variant: variant || '5m',
       onProgress: (loaded, total) => {
         if (onProgress) onProgress(loaded, total);
+        console.log(`[Maia3] Loading: ${Math.round(loaded/total*100)}%`);
       },
     });
 
@@ -35,30 +51,16 @@ async function maia3Load(variant, onProgress) {
 }
 
 async function maia3Predict(fen, selfElo, oppoElo, priorFens) {
-  if (!maia3Instance || !maia3Instance.isLoaded()) {
-    throw new Error('Maia3 not loaded');
-  }
-
-  const input = {
-    fen: fen,
-    selfElo: selfElo || 1500,
-  };
-
+  if (!maia3Instance) throw new Error('Maia3 not loaded');
+  const input = { fen, selfElo: selfElo || 1500 };
   if (oppoElo) input.oppoElo = oppoElo;
   if (priorFens && priorFens.length > 0) input.priorFens = priorFens;
+  return await maia3Instance.predict(input);
+}
 
-  const result = await maia3Instance.predict(input);
-
-  return {
-    bestMove: result.bestMove,
-    winProbability: result.winProbability,
-    wdl: result.wdl,
-    candidates: result.candidates.map(c => ({
-      uci: c.uci,
-      probability: c.probability,
-      winProbability: c.winProbability,
-    })),
-  };
+async function maia3PredictMove(fen, selfElo) {
+  const result = await maia3Predict(fen, selfElo);
+  return result.bestMove;
 }
 
 async function maia3Close() {
@@ -68,13 +70,6 @@ async function maia3Close() {
   }
 }
 
-// Simplified predict that returns just the best move string
-async function maia3PredictMove(fen, selfElo) {
-  const result = await maia3Predict(fen, selfElo);
-  return result.bestMove;
-}
-
-// Expose to Dart via globalThis
 globalThis.maia3Load = maia3Load;
 globalThis.maia3Predict = maia3Predict;
 globalThis.maia3PredictMove = maia3PredictMove;

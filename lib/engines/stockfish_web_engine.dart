@@ -124,9 +124,11 @@ class StockfishEngine implements ChessEngine {
       _send('setoption name Skill Level value $skillLevel');
     }
 
+    // Cap depth for responsive WASM play
+    final searchDepth = depth ?? (skillLevel != null ? 5 + skillLevel ~/ 4 : 12);
     _send(positionCommand);
     _moveCompleter = Completer<String>();
-    _send('go depth ${depth ?? 15}');
+    _send('go depth $searchDepth');
 
     final move = await _moveCompleter!.future.timeout(
       const Duration(seconds: 30),
