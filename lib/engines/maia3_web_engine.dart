@@ -8,33 +8,26 @@ import 'chess_engine.dart';
 
 // JS bridge functions (defined in web/maia3_bridge.js)
 @JS('maia3Load')
-external JSPromise<JSAny?> _maia3Load(JSString variant, JSFunction? onProgress);
-
-@JS('maia3Predict')
-external JSPromise<JSAny?> _maia3Predict(
-    JSString fen, JSNumber selfElo, JSAny? oppoElo, JSAny? priorFens);
+external JSPromise<JSAny?> _jsLoad(JSString variant, JSAny? onProgress);
 
 @JS('maia3Close')
-external JSPromise<JSAny?> _maia3Close();
+external JSPromise<JSAny?> _jsClose();
 
-// Typed result from maia3Predict
-extension type Maia3Result._(JSObject _) implements JSObject {
-  external JSString get bestMove;
-  external JSNumber get winProbability;
-}
+// Predict returns a string (bestMove) for simplicity
+// The bridge will be updated to return just the best move string
+@JS('maia3PredictMove')
+external JSPromise<JSString> _jsPredictMove(JSString fen, JSNumber selfElo);
 
-/// Maia3 engine for web. Same class name as native stub for conditional import.
 class Maia3Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final int playerElo;
-  final String variant;
   bool _loaded = false;
   final List<String> _fenHistory = [];
 
-  Maia3Engine({this.playerElo = 1500, this.variant = '5m'});
+  Maia3Engine({this.playerElo = 1500, String variant = '5m'});
 
   @override
-  String get name => 'Maia3 ($variant)';
+  String get name => 'Maia3';
   @override
   String get version => '1.0';
   @override
@@ -50,23 +43,19 @@ class Maia3Engine implements ChessEngine {
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
     try {
-      debugPrint('[Maia3Web] Loading variant=$variant...');
-      await _maia3Load(variant.toJS, null).toDart;
+      await _jsLoad('5m'.toJS, null).toDart;
       _loaded = true;
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[Maia3Web] Ready');
+      debugPrint('[Maia3] Ready');
     } catch (e) {
-      debugPrint('[Maia3Web] Failed: $e');
+      debugPrint('[Maia3] Failed: $e');
       _stateNotifier.value = EngineState.error;
     }
   }
 
   @override
-  Future<String> bestMove(
-    String positionCommand, {
-    int? depth,
-    Duration? moveTime,
-    int? skillLevel,
+  Future<String> bestMove(String positionCommand, {
+    int? depth, Duration? moveTime, int? skillLevel,
   }) async {
     if (!_loaded) throw StateError('Not initialized');
     _stateNotifier.value = EngineState.thinking;
@@ -75,21 +64,10 @@ class Maia3Engine implements ChessEngine {
     final elo = skillLevel != null ? 800 + (skillLevel * 60) : playerElo;
 
     try {
-      final jsResult = await _maia3Predict(
-        fen.toJS, elo.toJS, null, null,
-      ).toDart;
-
-      final result = jsResult as Maia3Result;
-      final move = result.bestMove.toDart;
-
-      _fenHistory.add(fen);
-      if (_fenHistory.length > 8) _fenHistory.removeAt(0);
-
-      debugPrint('[Maia3Web] $move (elo=$elo)');
+      final move = (await _jsPredictMove(fen.toJS, elo.toJS).toDart).toDart;
       _stateNotifier.value = EngineState.ready;
       return move;
     } catch (e) {
-      debugPrint('[Maia3Web] Predict failed: $e');
       _stateNotifier.value = EngineState.ready;
       rethrow;
     }
@@ -97,27 +75,7 @@ class Maia3Engine implements ChessEngine {
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
-    if (!_loaded) return;
-    _stateNotifier.value = EngineState.thinking;
-    final fen = _extractFen(positionCommand);
-
-    try {
-      final jsResult = await _maia3Predict(
-        fen.toJS, playerElo.toJS, null, null,
-      ).toDart;
-
-      final result = jsResult as Maia3Result;
-      final wp = result.winProbability.toDartDouble;
-      final score = (wp - 0.5) * 10.0;
-
-      yield EvalInfo(
-        score: score,
-        depth: 1,
-        bestMove: result.bestMove.toDart,
-      );
-    } catch (e) {
-      debugPrint('[Maia3Web] Analysis failed: $e');
-    }
+    // Maia3 doesn't do depth-based analysis — single prediction only
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -126,9 +84,8 @@ class Maia3Engine implements ChessEngine {
 
   @override
   void dispose() {
-    _maia3Close().toDart.catchError((_) {});
+    _jsClose().toDart.catchError((_) {});
     _loaded = false;
-    _fenHistory.clear();
     _stateNotifier.value = EngineState.disposed;
   }
 

@@ -68,7 +68,14 @@ async function maia3Close() {
   }
 }
 
+// Simplified predict that returns just the best move string
+async function maia3PredictMove(fen, selfElo) {
+  const result = await maia3Predict(fen, selfElo);
+  return result.bestMove;
+}
+
 // Expose to Dart via globalThis
 globalThis.maia3Load = maia3Load;
 globalThis.maia3Predict = maia3Predict;
+globalThis.maia3PredictMove = maia3PredictMove;
 globalThis.maia3Close = maia3Close;
