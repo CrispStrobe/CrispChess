@@ -6,10 +6,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = stockfish_example
+PRODUCT_NAME = CrispChess
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.stockfishExample
+PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 CrispStrobe. All rights reserved.

@@ -460,10 +460,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stockfishExample.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/stockfish_example.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/stockfish_example";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
 			};
 			name = Debug;
 		};
@@ -475,10 +475,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stockfishExample.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/stockfish_example.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/stockfish_example";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
 			};
 			name = Release;
 		};
@@ -490,10 +490,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stockfishExample.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/stockfish_example.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/stockfish_example";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
 			};
 			name = Profile;
 		};
