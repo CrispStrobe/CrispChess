@@ -1,14 +1,13 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
 
 use cozy_chess::{Board, Move};
 use frozenight::{Eval, MtFrozenight, SearchInfo, TimeConstraint};
 
 struct EngineState {
     engine: MtFrozenight,
-    board: Board,
-    moves: Vec<Move>,
 }
 
 static STATE: Mutex<Option<EngineState>> = Mutex::new(None);
@@ -21,14 +20,37 @@ struct SearchResult {
     depth: i32,
 }
 
+fn eval_to_cp(eval: Eval) -> i32 {
+    // Eval is a newtype around i16 in centipawns (or mate scores)
+    // Use the raw i16 value directly
+    let raw = format!("{:?}", eval); // Debug format gives us the inner value
+    // Simpler: just check if it's conclusive (mate) or not
+    if let Some(plys) = eval.plys_to_conclusion() {
+        if plys >= 0 {
+            30000 - plys as i32 // winning mate
+        } else {
+            -30000 - plys as i32 // losing mate
+        }
+    } else {
+        // Inconclusive eval — extract centipawn value
+        // Eval implements Ord so we can compare to DRAW
+        if eval >= Eval::DRAW {
+            // Positive or zero
+            let diff_from_zero = eval.saturating_add(Eval::DRAW); // eval itself
+            // We need the raw value. Since Eval(i16) is Pod, we can transmute
+            let bytes: [u8; 2] = bytemuck::bytes_of(&eval).try_into().unwrap_or([0, 0]);
+            i16::from_ne_bytes(bytes) as i32
+        } else {
+            let bytes: [u8; 2] = bytemuck::bytes_of(&eval).try_into().unwrap_or([0, 0]);
+            i16::from_ne_bytes(bytes) as i32
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn frozenight_init(hash_mb: u32) -> i32 {
     let engine = MtFrozenight::new(hash_mb as usize);
-    *STATE.lock().unwrap() = Some(EngineState {
-        engine,
-        board: Board::default(),
-        moves: Vec::new(),
-    });
+    *STATE.lock().unwrap() = Some(EngineState { engine });
     0
 }
 
@@ -71,8 +93,6 @@ pub extern "C" fn frozenight_set_position(fen: *const c_char, moves: *const c_ch
 
     let mut state = STATE.lock().unwrap();
     if let Some(s) = state.as_mut() {
-        s.board = board.clone();
-        s.moves = move_list.clone();
         s.engine.set_position(board, move_list.into_iter());
         0
     } else {
@@ -80,10 +100,8 @@ pub extern "C" fn frozenight_set_position(fen: *const c_char, moves: *const c_ch
     }
 }
 
-/// Synchronous search — blocks until complete. Returns 0 on success.
 #[no_mangle]
 pub extern "C" fn frozenight_search(depth: i32) -> i32 {
-    // Set up synchronization
     {
         let mut done = SEARCH_DONE.0.lock().unwrap();
         *done = false;
@@ -100,34 +118,37 @@ pub extern "C" fn frozenight_search(depth: i32) -> i32 {
             None => return -1,
         };
 
-        let tc = TimeConstraint::Depth(depth as i16);
+        let tc = TimeConstraint {
+            depth: depth as i16,
+            ..TimeConstraint::INFINITE
+        };
 
         s.engine.search(
             tc,
-            // info callback: update best result as search progresses
             move |info: &SearchInfo| {
-                let uci = format_uci_move(info.best_move);
-                let score = match info.eval {
-                    Eval::Centipawns(cp) => cp as i32,
-                    Eval::MateIn(m) => 30000 - m as i32,
-                    Eval::MatedIn(m) => -30000 + m as i32,
+                let uci = format!("{}{}", info.best_move.from, info.best_move.to);
+                let promo = match info.best_move.promotion {
+                    Some(p) => format!("{}", p).to_lowercase(),
+                    None => String::new(),
                 };
+                let full_uci = format!("{}{}", uci, promo);
+                let score = eval_to_cp(info.eval);
                 *result_for_info.lock().unwrap() = Some(SearchResult {
-                    best_move: CString::new(uci).unwrap_or_default(),
+                    best_move: CString::new(full_uci).unwrap_or_default(),
                     score_cp: score,
                     depth: info.depth as i32,
                 });
             },
-            // finish callback: signal completion
             move |info: &SearchInfo| {
-                let uci = format_uci_move(info.best_move);
-                let score = match info.eval {
-                    Eval::Centipawns(cp) => cp as i32,
-                    Eval::MateIn(m) => 30000 - m as i32,
-                    Eval::MatedIn(m) => -30000 + m as i32,
+                let uci = format!("{}{}", info.best_move.from, info.best_move.to);
+                let promo = match info.best_move.promotion {
+                    Some(p) => format!("{}", p).to_lowercase(),
+                    None => String::new(),
                 };
+                let full_uci = format!("{}{}", uci, promo);
+                let score = eval_to_cp(info.eval);
                 *result_for_finish.lock().unwrap() = Some(SearchResult {
-                    best_move: CString::new(uci).unwrap_or_default(),
+                    best_move: CString::new(full_uci).unwrap_or_default(),
                     score_cp: score,
                     depth: info.depth as i32,
                 });
@@ -136,15 +157,13 @@ pub extern "C" fn frozenight_search(depth: i32) -> i32 {
                 SEARCH_DONE.1.notify_all();
             },
         );
-    } // release STATE lock so search threads can proceed
+    }
 
-    // Wait for search to complete
     let mut done = SEARCH_DONE.0.lock().unwrap();
     while !*done {
         done = SEARCH_DONE.1.wait(done).unwrap();
     }
 
-    // Copy result to global
     let final_result = result_holder.lock().unwrap().take();
     *RESULT.lock().unwrap() = final_result;
 
@@ -199,7 +218,7 @@ fn parse_uci_move(board: &Board, uci: &str) -> Option<Move> {
                 match (promotion, mv.promotion) {
                     (Some(p), Some(mp)) if p == mp => { result = Some(mv); return false; }
                     (None, None) => { result = Some(mv); return false; }
-                    (None, Some(_)) => { /* auto-queen */ result = Some(mv); return false; }
+                    (None, Some(_)) => { result = Some(mv); return false; }
                     _ => {}
                 }
             }
@@ -207,15 +226,4 @@ fn parse_uci_move(board: &Board, uci: &str) -> Option<Move> {
         true
     });
     result
-}
-
-fn format_uci_move(mv: Move) -> String {
-    let promo = match mv.promotion {
-        Some(cozy_chess::Piece::Queen) => "q",
-        Some(cozy_chess::Piece::Rook) => "r",
-        Some(cozy_chess::Piece::Bishop) => "b",
-        Some(cozy_chess::Piece::Knight) => "n",
-        _ => "",
-    };
-    format!("{}{}{}", mv.from, mv.to, promo)
 }
