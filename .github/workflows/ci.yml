@@ -147,7 +147,7 @@ jobs:
           retention-days: 14
 
   build-web:
-    name: Build Web
+    name: Build Web (WASM)
     runs-on: ubuntu-latest
     needs: analyze
     if: always()
@@ -157,7 +157,14 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter build web --release
+      - name: Build Web with WASM
+        run: flutter build web --release --wasm
+        continue-on-error: true
+      - name: Fallback to JS if WASM fails
+        run: |
+          if [ ! -d "build/web" ] || [ ! -f "build/web/main.dart.js" -a ! -f "build/web/main.dart.wasm" ]; then
+            flutter build web --release
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
