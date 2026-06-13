@@ -16,6 +16,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 1. Build Frozenight Rust → WASM
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/frozenight-wasm
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build Frozenight WASM
+        run: wasm-pack build --target web --release
+        working-directory: native/frozenight-wasm
+        continue-on-error: true
+      - name: Copy Frozenight WASM to web/
+        run: |
+          if [ -f native/frozenight-wasm/pkg/frozenight_wasm.js ]; then
+            cp native/frozenight-wasm/pkg/frozenight_wasm.js web/
+            cp native/frozenight-wasm/pkg/frozenight_wasm_bg.wasm web/
+            echo "Frozenight WASM bundled"
+          else
+            echo "Frozenight WASM not available — skipping"
+          fi
+
+      # 2. Build Flutter web (WASM Dart)
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -33,13 +57,25 @@ jobs:
       - name: Log build type
         run: |
           if [ -f "build/web/main.dart.wasm" ]; then
-            echo "BUILD_TYPE=wasm" >> $GITHUB_ENV
-            echo "Built with WASM"
+            echo "Flutter: WASM"
           else
-            echo "BUILD_TYPE=js" >> $GITHUB_ENV
-            echo "Built with JS"
+            echo "Flutter: JS"
+          fi
+          if [ -f "web/frozenight_wasm.js" ]; then
+            echo "Frozenight: WASM bundled"
+          else
+            echo "Frozenight: not bundled"
           fi
 
+      # 3. Copy Frozenight WASM into build output
+      - name: Bundle Frozenight WASM with web build
+        run: |
+          if [ -f web/frozenight_wasm.js ]; then
+            cp web/frozenight_wasm.js build/web/
+            cp web/frozenight_wasm_bg.wasm build/web/
+          fi
+
+      # 4. Deploy to Vercel
       - name: Prepare deploy
         run: |
           cp vercel.json build/web/vercel.json
