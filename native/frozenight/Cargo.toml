@@ -16,3 +16,4 @@ bytemuck = { version = "1", features = ["derive"] }
 lto = true
 panic = "abort"
 opt-level = 3
+
