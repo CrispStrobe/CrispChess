@@ -59,7 +59,7 @@ class Maia3Engine implements ChessEngine {
   });
 
   @override
-  String get name => 'Maia3 (${variant.id})';
+  String get name => 'Maia3';
   @override
   String get version => '1.0';
   @override

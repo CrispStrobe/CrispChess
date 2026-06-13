@@ -42,7 +42,7 @@ class Maia3DartEngine implements ChessEngine {
   });
 
   @override
-  String get name => 'Maia3 Dart (${variantId})';
+  String get name => 'Maia3 Dart';
   @override
   String get version => '1.0';
   @override

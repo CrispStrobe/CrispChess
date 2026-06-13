@@ -28,7 +28,7 @@ class Maia3Engine implements ChessEngine {
   Maia3Engine({this.playerElo = 1500, this.variant = '5m'});
 
   @override
-  String get name => 'Maia3 ($variant)';
+  String get name => 'Maia3';
   @override
   String get version => '1.0';
   @override
