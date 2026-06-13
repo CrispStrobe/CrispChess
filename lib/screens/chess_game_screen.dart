@@ -311,7 +311,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (selectedEngine != null &&
           selectedEngine != _engineService.engineName) {
         debugPrint('[CrispChess] Switching engine to $selectedEngine');
-        final newEngine = createEngine(selectedEngine);
+        // Map strength level to approximate ELO for Maia3
+        final elo = 800 + (_state.strengthLevel * 60);
+        final newEngine = createEngine(selectedEngine, playerElo: elo);
         _engineService.switchEngine(newEngine);
       }
     }

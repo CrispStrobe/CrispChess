@@ -43,6 +43,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
+    // Maia3 — available everywhere (MIT, ONNX Runtime)
+    engines.add(_EngineOption(
+      name: 'Maia3',
+      description: 'Neural net — plays like a human (~21MB download)',
+      elo: '~1500',
+      license: 'MIT',
+      available: kIsWeb, // Web ready now, native needs JS bridge
+    ));
+
     if (kIsWeb) {
       engines.add(_EngineOption(
         name: 'Stockfish',

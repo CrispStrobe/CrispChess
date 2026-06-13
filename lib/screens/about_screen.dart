@@ -75,10 +75,11 @@ class AboutScreen extends StatelessWidget {
                   'or via JavaScriptCore/Web Worker (mobile/web). '
                   'Not linked into app binary — app stays MIT.'),
               SizedBox(height: 12),
-              _EngineInfo('Lc0 (Leela)', '~1900 ELO', 'GPL-3.0',
-                  'Neural network engine using MCTS (Monte Carlo Tree Search). '
-                  'Plays human-like with Maia weights. '
-                  'Optional — add leela_chess_zero package to enable.'),
+              _EngineInfo('Maia3', 'ELO-adaptive', 'MIT',
+                  'Neural network that predicts human-like chess moves. '
+                  'Trained on millions of real human games. '
+                  'Set your ELO and it plays like a human at that level. '
+                  '~21MB model downloaded on first use.'),
             ],
           )),
 
