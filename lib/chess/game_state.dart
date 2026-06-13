@@ -1,8 +1,11 @@
+import 'chess_clock.dart';
+
 class GameState {
   final int strengthLevel;
   final int hintDepth;
   final bool showValidMoves;
   final int animationSpeed; // 0=instant, 1=fast, 2=normal, 3=slow
+  final TimeControl timeControl;
   final int? selectedRow;
   final int? selectedCol;
   final List<String> validMoves;
@@ -22,6 +25,7 @@ class GameState {
     this.hintDepth = 15,
     this.showValidMoves = true,
     this.animationSpeed = 2,
+    this.timeControl = TimeControl.unlimited,
     this.selectedRow,
     this.selectedCol,
     this.validMoves = const [],
@@ -58,6 +62,7 @@ class GameState {
     int? hintDepth,
     bool? showValidMoves,
     int? animationSpeed,
+    TimeControl? timeControl,
     Object? selectedRow = _sentinel,
     Object? selectedCol = _sentinel,
     List<String>? validMoves,
@@ -77,6 +82,7 @@ class GameState {
         hintDepth: hintDepth ?? this.hintDepth,
         showValidMoves: showValidMoves ?? this.showValidMoves,
         animationSpeed: animationSpeed ?? this.animationSpeed,
+        timeControl: timeControl ?? this.timeControl,
         selectedRow: identical(selectedRow, _sentinel)
             ? this.selectedRow
             : selectedRow as int?,

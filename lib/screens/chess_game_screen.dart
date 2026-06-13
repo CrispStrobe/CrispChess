@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../chess/chess_clock.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
 import '../engines/chess_engine.dart';
@@ -23,6 +24,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   StreamSubscription<EngineEvent>? _eventSubscription;
 
   GameState _state = const GameState();
+  ChessClock? _clock;
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
@@ -126,6 +128,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _makeEngineMove(String uciMove) {
     if (_game.makeMove(uciMove)) {
+      _clock?.switchTurn();
       setState(() {
         _state = _state.copyWith(
           lastMoveUci: uciMove,
@@ -135,7 +138,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           isThinking: false,
         );
       });
-      if (_game.isGameOver) _showGameOverDialog();
+      if (_game.isGameOver) {
+        _clock?.pause();
+        _showGameOverDialog();
+      }
     }
   }
 
@@ -184,10 +190,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _game.squareToAlgebraic(toRow, toCol);
 
     if (_game.makeMove(uciMove)) {
+      _clock?.switchTurn();
       setState(() {
         _state = _state.copyWith(lastMove: 'You: $uciMove', hintMove: null, lastMoveUci: uciMove);
 
         if (_game.isGameOver) {
+          _clock?.pause();
           _state = _state.copyWith(
             isThinking: false,
             statusMessage: 'Game Over: ${_game.gameOverReason}',
@@ -261,6 +269,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _newGame() {
     _evalNotifier.value = null;
     _depthNotifier.value = 0;
+    _clock?.dispose();
+    if (!_state.timeControl.isUnlimited) {
+      _clock = ChessClock(timeControl: _state.timeControl);
+      _clock!.addListener(() { if (mounted) setState(() {}); });
+      _clock!.start();
+    } else {
+      _clock = null;
+    }
     setState(() {
       _game.reset();
       _state = _state.copyWith(
@@ -320,6 +336,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           playAsBlack: _state.playAsBlack,
           maia3Variant: _maia3Variant,
           animationSpeed: _state.animationSpeed,
+          timeControl: _state.timeControl,
         ),
       ),
     );
@@ -334,6 +351,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           hintDepth: result['hintDepth']! as int,
           showValidMoves: result['showValidMoves']! as bool,
           animationSpeed: result['animationSpeed'] as int? ?? 2,
+          timeControl: result['timeControl'] as TimeControl? ?? TimeControl.unlimited,
           playAsBlack: newPlayAsBlack,
           pieceTheme: result['pieceTheme'] as String? ?? 'chessnut',
         );
@@ -388,9 +406,48 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _eventSubscription?.cancel();
     _evalNotifier.dispose();
     _depthNotifier.dispose();
+    _clock?.dispose();
     _game.dispose();
     _engineService.dispose();
     super.dispose();
+  }
+
+  Widget _buildClockBar(ClockSide side, {required bool isOpponent}) {
+    final isLow = side.remaining.inSeconds < 30;
+    final isExpired = side.isExpired;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: isExpired
+          ? Colors.red.shade100
+          : side.isRunning
+              ? Colors.blue.shade50
+              : Colors.grey.shade100,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            isOpponent ? 'Engine' : 'You',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Text(
+            side.display,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+              color: isExpired
+                  ? Colors.red
+                  : isLow
+                      ? Colors.orange.shade800
+                      : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -515,6 +572,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           // Thinking progress indicator
           if (_state.isThinking)
             const LinearProgressIndicator(minHeight: 3),
+          // Opponent clock (top)
+          if (_clock != null)
+            _buildClockBar(
+              _state.playAsBlack ? _clock!.white : _clock!.black,
+              isOpponent: true,
+            ),
           // Board takes all available space
           Expanded(
             child: ListenableBuilder(
@@ -551,6 +614,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               },
             ),
           ),
+          // Player clock (bottom)
+          if (_clock != null)
+            _buildClockBar(
+              _state.playAsBlack ? _clock!.black : _clock!.white,
+              isOpponent: false,
+            ),
           // Move history at bottom
           ListenableBuilder(
             listenable: _game,

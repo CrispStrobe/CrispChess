@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../chess/chess_clock.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int strengthLevel;
@@ -8,6 +9,7 @@ class SettingsScreen extends StatefulWidget {
   final bool playAsBlack;
   final String maia3Variant;
   final int animationSpeed;
+  final TimeControl timeControl;
 
   const SettingsScreen({
     Key? key,
@@ -17,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
     this.playAsBlack = false,
     this.maia3Variant = '5m',
     this.animationSpeed = 2,
+    this.timeControl = TimeControl.unlimited,
   }) : super(key: key);
 
   @override
@@ -30,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _maia3Variant;
   bool _showValidMoves = true;
   int _animationSpeed = 2;
+  late TimeControl _timeControl;
   bool _playAsBlack = false;
   String _pieceTheme = 'chessnut';
 
@@ -59,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _playAsBlack = widget.playAsBlack;
     _maia3Variant = widget.maia3Variant;
     _animationSpeed = widget.animationSpeed;
+    _timeControl = widget.timeControl;
   }
 
   bool get _isMaiaEngine =>
@@ -352,6 +357,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _playAsBlack = value),
                 ),
                 const Divider(height: 1),
+                ListTile(
+                  title: const Text('Time Control'),
+                  trailing: DropdownButton<TimeControl>(
+                    value: _timeControl,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (value) =>
+                        setState(() => _timeControl = value!),
+                    items: TimeControl.values.map((tc) {
+                      return DropdownMenuItem(
+                        value: tc,
+                        child: Text(tc.label, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const Divider(height: 1),
                 SwitchListTile(
                   title: const Text('Show Valid Moves'),
                   subtitle:
@@ -451,6 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,
             'maia3Variant': _maia3Variant,
+            'timeControl': _timeControl,
           });
         },
         icon: const Icon(Icons.check),
