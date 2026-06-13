@@ -21,30 +21,10 @@ struct SearchResult {
 }
 
 fn eval_to_cp(eval: Eval) -> i32 {
-    // Eval is a newtype around i16 in centipawns (or mate scores)
-    // Use the raw i16 value directly
-    let raw = format!("{:?}", eval); // Debug format gives us the inner value
-    // Simpler: just check if it's conclusive (mate) or not
-    if let Some(plys) = eval.plys_to_conclusion() {
-        if plys >= 0 {
-            30000 - plys as i32 // winning mate
-        } else {
-            -30000 - plys as i32 // losing mate
-        }
-    } else {
-        // Inconclusive eval — extract centipawn value
-        // Eval implements Ord so we can compare to DRAW
-        if eval >= Eval::DRAW {
-            // Positive or zero
-            let diff_from_zero = eval.saturating_add(Eval::DRAW); // eval itself
-            // We need the raw value. Since Eval(i16) is Pod, we can transmute
-            let bytes: [u8; 2] = bytemuck::bytes_of(&eval).try_into().unwrap_or([0, 0]);
-            i16::from_ne_bytes(bytes) as i32
-        } else {
-            let bytes: [u8; 2] = bytemuck::bytes_of(&eval).try_into().unwrap_or([0, 0]);
-            i16::from_ne_bytes(bytes) as i32
-        }
-    }
+    // Eval is #[repr(transparent)] over i16 and derives Pod.
+    // Extract the raw i16 value via bytemuck.
+    let raw: i16 = bytemuck::cast(eval);
+    raw as i32
 }
 
 #[no_mangle]
