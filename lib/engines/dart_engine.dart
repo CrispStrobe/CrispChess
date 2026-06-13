@@ -7,8 +7,8 @@ import 'dart_engine/search.dart';
 /// Built-in chess engine written in pure Dart.
 ///
 /// Uses alpha-beta pruning with iterative deepening, piece-square tables,
-/// quiescence search, and move ordering. No native code required.
-/// Estimated ~1400-1800 ELO depending on depth/time settings.
+/// quiescence search, transposition table, and move ordering.
+/// No native code required — works on all platforms including web.
 class DartEngine implements ChessEngine {
   final chess.Chess _game = chess.Chess();
   AlphaBetaSearch? _search;
@@ -21,13 +21,13 @@ class DartEngine implements ChessEngine {
   String get name => 'CrispEngine';
 
   @override
-  String get version => '1.0.0';
+  String get version => '1.1.0';
 
   @override
   String get license => 'MIT';
 
   @override
-  int get estimatedElo => 1600;
+  int get estimatedElo => 1800;
 
   @override
   EngineState get state => _stateNotifier.value;
@@ -54,17 +54,11 @@ class DartEngine implements ChessEngine {
 
     _applyPosition(positionCommand);
 
-    // Adjust depth based on skill level (0-20 scale)
     int searchDepth = depth ?? _depthFromSkill(skillLevel ?? 10);
 
     SearchResult? result;
     if (kIsWeb) {
-      final webDepth = searchDepth.clamp(1, 4);
-      debugPrint('[DartEngine] Web search: depth=$webDepth fen=${_game.fen.substring(0, 20)}...');
-      await Future.delayed(Duration.zero); // yield one frame
-      final sw = Stopwatch()..start();
-      result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: webDepth));
-      debugPrint('[DartEngine] Web search done: ${sw.elapsedMilliseconds}ms move=${result?.bestMove} nodes=${result?.nodesSearched}');
+      result = await _searchWeb(searchDepth);
     } else {
       result = await compute(
         _searchInIsolate,
@@ -78,6 +72,41 @@ class DartEngine implements ChessEngine {
     return result.bestMove;
   }
 
+  /// Non-blocking incremental search for web.
+  /// Runs one depth at a time, yielding to the UI between each.
+  Future<SearchResult?> _searchWeb(int maxDepth) async {
+    final webDepth = maxDepth.clamp(1, 5);
+    debugPrint('[DartEngine] Web incremental search: maxDepth=$webDepth');
+    final sw = Stopwatch()..start();
+
+    final game = chess.Chess();
+    game.load(_game.fen);
+    final search = AlphaBetaSearch(game);
+    SearchResult? best;
+
+    for (int d = 1; d <= webDepth; d++) {
+      // Yield to UI between each depth iteration
+      await Future.delayed(Duration.zero);
+      if (_disposed) break;
+
+      final depthSw = Stopwatch()..start();
+      final result = search.search(d);
+      if (result != null) {
+        best = result;
+        debugPrint('[DartEngine] depth=$d: ${result.bestMove} score=${result.score} nodes=${result.nodesSearched} ${depthSw.elapsedMilliseconds}ms');
+      }
+
+      // If any single depth takes >500ms, stop — deeper will be too slow
+      if (depthSw.elapsedMilliseconds > 500) {
+        debugPrint('[DartEngine] Stopping: depth $d took ${depthSw.elapsedMilliseconds}ms');
+        break;
+      }
+    }
+
+    debugPrint('[DartEngine] Total: ${sw.elapsedMilliseconds}ms move=${best?.bestMove}');
+    return best;
+  }
+
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
     if (_disposed) return;
@@ -86,7 +115,6 @@ class DartEngine implements ChessEngine {
     _applyPosition(positionCommand);
     final maxDepth = depth ?? 20;
 
-    // Run search with depth callbacks
     _search = AlphaBetaSearch(_game);
 
     for (int d = 1; d <= maxDepth; d++) {
@@ -94,7 +122,10 @@ class DartEngine implements ChessEngine {
 
       SearchResult? result;
       if (kIsWeb) {
-        result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: d));
+        await Future.delayed(Duration.zero);
+        final game = chess.Chess();
+        game.load(_game.fen);
+        result = AlphaBetaSearch(game).search(d);
       } else {
         result = await compute(
           _searchInIsolate,
@@ -105,7 +136,7 @@ class DartEngine implements ChessEngine {
       if (result == null || _disposed) break;
 
       yield EvalInfo(
-        score: result.score / 100.0, // convert centipawns to pawns
+        score: result.score / 100.0,
         depth: result.depth,
         bestMove: result.bestMove,
       );
@@ -126,17 +157,15 @@ class DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.disposed;
   }
 
-  /// Parse a UCI position command and set up the board.
   void _applyPosition(String positionCommand) {
     _game.reset();
     final parts = positionCommand.split(' ');
 
-    // 'position startpos' or 'position startpos moves e2e4 e7e5'
-    // 'position fen ...'
     if (parts.length >= 2 && parts[1] == 'fen') {
       final fenEnd = parts.indexOf('moves');
-      final fen =
-          fenEnd > 0 ? parts.sublist(2, fenEnd).join(' ') : parts.sublist(2).join(' ');
+      final fen = fenEnd > 0
+          ? parts.sublist(2, fenEnd).join(' ')
+          : parts.sublist(2).join(' ');
       _game.load(fen);
       if (fenEnd > 0) {
         for (final move in parts.sublist(fenEnd + 1)) {
@@ -144,7 +173,6 @@ class DartEngine implements ChessEngine {
         }
       }
     } else {
-      // startpos
       final movesIndex = parts.indexOf('moves');
       if (movesIndex > 0) {
         for (final move in parts.sublist(movesIndex + 1)) {
@@ -164,19 +192,16 @@ class DartEngine implements ChessEngine {
   }
 
   int _depthFromSkill(int skillLevel) {
-    // Map 0-20 skill to 2-10 search depth
     return 2 + (skillLevel * 8 ~/ 20).clamp(0, 8);
   }
 }
 
-/// Request for isolate-based search.
 class _SearchRequest {
   final String fen;
   final int depth;
   _SearchRequest({required this.fen, required this.depth});
 }
 
-/// Top-level function for compute() — runs alpha-beta in an isolate.
 SearchResult? _searchInIsolate(_SearchRequest request) {
   final game = chess.Chess();
   game.load(request.fen);

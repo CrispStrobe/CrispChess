@@ -21,8 +21,24 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Web
+      - name: Try WASM build
+        id: wasm
+        run: flutter build web --release --wasm
+        continue-on-error: true
+
+      - name: Fallback to JS build
+        if: steps.wasm.outcome == 'failure'
         run: flutter build web --release
+
+      - name: Log build type
+        run: |
+          if [ -f "build/web/main.dart.wasm" ]; then
+            echo "BUILD_TYPE=wasm" >> $GITHUB_ENV
+            echo "Built with WASM"
+          else
+            echo "BUILD_TYPE=js" >> $GITHUB_ENV
+            echo "Built with JS"
+          fi
 
       - name: Prepare deploy
         run: |
