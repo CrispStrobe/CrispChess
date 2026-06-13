@@ -49,7 +49,7 @@ CrispChess App (MIT)
 - [x] CI/CD for all platforms + Rust
 - [x] WASM headers in vercel.json
 - [ ] App icon and splash screen
-- [ ] Buy me a coffee / tip jar
+- [x] Buy me a coffee (in About screen)
 - [x] Privacy policy
 - [x] Release workflow with binaries
 - [x] About screen with licenses, imprint, privacy

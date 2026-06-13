@@ -103,6 +103,12 @@ class AboutScreen extends StatelessWidget {
             'Contributions welcome. Open an issue first for major changes.',
           )),
 
+          _section(Icons.coffee, 'Support', const Text(
+            'CrispChess is free and open source. If you enjoy it, '
+            'consider buying the developer a coffee:\n\n'
+            'buymeacoffee.com/crispstrobe',
+          )),
+
           const SizedBox(height: 4),
           OutlinedButton.icon(
             icon: const Icon(Icons.description_outlined),
