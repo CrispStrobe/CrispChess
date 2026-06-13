@@ -398,14 +398,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             const SizedBox(width: 8),
             // Status text
             Expanded(
-              child: Text(
-                _state.isThinking
-                    ? 'Thinking...'
-                    : _state.lastMove.isNotEmpty
-                        ? _state.lastMove
-                        : 'Your turn',
-                style: const TextStyle(fontSize: 14),
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _state.isThinking
+                        ? 'Thinking...'
+                        : _state.lastMove.isNotEmpty
+                            ? _state.lastMove
+                            : 'Your turn',
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '${_engineService.engineName} · Lv ${_state.strengthLevel}',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ],
               ),
             ),
             // Eval badge

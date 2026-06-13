@@ -14,8 +14,12 @@ async function maia3Load(variant, onProgress) {
     // Step 1: Load ONNX Runtime Web (UMD build that works in browsers)
     if (typeof globalThis.ort === 'undefined') {
       console.log('[Maia3] Loading ONNX Runtime Web...');
-      await loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.min.js');
-      console.log('[Maia3] ONNX Runtime loaded:', typeof globalThis.ort);
+      await loadScript('ort.min.js'); // bundled locally
+      // Point WASM backend to CDN (avoids bundling 10-19MB WASM files)
+      if (globalThis.ort && globalThis.ort.env) {
+        globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
+      }
+      console.log('[Maia3] ONNX Runtime loaded');
     }
 
     // Step 2: Load maia3-js
