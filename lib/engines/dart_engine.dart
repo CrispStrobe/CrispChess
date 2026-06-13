@@ -59,9 +59,10 @@ class DartEngine implements ChessEngine {
 
     SearchResult? result;
     if (kIsWeb) {
-      // Web doesn't support isolates — run search synchronously
-      // Use lower depth on web to avoid blocking UI too long
-      final webDepth = searchDepth.clamp(1, 6);
+      // Web doesn't support isolates — run synchronously with lower depth.
+      // Yield to UI first so the "thinking" state renders before blocking.
+      await Future.delayed(Duration.zero);
+      final webDepth = searchDepth.clamp(1, 4);
       result = _searchInIsolate(_SearchRequest(fen: _game.fen, depth: webDepth));
     } else {
       result = await compute(
