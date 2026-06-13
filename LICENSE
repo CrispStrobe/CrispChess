@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 CrispStrobe
+Copyright (c) 2024-2026 CrispStrobe
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Note: This MIT license applies to the CrispChess example application code
+(example/ directory) only. The Stockfish chess engine and Flutter plugin
+wrapper in the parent directory are licensed under GPL-3.0 as required by the
+Stockfish engine license. When distributing compiled binaries that include the
+Stockfish engine, the combined work must comply with GPL-3.0.
