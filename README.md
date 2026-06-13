@@ -177,7 +177,7 @@ import 'frozenight_engine.dart'
 GitHub Actions on every push to `main`:
 
 - **Analyze & Test** — Dart analyzer + unit tests
-- **Frozenight** — Compiles for WASM, Linux, macOS, iOS, Android arm64
+- **Frozenight** — Compiles for WASM, Linux, macOS, iOS, Android arm64, Windows
 - **Build** — Android APK, iOS, macOS, Linux, Web (WASM)
 - **Deploy Web** — Builds Flutter WASM + Frozenight WASM, deploys to Vercel
 
@@ -218,11 +218,11 @@ Contributions welcome. Please open an issue first for major changes.
 
 ## Roadmap
 
-- [ ] Opening book integration
-- [ ] Time controls
-- [ ] PGN export/import
-- [ ] Board flip animation
-- [ ] Sound effects
-- [ ] Frozenight native FFI on all platforms
-- [ ] Lc0 web support (pending upstream WASM build)
-- [ ] App Store / Play Store release
+- [x] Opening book integration (~40 positions, weighted moves)
+- [x] Time controls (12 presets: bullet/blitz/rapid/classical)
+- [x] PGN export/import (clipboard)
+- [x] Board flip
+- [x] Sound effects (Web Audio API tone synthesis)
+- [x] Frozenight native FFI on all platforms (Linux/macOS/iOS/Android/Windows)
+- [ ] Lc0 web support (blocked — no upstream WASM build)
+- [ ] App Store / Play Store release (metadata ready)
