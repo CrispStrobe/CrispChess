@@ -17,6 +17,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'uci_position.dart';
 
 /// Maia3 model variants
 enum Maia3Variant {
@@ -170,18 +171,9 @@ class Maia3Engine implements ChessEngine {
     _stateNotifier.value = EngineState.disposed;
   }
 
-  /// Extract FEN from UCI position command.
-  String _extractFen(String positionCommand) {
-    final parts = positionCommand.split(' ');
-    if (parts.length >= 2 && parts[1] == 'fen') {
-      final movesIdx = parts.indexOf('moves');
-      return movesIdx > 0
-          ? parts.sublist(2, movesIdx).join(' ')
-          : parts.sublist(2).join(' ');
-    }
-    // startpos — return standard FEN
-    return 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
-  }
+  /// Extract the current FEN from a UCI position command, replaying its moves.
+  String _extractFen(String positionCommand) =>
+      fenFromPositionCommand(positionCommand);
 
   /// Call maia3-js via JavaScript interop (web) or platform channel (native).
   Future<String> _predictViaJs(Map<String, dynamic> request) async {

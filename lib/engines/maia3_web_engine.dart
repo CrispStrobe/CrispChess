@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'uci_position.dart';
 
 // JS bridge functions (defined in web/maia3_bridge.js)
 @JS('maia3Load')
@@ -89,12 +90,5 @@ class Maia3Engine implements ChessEngine {
     _stateNotifier.value = EngineState.disposed;
   }
 
-  String _extractFen(String cmd) {
-    final parts = cmd.split(' ');
-    if (parts.length >= 2 && parts[1] == 'fen') {
-      final mi = parts.indexOf('moves');
-      return mi > 0 ? parts.sublist(2, mi).join(' ') : parts.sublist(2).join(' ');
-    }
-    return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-  }
+  String _extractFen(String cmd) => fenFromPositionCommand(cmd);
 }

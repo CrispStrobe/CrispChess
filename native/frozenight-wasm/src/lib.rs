@@ -151,7 +151,10 @@ pub fn debug_parse_move(fen: &str, uci_move: &str) -> String {
                 matching.push(format!("{}{} promo={:?}", mv.from, mv.to, mv.promotion));
             }
         }
-        true
+        // cozy-chess: return `false` to keep enumerating ALL piece groups.
+        // Returning `true` stops after the first group (the bug that made
+        // every move fail to parse and pinned the engine to the start position).
+        false
     });
 
     format!(
@@ -182,14 +185,18 @@ fn parse_uci_move(board: &Board, uci: &str) -> Option<cozy_chess::Move> {
         for mv in moves {
             if mv.from == from && mv.to == to {
                 match (promotion, mv.promotion) {
-                    (Some(p), Some(mp)) if p == mp => { result = Some(mv); return false; }
-                    (None, None) => { result = Some(mv); return false; }
-                    (None, Some(_)) => { result = Some(mv); return false; }
+                    (Some(p), Some(mp)) if p == mp => { result = Some(mv); }
+                    (None, None) => { result = Some(mv); }
+                    (None, Some(_)) => { result = Some(mv); }
                     _ => {}
                 }
             }
         }
-        true
+        // cozy-chess: returning `true` stops generation. Stop only once we've
+        // actually found the move; otherwise keep scanning the remaining piece
+        // groups. (Previously this returned `true` unconditionally, so anything
+        // not in the first group — e.g. d2d4 — was never found.)
+        result.is_some()
     });
     result
 }
