@@ -5,7 +5,9 @@
 //
 // On native (iOS/Android): uses the leela_chess_zero Flutter package
 //   which compiles lc0 C++ via NDK/CocoaPods (GPL-3.0 linked binary).
-// On web: not available (no WASM build of lc0 exists yet).
+// On web: not available — no upstream WASM build of lc0 exists.
+// The only attempt (frpays/lc0-js, 2019) is abandoned and uses
+// outdated TF.js APIs. Blocked until lczero.org provides WASM support.
 //
 // The lc0 package is an OPTIONAL dependency — only add it to pubspec.yaml
 // when you want a GPL build flavor. Without it, this file provides a stub.
