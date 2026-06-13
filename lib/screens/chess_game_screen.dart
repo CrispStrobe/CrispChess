@@ -472,6 +472,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       ),
       body: Column(
         children: [
+          // Thinking progress indicator
+          if (_state.isThinking)
+            const LinearProgressIndicator(minHeight: 3),
           // Board takes all available space
           Expanded(
             child: ListenableBuilder(
