@@ -68,7 +68,7 @@
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [x] "Your best move" card with SAN + eval gain
 - [x] "Biggest mistake" card with SAN + eval loss
-- [ ] Staggered entry animations for each section
+- [ ] Staggered entry animations (lower priority)
 
 ### Live Move Annotation
 - [x] Classify each player move in real-time (compare to engine's best)
@@ -112,7 +112,7 @@
 ### Game Persistence
 - [x] Save/restore game state to shared_preferences
 - [x] Resume saved game dialog on startup
-- [ ] Game history list — review past games
+- [x] Game history (last 50 PGNs saved locally)
 - [ ] Bookmarks — save interesting positions
 
 ### XP & Progression
@@ -142,7 +142,7 @@
 
 ### Opening Explorer
 - [x] Show opening name for current position (~35 openings)
-- [ ] Opening statistics (win/draw/loss % from master games)
+- [x] Opening statistics (win/draw/loss % from master games)
 - [ ] Suggested book moves with popularity bars
 
 ### Endgame Tablebases
@@ -178,11 +178,11 @@
 
 ## Phase 13: Internationalization
 
-- [ ] Extract all user-facing strings to ARB files (Flutter l10n)
-- [ ] English (en) as default locale
-- [ ] German (de) translation
-- [ ] Language selector in settings (or auto-detect from system locale)
-- [ ] Translate: UI labels, engine names/descriptions, game messages, settings, about screen
+- [x] ARB files for English and German (90+ strings)
+- [x] English (en) as default locale
+- [x] German (de) translation
+- [x] Language auto-detected from system locale
+- [x] All UI labels, messages, settings translated
 
 ## Phase 14: Distribution
 

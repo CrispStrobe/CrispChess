@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'screens/chess_game_screen.dart';
 
 void main() {
@@ -44,6 +46,13 @@ class _CrispChessAppState extends State<CrispChessApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CrispChess',
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorSchemeSeed: Colors.brown,
         brightness: Brightness.light,
@@ -53,7 +62,7 @@ class _CrispChessAppState extends State<CrispChessApp> {
         colorSchemeSeed: Colors.brown,
         brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor: Colors.black, // AMOLED
+        scaffoldBackgroundColor: Colors.black,
       ),
       themeMode: _themeMode,
       home: const ChessGameScreen(),

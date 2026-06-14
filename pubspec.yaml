@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   chess: ^0.8.1
   ffi: ^2.0.0
   flutter_svg: ^2.2.3
@@ -40,6 +43,7 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/pieces/chessnut/
     - assets/pieces/rhosgfx/
