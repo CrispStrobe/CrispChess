@@ -331,18 +331,24 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   }
   
   /// Export current game as PGN string.
+  /// Uses RAV notation if the game tree has variations.
   String toPgn({String engineName = 'Engine', bool playAsBlack = false}) {
     final now = DateTime.now();
     final date = '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
-    return exportPgn(
-      game: _game,
-      headers: PgnHeaders(
-        date: date,
-        white: playAsBlack ? engineName : 'Human',
-        black: playAsBlack ? 'Human' : engineName,
-        result: gameResult(_game),
-      ),
+    final headers = PgnHeaders(
+      date: date,
+      white: playAsBlack ? engineName : 'Human',
+      black: playAsBlack ? 'Human' : engineName,
+      result: gameResult(_game),
     );
+
+    // Use RAV export if tree has any variations
+    final hasVariations = _tree.root.mainLine.any((n) => n.parent?.hasVariations ?? false);
+    if (hasVariations) {
+      return exportPgnWithVariations(tree: _tree, headers: headers);
+    }
+
+    return exportPgn(game: _game, headers: headers);
   }
 
   /// Load a game from PGN. Returns true on success.
