@@ -190,7 +190,15 @@
 - [ ] Right-click draw arrows on board (analysis mode)
 - [ ] Rate app prompt after a win (contextual, non-intrusive)
 
-## Phase 13: Distribution
+## Phase 13: Internationalization
+
+- [ ] Extract all user-facing strings to ARB files (Flutter l10n)
+- [ ] English (en) as default locale
+- [ ] German (de) translation
+- [ ] Language selector in settings (or auto-detect from system locale)
+- [ ] Translate: UI labels, engine names/descriptions, game messages, settings, about screen
+
+## Phase 14: Distribution
 
 ### App Stores
 - [ ] Google Play Store listing + screenshots

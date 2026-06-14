@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import '../chess/chess_clock.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
+import '../chess/move_analyzer.dart';
 import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/chess_board.dart';
+import '../widgets/horizontal_evaluation_bar.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
 
@@ -487,78 +489,188 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   Widget _buildAnalysisPanel() {
+    final hasAnnotations = _game.annotations.isNotEmpty;
+    final annotations = _game.annotations;
+    final lastAnnotation = annotations.isNotEmpty ? annotations.last : null;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
+        color: Colors.grey.shade50,
         border: Border(
-          top: BorderSide(color: Colors.blueGrey.shade200),
-          bottom: BorderSide(color: Colors.blueGrey.shade200),
+          top: BorderSide(color: Colors.grey.shade300),
+          bottom: BorderSide(color: Colors.grey.shade300),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Eval score
-          ValueListenableBuilder<double?>(
-            valueListenable: _evalNotifier,
-            builder: (context, eval, _) {
-              final display = eval != null
-                  ? (eval >= 0 ? '+${eval.toStringAsFixed(2)}' : eval.toStringAsFixed(2))
-                  : '...';
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: eval != null && eval >= 0
-                      ? Colors.blue.shade100
-                      : eval != null
-                          ? Colors.orange.shade100
-                          : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(display,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          // Depth
-          ValueListenableBuilder<int>(
-            valueListenable: _depthNotifier,
-            builder: (context, depth, _) {
-              return Text('d=$depth',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600));
-            },
-          ),
-          const SizedBox(width: 8),
-          // Best move
-          Expanded(
-            child: Text(
-              _state.currentBestMove != null
-                  ? 'Best: ${_state.currentBestMove}'
-                  : 'Analyzing...',
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
+          // Header — tap to expand/collapse
+          InkWell(
+            onTap: _toggleAnalysis,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.analytics, size: 16, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  Text('Analysis',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Colors.blue.shade700)),
+                  const Spacer(),
+                  // Eval badge (always visible)
+                  ValueListenableBuilder<double?>(
+                    valueListenable: _evalNotifier,
+                    builder: (context, eval, _) {
+                      if (eval == null) return const SizedBox.shrink();
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: eval >= 0
+                              ? Colors.blue.shade100
+                              : Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          eval >= 0
+                              ? '+${eval.toStringAsFixed(1)}'
+                              : eval.toStringAsFixed(1),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: eval >= 0
+                                ? Colors.blue.shade700
+                                : Colors.orange.shade700,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.expand_less, size: 20),
+                ],
+              ),
             ),
           ),
-          // Refresh button
-          IconButton(
-            icon: const Icon(Icons.refresh, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: 'Re-analyze',
-            onPressed: _state.isThinking
-                ? null
-                : () {
-                    _engineService.requestAnalysis(
-                      _game.positionCommand,
-                      depth: _state.hintDepth,
+
+          // Eval bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: ValueListenableBuilder<double?>(
+              valueListenable: _evalNotifier,
+              builder: (context, eval, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: _depthNotifier,
+                  builder: (context, depth, _) {
+                    return HorizontalEvaluationBar(
+                      evaluation: eval,
+                      depth: depth,
                     );
                   },
+                );
+              },
+            ),
           ),
+
+          // Best move + refresh
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _state.currentBestMove != null
+                        ? 'Best: ${_state.currentBestMove}'
+                        : _engineService.state == EngineState.ready
+                            ? 'Tap refresh to analyze'
+                            : 'Engine loading...',
+                    style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Re-analyze',
+                  onPressed: (_state.isThinking ||
+                          _engineService.state != EngineState.ready)
+                      ? null
+                      : () {
+                          _engineService.requestAnalysis(
+                            _game.positionCommand,
+                            depth: _state.hintDepth,
+                          );
+                        },
+                ),
+              ],
+            ),
+          ),
+
+          // Move annotation (if available)
+          if (lastAnnotation != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _annotationColor(lastAnnotation.quality),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '${_annotationSymbol(lastAnnotation.quality)} ${lastAnnotation.move}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(lastAnnotation.quality.name,
+                            style: const TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                    if (lastAnnotation.getFullDescription().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(lastAnnotation.getFullDescription(),
+                            style: const TextStyle(fontSize: 10)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Color _annotationColor(MoveQuality q) {
+    return switch (q) {
+      MoveQuality.brilliant => Colors.cyan.shade50,
+      MoveQuality.good => Colors.green.shade50,
+      MoveQuality.interesting => Colors.blue.shade50,
+      MoveQuality.neutral => Colors.grey.shade100,
+      MoveQuality.dubious => Colors.yellow.shade50,
+      MoveQuality.mistake => Colors.orange.shade50,
+      MoveQuality.blunder => Colors.red.shade50,
+    };
+  }
+
+  String _annotationSymbol(MoveQuality q) {
+    return switch (q) {
+      MoveQuality.brilliant => '!!',
+      MoveQuality.good => '!',
+      MoveQuality.interesting => '!?',
+      MoveQuality.neutral => '·',
+      MoveQuality.dubious => '?!',
+      MoveQuality.mistake => '?',
+      MoveQuality.blunder => '??',
+    };
   }
 
   void _playMoveSound(String uci) {
