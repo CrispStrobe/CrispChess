@@ -559,13 +559,13 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = N9XSJ4M3GT;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = stockfishexample;
+				INFOPLIST_KEY_CFBundleDisplayName = CrispChess;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = stockfishExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 			};
@@ -699,13 +699,13 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = N9XSJ4M3GT;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = stockfishexample;
+				INFOPLIST_KEY_CFBundleDisplayName = CrispChess;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = stockfishExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -723,13 +723,13 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = N9XSJ4M3GT;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = stockfishexample;
+				INFOPLIST_KEY_CFBundleDisplayName = CrispChess;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = stockfishExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 			};

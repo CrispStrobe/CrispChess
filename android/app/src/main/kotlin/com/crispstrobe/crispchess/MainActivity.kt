@@ -1,4 +1,4 @@
-package com.stockfish_example
+package com.crispstrobe.crispchess
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -75,11 +75,8 @@ class Lc0Weights {
 
 /// Stub Lc0 engine — available when leela_chess_zero package is added.
 ///
-/// To enable:
-/// 1. Add to pubspec.yaml:
-///    leela_chess_zero:
-///      git:
-///        url: https://github.com/ArjanAswal/LeelaChessZero.git
+/// To enable native lc0:
+/// 1. Add the leela_chess_zero Flutter package to pubspec.yaml
 /// 2. Replace this stub with the real Lc0Engine implementation
 /// 3. Note: this makes the binary GPL-3.0 licensed
 ///
