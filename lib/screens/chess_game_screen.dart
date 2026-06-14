@@ -10,6 +10,7 @@ import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
 import '../services/sound_service.dart';
+import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
 import 'about_screen.dart';
@@ -960,6 +961,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _state.playAsBlack ? _clock!.white : _clock!.black,
               isOpponent: true,
             ),
+          // Opponent's captured pieces (pieces we captured from them)
+          ListenableBuilder(
+            listenable: _game,
+            builder: (context, _) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: CapturedPieces(
+                board: _game.board,
+                color: _state.playAsBlack ? PieceColor.white : PieceColor.black,
+              ),
+            ),
+          ),
           // Board takes all available space
           Expanded(
             child: ListenableBuilder(
@@ -995,6 +1007,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   ),
                 );
               },
+            ),
+          ),
+          // Our captured pieces (pieces opponent captured from us)
+          ListenableBuilder(
+            listenable: _game,
+            builder: (context, _) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: CapturedPieces(
+                board: _game.board,
+                color: _state.playAsBlack ? PieceColor.black : PieceColor.white,
+              ),
             ),
           ),
           // Player clock (bottom)
