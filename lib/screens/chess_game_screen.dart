@@ -75,21 +75,62 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         debugPrint('[CrispChess] Engine state: $state');
         if (state == EngineState.ready) {
           setState(() {
-            _state = _state.copyWith(statusMessage: 'Your turn ($_playerColorName)');
+            _state = _state.copyWith(
+              statusMessage: _state.isThinking
+                  ? 'Your turn ($_playerColorName)'
+                  : '${_engineService.engineName} ready',
+            );
+          });
+          // Brief "ready" message, then switch to "Your turn"
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted && _engineService.state == EngineState.ready) {
+              setState(() {
+                _state = _state.copyWith(
+                    statusMessage: 'Your turn ($_playerColorName)');
+              });
+            }
+          });
+        } else if (state == EngineState.initializing) {
+          setState(() {
+            _state = _state.copyWith(
+              statusMessage: 'Loading ${_engineService.engineName}...',
+            );
           });
         } else if (state == EngineState.error) {
           setState(() {
             _state = _state.copyWith(
-              statusMessage: 'Engine error',
+              statusMessage: '${_engineService.engineName} failed to load',
               isThinking: false,
             );
           });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${_engineService.engineName}: failed to initialize'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Switch to Built-in',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    final fallback = createEngine('Built-in');
+                    _engineService.switchEngine(fallback);
+                  },
+                ),
+              ),
+            );
+          }
         }
       case EngineErrorEvent(:final message):
         debugPrint('[CrispChess] Engine error: $message');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('${_engineService.engineName}: $message',
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
           );
           setState(() {
             _state = _state.copyWith(isThinking: false);
@@ -628,15 +669,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         title: Row(
           children: [
             // Status indicator
-            if (_state.isThinking)
-              const SizedBox(
+            if (_state.isThinking || _engineService.state == EngineState.initializing)
+              SizedBox(
                 width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: _engineService.state == EngineState.initializing
+                      ? Colors.orange
+                      : null,
+                ),
               )
             else
               Icon(Icons.circle, size: 10,
-                  color: _engineService.state == EngineState.ready
-                      ? Colors.green : Colors.grey),
+                  color: switch (_engineService.state) {
+                    EngineState.ready => Colors.green,
+                    EngineState.error => Colors.red,
+                    _ => Colors.grey,
+                  }),
             const SizedBox(width: 8),
             // Status text
             Expanded(
@@ -645,17 +694,33 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _state.isThinking
-                        ? 'Thinking...'
-                        : _state.lastMove.isNotEmpty
-                            ? _state.lastMove
-                            : 'Your turn',
-                    style: const TextStyle(fontSize: 13),
+                    _engineService.state == EngineState.initializing
+                        ? _state.statusMessage
+                        : _state.isThinking
+                            ? 'Thinking...'
+                            : _engineService.state == EngineState.error
+                                ? _state.statusMessage
+                                : _state.lastMove.isNotEmpty
+                                    ? _state.lastMove
+                                    : _state.statusMessage,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _engineService.state == EngineState.error
+                          ? Colors.red
+                          : null,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '${_engineService.engineName} · Lv ${_state.strengthLevel}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                    _engineService.state == EngineState.initializing
+                        ? 'Downloading & initializing...'
+                        : '${_engineService.engineName} · Lv ${_state.strengthLevel}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _engineService.state == EngineState.initializing
+                          ? Colors.orange.shade700
+                          : Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
@@ -765,9 +830,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       ),
       body: Column(
         children: [
-          // Thinking progress indicator
-          if (_state.isThinking)
-            const LinearProgressIndicator(minHeight: 3),
+          // Progress indicator (thinking or loading engine)
+          if (_state.isThinking || _engineService.state == EngineState.initializing)
+            LinearProgressIndicator(
+              minHeight: 3,
+              color: _engineService.state == EngineState.initializing
+                  ? Colors.orange
+                  : null,
+            ),
           // Opponent clock (top)
           if (_clock != null)
             _buildClockBar(
