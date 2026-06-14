@@ -520,6 +520,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              icon: const Icon(Icons.restore, size: 18),
+              label: const Text('Reset to defaults'),
+              onPressed: () {
+                setState(() {
+                  _strengthLevel = 10;
+                  _hintDepth = 15;
+                  _selectedEngine = 'Built-in';
+                  _maia3Variant = '5m';
+                  _animationSpeed = 2;
+                  _timeControl = TimeControl.unlimited;
+                  _showValidMoves = true;
+                  _playAsBlack = false;
+                  _pieceTheme = 'chessnut';
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

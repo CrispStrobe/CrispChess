@@ -734,6 +734,33 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     };
   }
 
+  void _confirmNewGame() {
+    if (_game.moveHistory.isEmpty) {
+      _newGame();
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Game?'),
+        content: const Text('Current game will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _newGame();
+            },
+            child: const Text('New Game'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _playMoveSound(String uci) {
     if (_game.inCheck) {
       _sound.play(ChessSound.check);
@@ -966,7 +993,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             onSelected: (value) {
               switch (value) {
                 case 'new':
-                  _newGame();
+                  _confirmNewGame();
                 case 'export_pgn':
                   _exportPgn();
                 case 'import_pgn':
