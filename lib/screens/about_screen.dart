@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const _version = '1.2.0';
+  static const _version = '1.3.0';
   static const _gitHash = String.fromEnvironment('GIT_HASH', defaultValue: 'dev');
   static const _buildDate = String.fromEnvironment('BUILD_DATE', defaultValue: 'local');
 
@@ -37,7 +37,7 @@ class AboutScreen extends StatelessWidget {
                         Text('CrispChess',
                             style: Theme.of(context).textTheme.headlineSmall),
                         const SizedBox(height: 4),
-                        Text('v$_version ($_gitHash) · $_buildDate',
+                        SelectableText('v$_version ($_gitHash) · $_buildDate',
                             style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(height: 4),
                         Text('Cross-platform chess with pluggable AI engines',
