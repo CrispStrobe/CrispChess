@@ -1,27 +1,53 @@
 # Licensing & Attribution
 
 CrispChess is **MIT-licensed** (see [`LICENSE`](LICENSE)). That covers the app and
-its first-party built-in engine, **CrispEngine** (`lib/engines/`, pure Dart).
+all first-party code including the built-in Dart engine, game tree, analysis
+workbench, drill system, and all UI code.
 
 ## Pluggable engines
 
 CrispChess can run different chess engines behind a common interface. Each engine
-keeps its own license, and the license of a *distributed build* depends on which
-engine is bundled:
+keeps its own license:
 
-| Engine | Location | License | Effect when bundled |
+| Engine | License | Bundled | Notes |
 |---|---|---|---|
-| CrispEngine | `lib/engines/` (Dart) | MIT | Build stays MIT |
-| Frozenight (planned) | — (Rust) | MIT / Apache-2.0 | Build stays permissive |
-| **Stockfish** (optional) | `native/` (C++ via FFI) | **GPL-3.0** | **Build becomes GPL-3.0** |
+| Built-in (Dart) | MIT | Yes | Pure Dart, no native deps |
+| Maia3 Dart | MIT | Yes | Tokenization + sampling in Dart |
+| Frozenight | MIT / Apache-2.0 | Yes (WASM) | Rust NNUE engine |
+| ONNX Runtime Web | MIT | Yes | Lazy-loaded JS |
+| **Stockfish** | **GPL-3.0** | No | Downloaded at runtime |
+| **Lc0** | **GPL-3.0** | No | Downloaded at runtime |
+| Custom UCI | Varies | No | User-provided binary |
 
-**Stockfish is GPL-3.0.** A build that bundles the Stockfish engine is a combined
-work that must be distributed under GPL-3.0 (source available). That is why
-Stockfish is offered as an *optional* engine and is excluded on iOS. A build using
-only CrispEngine (or another permissive engine) remains MIT.
+**GPL-3.0 engines (Stockfish, Lc0) are never compiled into or bundled with the
+app binary.** They run as separate processes (native) or are downloaded via CDN
+(web) at runtime. This keeps the distributed app MIT-licensed.
 
-This mirrors the dual-licensing of the underlying Stockfish Flutter plugin
-(GPL-3.0 engine + permissive app code).
+Custom UCI engines loaded via the Engine Manager are user-provided binaries
+and their licensing is the user's responsibility.
+
+## Piece themes
+
+Piece SVG themes are from [Lichess](https://github.com/lichess-org/lila):
+
+| Theme | License |
+|-------|---------|
+| Chessnut | MIT |
+| Rhosgfx | CC0 |
+| Fantasy | MIT |
+| Spatial | MIT |
+| Celtic | MIT |
+| Kiwen Suwi | CC-BY 4.0 |
+| Totoy | CC-BY 4.0 |
+| Papercut | CC-BY 4.0 |
+
+## Chess puzzle data
+
+Puzzles are from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0).
+
+## ONNX model weights
+
+Maia3 ONNX weights are from [CSSLab/maia-chess](https://github.com/CSSLab/maia-chess) and are provided for research use. They are downloaded at runtime, not bundled.
 
 > The MIT `LICENSE` text is kept canonical so the license is machine-detectable;
-> the engine-licensing nuance lives here in `NOTICE.md`.
+> engine-licensing nuance lives here in `NOTICE.md`.
