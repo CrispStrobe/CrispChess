@@ -16,6 +16,7 @@ import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
+import '../chess/openings.dart';
 import '../chess/puzzle.dart';
 import 'about_screen.dart';
 import 'puzzle_screen.dart';
@@ -1105,7 +1106,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   Text(
                     _engineService.state == EngineState.initializing
                         ? 'Downloading & initializing...'
-                        : '${_engineService.engineName} · Lv ${_state.strengthLevel}',
+                        : _state.twoPlayerMode
+                            ? lookupOpening(_game.currentFEN) ?? 'Two Player'
+                            : lookupOpening(_game.currentFEN) ??
+                                '${_engineService.engineName} · Lv ${_state.strengthLevel}',
                     style: TextStyle(
                       fontSize: 10,
                       color: _engineService.state == EngineState.initializing
