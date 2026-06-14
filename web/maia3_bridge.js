@@ -38,8 +38,8 @@ async function maia3Load(variant, onProgress) {
     console.log('[Maia3] Creating instance (variant: ' + v + ')');
     maia3Instance = new globalThis.Maia3Class({
       variant: v,
-      // Try webgl first (no WASM memory conflict), fall back to wasm
-      executionProviders: ['webgl', 'wasm'],
+      // Use wasm backend (webgl doesn't support int64 tensors needed for ELO inputs)
+      executionProviders: ['wasm'],
       onProgress: (loaded, total) => {
         console.log('[Maia3] Model: ' + Math.round(loaded / total * 100) + '%');
       },
