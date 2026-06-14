@@ -9,7 +9,7 @@
 library;
 
 const String _releaseBase =
-    'https://github.com/CrispStrobe/CrispChess/releases/download/v1.3.0-models';
+    'https://huggingface.co/cstr/maia-chess-onnx-opset15/resolve/main';
 
 /// A neural network weight variant for Lc0.
 class Lc0Variant {
