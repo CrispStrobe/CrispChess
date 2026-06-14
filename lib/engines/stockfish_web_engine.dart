@@ -194,11 +194,12 @@ class StockfishEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, int multiPv = 1}) {
     if (_worker == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
 
     _send('setoption name Skill Level value 20');
+    _send('setoption name MultiPV value $multiPv');
     _send(positionCommand);
     _send('go depth ${depth ?? 20}');
 

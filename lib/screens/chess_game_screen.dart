@@ -398,7 +398,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             _state = _state.copyWith(
               statusMessage: '$turn to move',
               isThinking: false,
-              boardFlipped: !_game.whiteToMove, // Auto-flip for pass-and-play
+              boardFlipped: !_game.whiteToMove,
             );
           } else {
             _state = _state.copyWith(
@@ -406,6 +406,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               isThinking: true,
             );
             _requestEngineMove();
+            // Start pondering for the next move (after engine responds)
           }
         }
       });
