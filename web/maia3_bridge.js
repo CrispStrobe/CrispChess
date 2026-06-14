@@ -36,8 +36,13 @@ async function maia3Load(variant, onProgress) {
       globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
     }
 
+    // Lazy-load maia3-bundle.js if not yet loaded
     if (typeof globalThis.Maia3Class === 'undefined') {
-      throw new Error('Maia3 bundle not loaded — check maia3-bundle.js in index.html');
+      console.log('[Maia3] Loading maia3-bundle.js...');
+      await import('./maia3-bundle.js');
+      if (typeof globalThis.Maia3Class === 'undefined') {
+        throw new Error('Maia3 bundle failed to load');
+      }
     }
 
     var v = variant || '5m';

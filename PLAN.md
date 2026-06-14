@@ -283,4 +283,4 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 - [x] Exclude `ort.min.js.map` (1.3 MB source map) from production deploy
 - [x] Add `Cache-Control` headers for immutable assets (WASM, SVG, JS bundles)
 - [x] Lazy-load ONNX Runtime — only download when Maia3/Lc0 engine is selected
-- [x] Service worker for PWA offline support
+- [ ] Service worker for PWA offline support (removed — conflicts with Flutter's built-in SW)

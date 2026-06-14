@@ -23,10 +23,9 @@
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
   </script>
-  <!-- Chess engine dependencies (lazy-loaded on demand) -->
+  <!-- Lazy loaders for engine dependencies (nothing loaded until needed) -->
   <script>
-    // Lazy-load ONNX Runtime only when a Maia3/Lc0 engine is selected.
-    // Saves ~340KB on initial page load.
+    // Lazy-load ONNX Runtime (~340KB) only when Maia3/Lc0 engine is selected.
     window._loadOrt = function() {
       if (window._ortLoaded) return window._ortLoaded;
       window._ortLoaded = new Promise(function(resolve, reject) {
@@ -39,30 +38,32 @@
       });
       return window._ortLoaded;
     };
+
+    // Lazy-load a script by URL (used by engine bridges).
+    window._loadScript = function(src) {
+      return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    };
   </script>
-  <script type="module" src="maia3-bundle.js"></script>
-  <!-- Chess engine bridges -->
+  <!-- Engine bridges (~2-3KB each, define JS functions for Dart interop) -->
   <script src="cache_helper.js" defer></script>
   <script src="frozenight_bridge.js" defer></script>
   <script src="maia3_bridge.js" defer></script>
   <script src="maia3_onnx_bridge.js" defer></script>
   <script src="lc0_onnx_bridge.js" defer></script>
   <script src="sound_bridge.js" defer></script>
+  <!-- maia3-bundle.js (102KB) loaded on demand by maia3_bridge.js -->
   <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
 <body>
   <script>
     window.addEventListener('load', function(ev) {
-      // Register service worker for offline support
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(function(reg) {
-          console.log('[SW] Registered:', reg.scope);
-        }).catch(function(err) {
-          console.log('[SW] Registration failed:', err);
-        });
-      }
-
       // Download main.dart.js
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
