@@ -48,6 +48,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Try WASM build
         id: wasm
         run: flutter build web --release --wasm --dart-define=GIT_HASH=$(git rev-parse --short HEAD) --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d)
