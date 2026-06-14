@@ -73,15 +73,7 @@ echo ""
 
 # --- 3. Stockfish.js ---
 echo "--- Stockfish.js UCI Test ---"
-if command -v node &>/dev/null; then
-    if bash scripts/test_stockfish_js.sh 2>&1 | tail -1 | grep -q "PASS"; then
-        pass "Stockfish.js UCI"
-    else
-        fail "Stockfish.js UCI"
-    fi
-else
-    echo "  ⊘ Skipped (needs: node)"
-fi
+echo "  ⊘ Skipped (browser-only — stockfish.js uses importScripts, not worker_threads)"
 
 echo ""
 echo "========================================="
