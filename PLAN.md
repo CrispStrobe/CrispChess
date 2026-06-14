@@ -146,14 +146,14 @@
 - [x] Opening stats with win/draw/loss percentages
 
 ### Endgame Tablebases
-- [ ] Syzygy tablebase probing for ≤7 pieces
-- [ ] Download tablebases on demand
-- [ ] Perfect endgame play indicator
+- [x] Syzygy tablebase probing via Lichess API (≤7 pieces)
+- [x] Tablebase queries via API (no download needed)
+- [x] Perfect endgame result indicator (win/draw/loss from tablebase)
 
 ### Engine Improvements
-- [ ] Built-in engine: null-move pruning, late move reductions
+- [x] Built-in engine: reverse futility pruning, late move reductions
 - [ ] Pondering (engine thinks during opponent's turn)
-- [ ] Multi-PV analysis (show top N lines)
+- [x] Multi-PV analysis (Stockfish MultiPV)
 
 ### AI Coach (BYOK)
 - [ ] LLM-powered game analysis — send FEN/PGN, get natural language feedback

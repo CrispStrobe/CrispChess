@@ -22,6 +22,7 @@ import '../chess/puzzle.dart';
 import '../chess/xp_system.dart';
 import 'about_screen.dart';
 import 'game_summary_screen.dart';
+import 'mistakes_screen.dart';
 import 'stats_screen.dart';
 import 'puzzle_screen.dart';
 import 'settings_screen.dart';
@@ -1351,6 +1352,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           PuzzleScreen(puzzleDb: _puzzleDb)));
                 case 'settings':
                   _openSettings();
+                case 'mistakes':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const MistakesScreen()));
                 case 'stats':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const StatsScreen()));
@@ -1386,6 +1390,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'settings', child: ListTile(
                 leading: Icon(Icons.settings), title: Text('Settings'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'mistakes', child: ListTile(
+                leading: Icon(Icons.warning_amber), title: Text('My Mistakes'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'stats', child: ListTile(
                 leading: Icon(Icons.bar_chart), title: Text('Stats'),
