@@ -10,6 +10,7 @@ import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
+import '../services/onboarding_service.dart';
 import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/captured_pieces.dart';
@@ -82,8 +83,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
     _initializeEngine();
     _puzzleDb.load();
-    // Check for saved game after init
-    Future.delayed(const Duration(milliseconds: 500), _checkSavedGame);
+    // Show onboarding on first launch, then check for saved game
+    Future.delayed(const Duration(milliseconds: 500), () {
+      OnboardingService.showIfFirstLaunch(context).then((_) {
+        _checkSavedGame();
+      });
+    });
   }
 
   void _checkSavedGame() {

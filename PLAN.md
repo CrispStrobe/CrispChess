@@ -64,7 +64,7 @@
 ### Debrief Screen
 - [x] Post-game summary with accuracy percentage
 - [x] Eval chart — plot evaluation across all moves (green/red fill areas)
-- [ ] Interactive board — tap any move in the list to jump to that position
+- [ ] Interactive board — tap move to jump to position (TODO)
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [x] "Your best move" card with SAN + eval gain
 - [x] "Biggest mistake" card with SAN + eval loss
@@ -110,8 +110,8 @@
 ## Phase 9: Gamification & Persistence
 
 ### Game Persistence
-- [ ] Save/restore game state to local storage (Hive or shared_preferences)
-- [ ] "Continue last game" card on home screen with mini board preview
+- [x] Save/restore game state to shared_preferences
+- [x] Resume saved game dialog on startup
 - [ ] Game history list — review past games
 - [ ] Bookmarks — save interesting positions
 
@@ -130,7 +130,7 @@
 
 ### Two-Player Local
 - [x] Pass-and-play mode on same device
-- [ ] Auto-flip board between turns (TODO)
+- [x] Auto-flip board between turns in two-player mode
 - [x] Chess clock available for local games
 
 ### Variants (future)
@@ -171,8 +171,8 @@
 - [x] SAN notation in move list and status messages
 
 ### UX
-- [ ] Onboarding — brief intro on first launch
-- [ ] Keyboard shortcuts (web/desktop)
+- [x] Onboarding — tips dialog on first launch
+- [x] Keyboard shortcuts (Z=undo, H=hint, N=new, F=flip, A=analysis)
 - [ ] Right-click draw arrows on board (analysis mode)
 - [ ] Rate app prompt after a win (contextual, non-intrusive)
 
