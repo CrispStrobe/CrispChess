@@ -75,7 +75,7 @@ class Maia3Engine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     // Maia3 doesn't do depth-based analysis — single prediction only
     _stateNotifier.value = EngineState.ready;
   }

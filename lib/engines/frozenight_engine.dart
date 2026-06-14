@@ -124,7 +124,7 @@ class FrozenightEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (_disposed || !_available) return;
     _stateNotifier.value = EngineState.thinking;
     _applyPosition(positionCommand);

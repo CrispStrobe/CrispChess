@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../chess/board_annotations.dart';
 import '../chess/chess_game.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'board_annotation_overlay.dart';
 
 class ChessBoard extends StatefulWidget {
   final List<List<ChessPiece?>> board;
@@ -17,6 +19,7 @@ class ChessBoard extends StatefulWidget {
   final String pieceTheme;
   final bool flipped;
   final String? lastMoveUci; // e.g. "e2e4" — triggers slide animation
+  final BoardAnnotations? annotations; // user-drawn arrows and highlights
 
   const ChessBoard({
     Key? key,
@@ -34,6 +37,7 @@ class ChessBoard extends StatefulWidget {
     this.pieceTheme = 'chessnut',
     this.flipped = false,
     this.lastMoveUci,
+    this.annotations,
   }) : super(key: key);
 
   @override
@@ -237,6 +241,17 @@ class _ChessBoardState extends State<ChessBoard>
                       );
                     }),
                   ),
+                  // Board annotations (arrows, highlighted squares)
+                  if (widget.annotations != null && widget.annotations!.isNotEmpty)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: BoardAnnotationOverlay(
+                          annotations: widget.annotations!,
+                          boardSize: boardSize,
+                          flipped: widget.flipped,
+                        ),
+                      ),
+                    ),
                   // Animated piece overlay — slides from source to destination
                   if (isAnimating && _animFromRow != null)
                     AnimatedBuilder(

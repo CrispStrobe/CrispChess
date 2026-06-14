@@ -132,7 +132,7 @@ class Maia3Engine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     _stateNotifier.value = EngineState.thinking;
 
     final fen = _extractFen(positionCommand);

@@ -127,11 +127,11 @@ class DartEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (_disposed) return;
     _stateNotifier.value = EngineState.thinking;
     _applyPosition(positionCommand);
-    final maxDepth = depth ?? 20;
+    final maxDepth = infinite ? 100 : (depth ?? 20);
     _search = AlphaBetaSearch(_game);
 
     for (int d = 1; d <= maxDepth; d++) {

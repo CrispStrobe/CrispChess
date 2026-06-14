@@ -11,8 +11,15 @@ class EvalUpdateEvent extends EngineEvent {
   final double eval;
   final int depth;
   final String bestMove;
-  EvalUpdateEvent(
-      {required this.eval, required this.depth, required this.bestMove});
+  final String? pv;       // full principal variation (space-separated UCI)
+  final int pvIndex;      // Multi-PV line number (1 = best)
+  EvalUpdateEvent({
+    required this.eval,
+    required this.depth,
+    required this.bestMove,
+    this.pv,
+    this.pvIndex = 1,
+  });
 }
 
 class BestMoveEvent extends EngineEvent {
@@ -111,20 +118,26 @@ class EngineService {
   }
 
   /// Start analysis, streaming eval updates.
+  ///
+  /// Pass [infinite] = true for open-ended analysis that runs until
+  /// [stop()] is called.
   Future<void> requestAnalysis(
     String positionCommand, {
     int? depth,
+    bool infinite = false,
   }) async {
     _analysisSubscription?.cancel();
 
     try {
       _analysisSubscription =
-          _engine.analyze(positionCommand, depth: depth).listen(
+          _engine.analyze(positionCommand, depth: depth, infinite: infinite).listen(
         (info) {
           _eventController.add(EvalUpdateEvent(
             eval: info.score,
             depth: info.depth,
             bestMove: info.bestMove ?? '',
+            pv: info.pv,
+            pvIndex: info.pvIndex,
           ));
         },
         onError: (e) {

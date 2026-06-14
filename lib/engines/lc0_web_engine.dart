@@ -220,7 +220,7 @@ class Lc0Engine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (!_modelLoaded) return;
     _stateNotifier.value = EngineState.thinking;
 

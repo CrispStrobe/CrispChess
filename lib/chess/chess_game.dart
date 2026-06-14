@@ -1,5 +1,6 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
+import 'game_tree.dart';
 import 'move_analyzer.dart';
 import 'pgn.dart';
 
@@ -37,8 +38,18 @@ class ChessGame with ChangeNotifier {
   double? _lastEvaluation;
   int? _lastDepth;
 
+  /// Game tree for tracking variations.
+  late GameTree _tree;
+
+  /// The game tree (read-only access for UI).
+  GameTree get tree => _tree;
+
+  /// Current node in the game tree.
+  GameTreeNode get currentNode => _tree.current;
+
   ChessGame() {
     _analyzer = MoveAnalyzer(_game);
+    _tree = GameTree(startFen: _game.fen);
   }
 
   bool get inCheck => _game.in_check;
@@ -152,6 +163,14 @@ class ChessGame with ChangeNotifier {
     _cachedLegalMoves = null;
     _cachedBoard = null;
 
+    // Get SAN from the last move in the chess history
+    final sanList = moveHistorySan;
+    final san = sanList.isNotEmpty ? sanList.last : uciMove;
+
+    // Update game tree — adds as child or navigates into existing
+    final node = _tree.addMove(uci: uciMove, san: san, fen: _game.fen);
+    node.eval = _lastEvaluation;
+
     // Create INCOMPLETE annotation with temporary evaluation
     final tempEval = MoveEvaluation(
       scoreBefore: evalBefore,
@@ -159,14 +178,15 @@ class ChessGame with ChangeNotifier {
       bestMove: '',
       bestMoveScore: 0.0,
       depth: _lastDepth ?? 10,
-      whiteToMove: whiteToMove,  // ADD THIS
+      whiteToMove: whiteToMove,
     );
-    
+
     final annotation = _analyzer.analyzeMove(
       uciMove: uciMove,
       evaluation: tempEval,
     );
-    
+
+    node.annotation = annotation;
     _annotations.add(annotation);
     notifyListeners();
   }
@@ -272,10 +292,42 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _cachedLegalMoves = null;
     _cachedBoard = null;
     _game.undo();
+    _tree.goBack();
     if (_annotations.isNotEmpty) {
       _annotations.removeLast();
     }
     notifyListeners();
+  }
+
+  /// Navigate to a specific node in the game tree.
+  /// Reloads the chess position from the node's FEN.
+  void goToNode(GameTreeNode node) {
+    _game.load(node.fen);
+    _tree.goTo(node);
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    notifyListeners();
+  }
+
+  /// Go forward one move in the main line.
+  bool goForward() {
+    if (_tree.atEnd) return false;
+    _tree.goForward();
+    _game.load(_tree.current.fen);
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    notifyListeners();
+    return true;
+  }
+
+  /// Enter a specific variation at the current position.
+  bool enterVariation(int index) {
+    if (!_tree.enterVariation(index)) return false;
+    _game.load(_tree.current.fen);
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    notifyListeners();
+    return true;
   }
   
   /// Export current game as PGN string.
@@ -322,6 +374,23 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     return true;
   }
 
+  /// Load a position from a FEN string. Returns true on success.
+  bool loadFen(String fen) {
+    final ok = _game.load(fen);
+    if (!ok) return false;
+
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    _annotations.clear();
+    _lastEvaluation = null;
+    _lastDepth = null;
+    _resigned = false;
+    _drawAgreed = false;
+    _tree = GameTree(startFen: fen);
+    notifyListeners();
+    return true;
+  }
+
   void reset() {
     _cachedLegalMoves = null;
     _cachedBoard = null;
@@ -331,6 +400,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _lastDepth = null;
     _resigned = false;
     _drawAgreed = false;
+    _tree = GameTree(startFen: _game.fen);
     notifyListeners();
   }
 }

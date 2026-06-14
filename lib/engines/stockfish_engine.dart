@@ -22,7 +22,8 @@ class StockfishEngine implements ChessEngine {
 
   static final _cpRegex = RegExp(r'score cp (-?\d+)');
   static final _depthRegex = RegExp(r'depth (\d+)');
-  static final _pvRegex = RegExp(r'pv (\S+)');
+  static final _pvRegex = RegExp(r' pv (.+)');
+  static final _multipvRegex = RegExp(r'multipv (\d+)');
 
   @override
   String get name => 'Stockfish';
@@ -80,12 +81,16 @@ class StockfishEngine implements ChessEngine {
     if (t.startsWith('info') && t.contains('depth')) {
       final cp = _cpRegex.firstMatch(t);
       final d = _depthRegex.firstMatch(t);
-      final pv = _pvRegex.firstMatch(t);
+      final pvMatch = _pvRegex.firstMatch(t);
+      final mpv = _multipvRegex.firstMatch(t);
       if (cp != null && d != null) {
+        final pv = pvMatch?.group(1);
         _evalController.add(EvalInfo(
           score: int.parse(cp.group(1)!) / 100.0,
           depth: int.parse(d.group(1)!),
-          bestMove: pv?.group(1),
+          bestMove: pv?.split(' ').first,
+          pv: pv,
+          pvIndex: mpv != null ? int.parse(mpv.group(1)!) : 1,
         ));
       }
     }
@@ -122,11 +127,11 @@ class StockfishEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
     _process!.stdin.writeln(positionCommand);
-    _process!.stdin.writeln('go depth ${depth ?? 20}');
+    _process!.stdin.writeln(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
     return _evalController.stream;
   }
 

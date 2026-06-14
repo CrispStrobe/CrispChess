@@ -196,3 +196,84 @@
 - [ ] Share game as image (board screenshot)
 - [ ] Share game as animated GIF
 - [ ] Online chess platform API integration (import games, puzzles)
+
+---
+
+## Phase 15: Analysis Workbench
+
+_Goal: transform CrispChess from "play the computer" into a proper analysis
+platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
+
+### Generic UCI Engine Management
+- [x] Load any UCI engine binary from disk (GenericUciEngine class)
+- [x] UCI handshake: send `uci`, parse `id name`, `id author`, `option` lines
+- [x] UCI option configuration dialog — auto-generated from engine's `option` list
+- [x] Common options surfaced: Hash (MB), Threads, MultiPV, SyzygyPath
+- [x] Engine profile persistence — save name, path, and option overrides
+- [x] Engine manager screen — add / remove / configure
+- [x] `go infinite` support — engine runs until user stops (not just `go depth N`)
+
+### Multi-PV Display
+- [x] Send `setoption name MultiPV value N` (user-configurable, 1–5)
+- [x] Display top N engine lines as full move sequences with eval + depth
+- [ ] Highlight principal variation on the board (arrows for top line)
+
+### Multi-Engine Analysis
+- [ ] Run 2+ engines simultaneously on the same position
+- [ ] Split analysis panel — each engine gets its own eval / PV display
+- [ ] Compare evaluations side-by-side (useful for engine testing)
+
+### Game Tree & Variations
+- [x] Replace linear move history with a tree structure (nodes + children)
+- [x] Add variation on any move — branches shown inline or collapsible
+- [x] Navigate variations (click to enter, back to exit)
+- [x] Promote/delete variations
+- [ ] PGN import/export with full variation support (RAV notation)
+
+### Position Editor
+- [x] Board setup mode — tap piece type, then tap square to place
+- [x] Piece palette (all 12 pieces + eraser)
+- [x] Set side to move, castling rights, en passant square
+- [x] Validate position legality before starting analysis/game
+- [x] FEN input field — paste FEN string to load any position
+- [x] FEN output — copy current position as FEN
+
+### Board Annotations
+- [x] Right-click tap to color squares
+- [x] Annotation overlay painter (arrows + highlights)
+- [ ] Right-click drag to draw arrows (green/yellow/red)
+- [x] Text comments per move (stored in game tree)
+- [x] NAG support ($1 = !, $2 = ?, etc.) in game tree nodes
+- [ ] Clear annotations button
+
+### PGN Database
+- [ ] Open .pgn files with thousands of games
+- [ ] Game list view — players, result, date, ECO, event
+- [ ] Search/filter by player name, opening, date range, result
+- [ ] Click game to load onto board with full move tree
+- [ ] Database statistics (most common openings, win rates)
+
+### Engine vs Engine
+- [ ] Match mode — two engines play N games (alternating colors)
+- [ ] Tournament mode — round-robin with 3+ engines
+- [ ] Configurable time control per engine
+- [ ] Live board display during match
+- [ ] Results table (wins/draws/losses, ELO estimate)
+
+## Phase 16: Built-in Engine Performance
+
+### Search Optimization
+- [x] Faster `_quickHash()` — hash only piece placement + turn (skip castling/EP)
+- [x] Delta pruning in quiescence — skip if queen capture can't raise alpha
+- [x] MVV-LVA scoring for captures in quiescence (pre-sorted)
+- [x] Reusable static Map in `_makeMove()` — reduce GC pressure
+- [x] Cache `_moveToUci()` — pre-compute in `_ScoredMove` (computed once per move)
+- [x] SEE-like pruning — skip losing captures in quiescence
+- [ ] Null move pruning
+- [ ] Principal variation search (PVS) — narrow window for non-PV nodes
+
+### Web Build Optimization
+- [ ] Exclude `ort.min.js.map` (1.3 MB source map) from production deploy
+- [ ] Add `Cache-Control` headers for immutable assets (WASM, SVG, JS bundles)
+- [ ] Lazy-load ONNX Runtime — only download when Maia3 engine is selected
+- [ ] Service worker for PWA offline support

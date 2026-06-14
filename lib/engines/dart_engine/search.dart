@@ -26,9 +26,6 @@ class AlphaBetaSearch {
   final Map<String, int> _history = {};
   final TranspositionTable _tt = TranspositionTable();
 
-  // Cache to avoid recomputing FEN hash
-  int _posHash = 0;
-
   AlphaBetaSearch(this._game)
       : _killers = List.generate(64, (_) => [null, null]);
 
@@ -56,27 +53,33 @@ class AlphaBetaSearch {
     final moves = _game.generate_moves();
     if (moves.isEmpty) return null;
 
-    _posHash = _quickHash();
-    final ttEntry = _tt.probe(_posHash);
-    _orderMoves(moves, 0, ttBestMove: ttEntry?.bestMove);
+    final hash = _quickHash();
+    final ttEntry = _tt.probe(hash);
+
+    // Pre-compute UCI strings for all moves and build scored list
+    final scored = <_ScoredMove>[];
+    for (final move in moves) {
+      final uci = _moveToUci(move);
+      scored.add(_ScoredMove(move, uci, _moveScore(move, uci, 0, ttEntry?.bestMove)));
+    }
+    scored.sort((a, b) => b.score - a.score);
 
     String? bestMove;
     int bestScore = -999999;
     int alpha = -999999;
     const beta = 999999;
 
-    for (final move in moves) {
+    for (final sm in scored) {
       if (_stopped) return null;
 
-      final uci = _moveToUci(move);
-      _makeMove(move);
+      _makeMove(sm.move);
       _nodes++;
       final score = -_alphaBeta(depth - 1, -beta, -alpha, 1);
       _game.undo();
 
       if (score > bestScore) {
         bestScore = score;
-        bestMove = uci;
+        bestMove = sm.uci;
       }
       if (score > alpha) alpha = score;
     }
@@ -84,7 +87,7 @@ class AlphaBetaSearch {
     if (bestMove == null) return null;
 
     _tt.store(
-      hash: _posHash,
+      hash: hash,
       depth: depth,
       score: bestScore,
       flag: TTFlag.exact,
@@ -124,7 +127,7 @@ class AlphaBetaSearch {
       }
     }
 
-    // TT lookup — use cheap hash
+    // TT lookup
     final hash = _quickHash();
     final ttEntry = _tt.probe(hash);
     if (ttEntry != null && ttEntry.depth >= depth) {
@@ -140,19 +143,25 @@ class AlphaBetaSearch {
       }
     }
 
-    _orderMoves(moves, ply, ttBestMove: ttEntry?.bestMove);
+    // Pre-compute UCI strings and scores for move ordering
+    final scored = <_ScoredMove>[];
+    for (final move in moves) {
+      final uci = _moveToUci(move);
+      scored.add(_ScoredMove(move, uci, _moveScore(move, uci, ply, ttEntry?.bestMove)));
+    }
+    scored.sort((a, b) => b.score - a.score);
 
     String? bestMove;
     int bestScore = -999999;
     final origAlpha = alpha;
     int moveIndex = 0;
 
-    for (final move in moves) {
+    for (final sm in scored) {
       if (_stopped) return 0;
 
       // Check if capture before making the move
-      final isCapture = _game.get(move.toAlgebraic) != null;
-      _makeMove(move);
+      final isCapture = _game.get(sm.move.toAlgebraic) != null;
+      _makeMove(sm.move);
       _nodes++;
 
       int score;
@@ -172,18 +181,17 @@ class AlphaBetaSearch {
 
       if (score > bestScore) {
         bestScore = score;
-        bestMove = _moveToUci(move);
+        bestMove = sm.uci;
       }
 
       if (score >= beta) {
-        final uci = _moveToUci(move);
         if (ply < _killers.length) {
           _killers[ply][1] = _killers[ply][0];
-          _killers[ply][0] = uci;
+          _killers[ply][0] = sm.uci;
         }
-        _history[uci] = (_history[uci] ?? 0) + depth * depth;
+        _history[sm.uci] = (_history[sm.uci] ?? 0) + depth * depth;
         _tt.store(hash: hash, depth: depth, score: score,
-            flag: TTFlag.lowerBound, bestMove: uci);
+            flag: TTFlag.lowerBound, bestMove: sm.uci);
         return beta;
       }
       if (score > alpha) alpha = score;
@@ -203,24 +211,37 @@ class AlphaBetaSearch {
     if (standPat >= beta) return beta;
     if (standPat > alpha) alpha = standPat;
 
-    // Only generate captures — filter from all moves
+    // Delta pruning: if even winning a queen can't raise alpha, skip
+    if (standPat + 900 < alpha) return alpha;
+
+    // Generate all moves and filter for captures
     final moves = _game.generate_moves();
-    final captures = <chess.Move>[];
+    final captures = <_ScoredCapture>[];
     for (final m in moves) {
-      if (_game.get(m.toAlgebraic) != null) captures.add(m);
+      final victim = _game.get(m.toAlgebraic);
+      if (victim != null) {
+        // MVV-LVA scoring: value victim high, attacker low
+        final victimVal = pieceValues[victim.type] ?? 0;
+        final attacker = _game.get(m.fromAlgebraic);
+        final attackerVal = pieceValues[attacker?.type] ?? 0;
+        final score = victimVal * 10 - attackerVal; // MVV-LVA
+        captures.add(_ScoredCapture(m, score));
+      }
     }
 
-    // Simple MVV ordering for captures
-    captures.sort((a, b) {
-      final va = pieceValues[_game.get(a.toAlgebraic)?.type] ?? 0;
-      final vb = pieceValues[_game.get(b.toAlgebraic)?.type] ?? 0;
-      return vb.compareTo(va);
-    });
+    // Sort by MVV-LVA score (highest first)
+    captures.sort((a, b) => b.score - a.score);
 
-    for (final move in captures) {
+    for (final cap in captures) {
       if (_stopped) return 0;
 
-      _makeMove(move);
+      // SEE-like pruning: skip captures where victim is worth less than attacker
+      // and we're already close to alpha (likely losing exchange)
+      if (cap.score < 0 && standPat + (pieceValues[_game.get(cap.move.toAlgebraic)?.type] ?? 0) < alpha) {
+        continue;
+      }
+
+      _makeMove(cap.move);
       _nodes++;
       final score = -_quiescence(-beta, -alpha, ply + 1);
       _game.undo();
@@ -232,38 +253,35 @@ class AlphaBetaSearch {
     return alpha;
   }
 
-  /// Fast position hash — avoids full FEN string generation.
-  /// Uses board state hash from the chess library's internal state.
+  /// Fast position hash using FEN's piece placement + turn.
+  /// Skips castling/en-passant/move counts for speed while
+  /// retaining enough uniqueness for the TT.
   int _quickHash() {
-    // The chess package doesn't expose a Zobrist hash, so we use
-    // a fast hash from the half-move and piece placement portion of FEN.
-    // This is still faster than full FEN because we skip castling/en-passant
-    // parsing overhead.
-    return _game.fen.hashCode;
+    final fen = _game.fen;
+    // Hash only piece placement + turn (first two FEN fields)
+    // This is faster than hashing the full FEN string
+    final spaceIdx = fen.indexOf(' ');
+    if (spaceIdx < 0) return fen.hashCode;
+    final secondSpace = fen.indexOf(' ', spaceIdx + 1);
+    final key = secondSpace > 0 ? fen.substring(0, secondSpace) : fen;
+    return key.hashCode;
   }
 
-  /// Make a move without creating a Map (uses the move object directly).
+  /// Make a move using a reusable map to reduce GC pressure.
+  static final Map<String, String?> _moveMap = {'from': '', 'to': '', 'promotion': null};
+
   void _makeMove(chess.Move move) {
-    _game.move({
-      'from': move.fromAlgebraic,
-      'to': move.toAlgebraic,
-      'promotion': move.promotion?.name,
-    });
+    _moveMap['from'] = move.fromAlgebraic;
+    _moveMap['to'] = move.toAlgebraic;
+    _moveMap['promotion'] = move.promotion?.name;
+    _game.move(_moveMap);
   }
 
   String _moveToUci(chess.Move move) {
     return '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion?.name ?? ''}';
   }
 
-  void _orderMoves(List<chess.Move> moves, int ply, {String? ttBestMove}) {
-    moves.sort((a, b) {
-      return _moveScore(b, ply, ttBestMove) - _moveScore(a, ply, ttBestMove);
-    });
-  }
-
-  int _moveScore(chess.Move move, int ply, String? ttBestMove) {
-    final uci = _moveToUci(move);
-
+  int _moveScore(chess.Move move, String uci, int ply, String? ttBestMove) {
     if (ttBestMove != null && uci == ttBestMove) return 20000;
 
     final victim = _game.get(move.toAlgebraic);
@@ -282,4 +300,19 @@ class AlphaBetaSearch {
 
     return _history[uci] ?? 0;
   }
+}
+
+/// Move with pre-computed UCI string and ordering score.
+class _ScoredMove {
+  final chess.Move move;
+  final String uci;
+  final int score;
+  _ScoredMove(this.move, this.uci, this.score);
+}
+
+/// Capture move with MVV-LVA score for quiescence ordering.
+class _ScoredCapture {
+  final chess.Move move;
+  final int score;
+  _ScoredCapture(this.move, this.score);
 }

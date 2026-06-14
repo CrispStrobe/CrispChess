@@ -148,7 +148,7 @@ class Maia3DartEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) async* {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (_model == null) return;
     _stateNotifier.value = EngineState.thinking;
 

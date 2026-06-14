@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../chess/chess_clock.dart';
+import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int strengthLevel;
@@ -267,6 +268,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }).toList(),
             ),
           ),
+
+          // Custom engines (native only)
+          if (!kIsWeb)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.memory, size: 18),
+                label: const Text('Engine Manager — Add Custom UCI Engines'),
+                onPressed: () {
+                  Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const EngineManagerScreen()));
+                },
+              ),
+            ),
 
           // Maia3 variant selector (shown when a Maia engine is selected)
           if (_isMaiaEngine) ...[

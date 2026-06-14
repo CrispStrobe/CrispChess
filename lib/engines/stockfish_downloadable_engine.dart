@@ -199,11 +199,11 @@ class StockfishDownloadableEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     if (!_initialized) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
     _send(positionCommand);
-    _send('go depth ${depth ?? 20}');
+    _send(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
     return _evalController.stream;
   }
 

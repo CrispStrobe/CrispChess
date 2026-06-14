@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
+import '../chess/board_annotations.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
+import '../chess/game_tree.dart';
 import '../chess/move_analyzer.dart';
 import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
@@ -25,8 +27,26 @@ import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
+import 'position_editor_screen.dart';
 import 'puzzle_screen.dart';
 import 'settings_screen.dart';
+
+/// A single PV (principal variation) line from the engine.
+class PvLine {
+  final double eval;
+  final int depth;
+  final String pv; // space-separated UCI moves
+  final int pvIndex; // 1-based
+
+  const PvLine({
+    required this.eval,
+    required this.depth,
+    required this.pv,
+    required this.pvIndex,
+  });
+
+  String get bestMove => pv.split(' ').first;
+}
 
 class ChessGameScreen extends StatefulWidget {
   const ChessGameScreen({super.key});
@@ -50,6 +70,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
   final List<double> _evalHistory = [];
   bool _awaitingEngineMove = false; // true when we expect a game move, not analysis
+
+  /// Multi-PV lines from engine analysis (index 0 = best line).
+  final List<PvLine> _pvLines = [];
+
+  /// User-drawn board annotations (arrows, colored squares).
+  final BoardAnnotations _boardAnnotations = BoardAnnotations();
+  /// Track secondary (right-click) drag for arrow drawing.
+  String? _arrowDragFrom;
 
   @override
   void initState() {
@@ -165,14 +193,31 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (!mounted) return;
     debugPrint('[CrispChess] Event: ${event.runtimeType}');
     switch (event) {
-      case EvalUpdateEvent(:final eval, :final depth, :final bestMove):
-        _evalNotifier.value = eval;
-        _depthNotifier.value = depth;
-        // Track eval history for the chart
-        if (_evalHistory.length < _game.moveHistory.length) {
-          _evalHistory.add(eval);
-        } else if (_evalHistory.isNotEmpty) {
-          _evalHistory.last = eval; // Update current position's eval
+      case EvalUpdateEvent(:final eval, :final depth, :final bestMove, :final pv, :final pvIndex):
+        // Update primary eval display (PV line 1 only)
+        if (pvIndex <= 1) {
+          _evalNotifier.value = eval;
+          _depthNotifier.value = depth;
+          // Track eval history for the chart
+          if (_evalHistory.length < _game.moveHistory.length) {
+            _evalHistory.add(eval);
+          } else if (_evalHistory.isNotEmpty) {
+            _evalHistory.last = eval;
+          }
+        }
+        // Update Multi-PV lines
+        if (pv != null && pv.isNotEmpty) {
+          final line = PvLine(eval: eval, depth: depth, pv: pv, pvIndex: pvIndex);
+          // Replace or add line at this pvIndex
+          final idx = pvIndex - 1;
+          while (_pvLines.length <= idx) {
+            _pvLines.add(line);
+          }
+          _pvLines[idx] = line;
+          // Clear stale lines from previous depths
+          if (pvIndex == 1) {
+            _pvLines.removeRange(1, _pvLines.length);
+          }
         }
         if (bestMove.isNotEmpty) {
           _game.updateEvaluation(eval, bestMove, depth);
@@ -383,6 +428,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _game.squareToAlgebraic(toRow, toCol);
 
     if (_game.makeMove(uciMove)) {
+      _boardAnnotations.clear(); // Clear drawn annotations on move
       _playMoveSound(uciMove);
       _clock?.switchTurn();
       _autoSaveGame();
@@ -845,52 +891,94 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
           ),
 
-          // Best move + depth + refresh
+          // PV lines display
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Best move
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (_pvLines.isEmpty)
+                  Row(
                     children: [
-                      Text(
-                        _state.currentBestMove != null
-                            ? 'Best: ${_state.currentBestMove}'
-                            : _engineService.state == EngineState.ready
-                                ? 'Tap refresh to analyze'
-                                : 'Engine loading...',
-                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color),
-                        overflow: TextOverflow.ellipsis,
+                      Expanded(
+                        child: Text(
+                          _state.currentBestMove != null
+                              ? 'Best: ${_state.currentBestMove}'
+                              : _engineService.state == EngineState.ready
+                                  ? 'Tap refresh to analyze'
+                                  : 'Engine loading...',
+                          style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      ValueListenableBuilder<int>(
-                        valueListenable: _depthNotifier,
-                        builder: (context, depth, _) {
-                          if (depth == 0) return const SizedBox.shrink();
-                          return Text('Depth: $depth',
-                              style: TextStyle(fontSize: 10,
-                                  color: theme.textTheme.bodySmall?.color));
-                        },
-                      ),
+                      _buildAnalysisRefreshButton(),
                     ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'Re-analyze',
-                  onPressed: (_state.isThinking ||
-                          _engineService.state != EngineState.ready)
-                      ? null
-                      : () {
-                          _engineService.requestAnalysis(
-                            _game.positionCommand,
-                            depth: _state.hintDepth,
-                          );
-                        },
-                ),
+                  )
+                else
+                  ...[
+                    for (final line in _pvLines)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          children: [
+                            // Eval badge
+                            Container(
+                              width: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: line.eval >= 0
+                                    ? Colors.blue.withValues(alpha: 0.15)
+                                    : Colors.orange.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                line.eval >= 0
+                                    ? '+${line.eval.toStringAsFixed(1)}'
+                                    : line.eval.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: line.eval >= 0 ? Colors.blue : Colors.orange,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            // PV moves (truncated)
+                            Expanded(
+                              child: Text(
+                                line.pv,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                  color: line.pvIndex == 1
+                                      ? theme.textTheme.bodyMedium?.color
+                                      : theme.textTheme.bodySmall?.color,
+                                  fontWeight: line.pvIndex == 1 ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Depth + refresh on a separate row
+                    Row(
+                      children: [
+                        ValueListenableBuilder<int>(
+                          valueListenable: _depthNotifier,
+                          builder: (context, depth, _) {
+                            if (depth == 0) return const SizedBox.shrink();
+                            return Text('Depth: $depth',
+                                style: TextStyle(fontSize: 10,
+                                    color: theme.textTheme.bodySmall?.color));
+                          },
+                        ),
+                        const Spacer(),
+                        _buildAnalysisRefreshButton(),
+                      ],
+                    ),
+                  ],
               ],
             ),
           ),
@@ -955,6 +1043,25 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAnalysisRefreshButton() {
+    return IconButton(
+      icon: const Icon(Icons.refresh, size: 18),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      tooltip: 'Re-analyze',
+      onPressed: (_state.isThinking ||
+              _engineService.state != EngineState.ready)
+          ? null
+          : () {
+              _pvLines.clear();
+              _engineService.requestAnalysis(
+                _game.positionCommand,
+                depth: _state.hintDepth,
+              );
+            },
     );
   }
 
@@ -1251,6 +1358,109 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
+  void _loadFen() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Load FEN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Paste FEN string...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+              autofocus: true,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.paste, size: 16),
+                label: const Text('Paste from clipboard'),
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    controller.text = data!.text!.trim();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final fen = controller.text.trim();
+              if (fen.isEmpty) return;
+              if (_game.loadFen(fen)) {
+                Navigator.pop(ctx);
+                _clock?.pause();
+                _evalNotifier.value = null;
+                _depthNotifier.value = 0;
+                _evalHistory.clear();
+                _awaitingEngineMove = false;
+                setState(() {
+                  _state = _state.copyWith(
+                    statusMessage: 'Position loaded from FEN',
+                    isThinking: false,
+                    hintMove: null,
+                    lastMove: '',
+                    currentBestMove: null,
+                  );
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid FEN string'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Load'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openPositionEditor() async {
+    final fen = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PositionEditorScreen(initialFen: _game.currentFEN),
+      ),
+    );
+    if (fen != null && mounted) {
+      if (_game.loadFen(fen)) {
+        _clock?.pause();
+        _evalNotifier.value = null;
+        _depthNotifier.value = 0;
+        _evalHistory.clear();
+        _pvLines.clear();
+        _awaitingEngineMove = false;
+        setState(() {
+          _state = _state.copyWith(
+            statusMessage: 'Custom position loaded',
+            isThinking: false,
+            hintMove: null,
+            lastMove: '',
+            currentBestMove: null,
+          );
+        });
+      }
+    }
+  }
+
   Widget _buildClockBar(ClockSide side, {required bool isOpponent}) {
     final isLow = side.remaining.inSeconds < 30;
     final isExpired = side.isExpired;
@@ -1435,6 +1645,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _exportPgn();
                 case 'import_pgn':
                   _importPgn();
+                case 'load_fen':
+                  _loadFen();
+                case 'setup_position':
+                  _openPositionEditor();
                 case 'flip':
                   setState(() {
                     _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
@@ -1476,6 +1690,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'import_pgn', child: ListTile(
                 leading: Icon(Icons.paste), title: Text('Paste PGN'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'load_fen', child: ListTile(
+                leading: Icon(Icons.input), title: Text('Load FEN'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'setup_position', child: ListTile(
+                leading: Icon(Icons.grid_on), title: Text('Setup Position'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'flip', child: ListTile(
                 leading: Icon(Icons.swap_vert), title: Text('Flip Board'),
@@ -1549,21 +1769,40 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       return SizedBox(
                         width: size,
                         height: size,
-                        child: ChessBoard(
-                          board: _game.board,
-                          whiteToMove: _game.whiteToMove,
-                          squareToAlgebraic: _game.squareToAlgebraic,
-                          onMove: _onMove,
-                          onSquareTap: _onSquareTap,
-                          selectedRow: _state.selectedRow,
-                          selectedCol: _state.selectedCol,
-                          validMoves: _state.validMoves,
-                          hintMove: _state.hintMove,
-                          isCheck: _game.inCheck,
-                          animationDurationMs: _state.animationDurationMs,
-                          flipped: _state.boardFlipped,
-                          pieceTheme: _state.pieceTheme,
-                          lastMoveUci: _state.lastMoveUci,
+                        child: GestureDetector(
+                          // Secondary (right-click) gestures for drawing arrows
+                          onSecondaryTapDown: (details) {
+                            final squareSize = size / 8;
+                            final col = (details.localPosition.dx / squareSize).floor();
+                            final row = (details.localPosition.dy / squareSize).floor();
+                            if (col >= 0 && col < 8 && row >= 0 && row < 8) {
+                              final r = _state.boardFlipped ? 7 - row : row;
+                              final c = _state.boardFlipped ? 7 - col : col;
+                              final sq = _game.squareToAlgebraic(r, c);
+                              setState(() {
+                                _boardAnnotations.addHighlight(
+                                  BoardHighlight(square: sq, color: Colors.red),
+                                );
+                              });
+                            }
+                          },
+                          child: ChessBoard(
+                            board: _game.board,
+                            whiteToMove: _game.whiteToMove,
+                            squareToAlgebraic: _game.squareToAlgebraic,
+                            onMove: _onMove,
+                            onSquareTap: _onSquareTap,
+                            selectedRow: _state.selectedRow,
+                            selectedCol: _state.selectedCol,
+                            validMoves: _state.validMoves,
+                            hintMove: _state.hintMove,
+                            isCheck: _game.inCheck,
+                            animationDurationMs: _state.animationDurationMs,
+                            flipped: _state.boardFlipped,
+                            pieceTheme: _state.pieceTheme,
+                            lastMoveUci: _state.lastMoveUci,
+                            annotations: _boardAnnotations,
+                          ),
                         ),
                       );
                     },
@@ -1623,6 +1862,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   Widget _buildMoveHistory() {
+    final mainLine = _game.tree.mainLine;
+    final currentNode = _game.currentNode;
+
     return GestureDetector(
       onLongPress: _game.moveHistorySan.isNotEmpty ? () {
         _exportPgn();
@@ -1634,21 +1876,22 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
-      child: _game.moveHistorySan.isEmpty
+      child: mainLine.isEmpty
           ? const Center(
               child: Text('No moves yet',
                   style: TextStyle(color: Colors.grey, fontSize: 12)))
           : ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: (_game.moveHistorySan.length / 2).ceil(),
+              itemCount: (mainLine.length / 2).ceil(),
               itemBuilder: (context, index) {
                 final moveNum = index + 1;
-                final san = _game.moveHistorySan;
-                final whiteMove = san[index * 2];
-                final blackMove =
-                    index * 2 + 1 < san.length
-                        ? san[index * 2 + 1]
-                        : null;
+                final whiteIdx = index * 2;
+                final blackIdx = index * 2 + 1;
+                final whiteNode = mainLine[whiteIdx];
+                final blackNode = blackIdx < mainLine.length
+                    ? mainLine[blackIdx]
+                    : null;
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Row(children: [
@@ -1658,20 +1901,65 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             fontSize: 11,
                             color: Colors.grey.shade600)),
                     const SizedBox(width: 4),
-                    Text(whiteMove,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 11)),
-                    if (blackMove != null) ...[
+                    _buildMoveChip(whiteNode, currentNode),
+                    if (blackNode != null) ...[
                       const SizedBox(width: 4),
-                      Text(blackMove,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade700)),
+                      _buildMoveChip(blackNode, currentNode, isBlack: true),
                     ],
                   ]),
                 );
               },
             ),
     ),
+    );
+  }
+
+  Widget _buildMoveChip(GameTreeNode node, GameTreeNode currentNode, {bool isBlack = false}) {
+    final isCurrent = node == currentNode;
+    final hasVariations = node.parent?.hasVariations ?? false;
+    final san = node.san ?? node.move ?? '?';
+
+    return GestureDetector(
+      onTap: () {
+        _game.goToNode(node);
+        setState(() {
+          _state = _state.copyWith(
+            statusMessage: 'Position at move ${node.moveNumber}',
+            hintMove: null,
+            currentBestMove: null,
+          );
+        });
+        _pvLines.clear();
+        _evalNotifier.value = node.eval;
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: isCurrent
+            ? BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: Colors.blue, width: 1),
+              )
+            : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              san,
+              style: TextStyle(
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                fontSize: 11,
+                color: isBlack && !isCurrent ? Colors.grey.shade700 : null,
+              ),
+            ),
+            if (hasVariations)
+              Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Icon(Icons.call_split, size: 10, color: Colors.grey.shade500),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

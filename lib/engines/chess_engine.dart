@@ -8,18 +8,20 @@ class EvalInfo {
   final double score; // in pawns, from white's perspective
   final int depth;
   final String? bestMove; // UCI format
-  final String? pv; // principal variation
+  final String? pv; // principal variation (space-separated UCI moves)
+  final int pvIndex; // Multi-PV line number (1-based, 1 = best line)
 
   const EvalInfo({
     required this.score,
     required this.depth,
     this.bestMove,
     this.pv,
+    this.pvIndex = 1,
   });
 
   @override
   String toString() =>
-      'EvalInfo(score: $score, depth: $depth, bestMove: $bestMove)';
+      'EvalInfo(score: $score, depth: $depth, bestMove: $bestMove, pv#$pvIndex)';
 }
 
 /// Abstract interface for pluggable chess engines.
@@ -64,9 +66,12 @@ abstract class ChessEngine {
   /// Stream evaluation updates for a position (analysis mode).
   ///
   /// Emits [EvalInfo] at each search depth until stopped or [depth] reached.
+  /// Pass [infinite] = true for open-ended analysis (engine runs until
+  /// [stop()] is called). When [infinite] is true, [depth] is ignored.
   Stream<EvalInfo> analyze(
     String positionCommand, {
     int? depth,
+    bool infinite = false,
   });
 
   /// Abort the current search.

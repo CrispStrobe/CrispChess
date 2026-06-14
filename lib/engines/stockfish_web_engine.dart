@@ -35,7 +35,8 @@ class StockfishEngine implements ChessEngine {
   // Pre-compiled regex for parsing UCI output
   static final _cpRegex = RegExp(r'score cp (-?\d+)');
   static final _depthRegex = RegExp(r'depth (\d+)');
-  static final _pvRegex = RegExp(r'pv (\S+)');
+  static final _pvRegex = RegExp(r' pv (.+)');
+  static final _multipvRegex = RegExp(r'multipv (\d+)');
 
   StockfishEngine({StockfishVersion? sfVersion, String? variantId})
       : sfVersion = sfVersion ?? _versionFromId(variantId);
@@ -134,12 +135,16 @@ class StockfishEngine implements ChessEngine {
       final cpMatch = _cpRegex.firstMatch(trimmed);
       final depthMatch = _depthRegex.firstMatch(trimmed);
       final pvMatch = _pvRegex.firstMatch(trimmed);
+      final mpvMatch = _multipvRegex.firstMatch(trimmed);
 
       if (cpMatch != null && depthMatch != null) {
+        final pv = pvMatch?.group(1);
         _evalController.add(EvalInfo(
           score: int.parse(cpMatch.group(1)!) / 100.0,
           depth: int.parse(depthMatch.group(1)!),
-          bestMove: pvMatch?.group(1),
+          bestMove: pv?.split(' ').first,
+          pv: pv,
+          pvIndex: mpvMatch != null ? int.parse(mpvMatch.group(1)!) : 1,
         ));
       }
     }
@@ -188,14 +193,14 @@ class StockfishEngine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth, int multiPv = 1}) {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false, int multiPv = 1}) {
     if (_worker == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
 
     _send('setoption name Skill Level value 20');
     _send('setoption name MultiPV value $multiPv');
     _send(positionCommand);
-    _send('go depth ${depth ?? 20}');
+    _send(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
 
     return _evalController.stream;
   }

@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'chess_engine.dart';
 import 'dart_engine.dart';
+import 'generic_uci_engine.dart';
 import 'lc0_engine.dart' if (dart.library.js_interop) 'lc0_web_engine.dart';
 
 // Conditional imports: web gets *_web_engine.dart, native gets the stub/FFI version.
@@ -41,4 +44,12 @@ ChessEngine createEngine(String name, {
     default:
       return DartEngine(); // MIT, built-in
   }
+}
+
+/// Create a [ChessEngine] from a user-added engine profile.
+///
+/// Only available on native platforms (not web).
+ChessEngine createEngineFromProfile(EngineProfile profile) {
+  if (kIsWeb) throw UnsupportedError('Custom engines not available on web');
+  return GenericUciEngine(profile);
 }

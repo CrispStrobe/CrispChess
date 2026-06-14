@@ -122,7 +122,7 @@ class Lc0Engine implements ChessEngine {
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth}) {
+  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     return const Stream.empty();
   }
 
