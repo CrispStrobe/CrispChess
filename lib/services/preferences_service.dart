@@ -88,6 +88,20 @@ class PreferencesService {
 
   bool get hasSavedGame => _prefs?.containsKey(_keyGameFen) ?? false;
 
+  // Game history
+  static const _keyGameHistory = 'gameHistory';
+
+  List<String> get gameHistory =>
+      _prefs?.getStringList(_keyGameHistory) ?? [];
+
+  void addGameToHistory(String pgn) {
+    final history = gameHistory;
+    history.insert(0, pgn);
+    // Keep last 50 games
+    if (history.length > 50) history.removeRange(50, history.length);
+    _prefs?.setStringList(_keyGameHistory, history);
+  }
+
   /// Reset all preferences to defaults.
   Future<void> resetToDefaults() async {
     await _prefs?.clear();

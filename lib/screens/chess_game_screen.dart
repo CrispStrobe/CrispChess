@@ -490,6 +490,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _showGameOverDialog() {
+    // Save completed game to history
+    final pgn = _game.toPgn(
+      engineName: _state.twoPlayerMode ? 'Human' : _engineService.engineName,
+      playAsBlack: _state.playAsBlack,
+    );
+    _prefs.addGameToHistory(pgn);
+    _prefs.clearSavedGame();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1206,10 +1214,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   Text(
                     _engineService.state == EngineState.initializing
                         ? 'Downloading & initializing...'
-                        : _state.twoPlayerMode
-                            ? lookupOpening(_game.currentFEN) ?? 'Two Player'
-                            : lookupOpening(_game.currentFEN) ??
-                                '${_engineService.engineName} · Lv ${_state.strengthLevel}',
+                        : () {
+                            final info = lookupOpeningInfo(_game.currentFEN);
+                            if (info != null) {
+                              return '${info.name}${info.statsText.isNotEmpty ? ' (${info.statsText})' : ''}';
+                            }
+                            return _state.twoPlayerMode
+                                ? 'Two Player'
+                                : '${_engineService.engineName} · Lv ${_state.strengthLevel}';
+                          }(),
                     style: TextStyle(
                       fontSize: 10,
                       color: _engineService.state == EngineState.initializing
