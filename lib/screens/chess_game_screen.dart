@@ -13,6 +13,7 @@ import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
+import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
@@ -36,6 +37,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
+  final List<double> _evalHistory = [];
 
   @override
   void initState() {
@@ -89,6 +91,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       case EvalUpdateEvent(:final eval, :final depth, :final bestMove):
         _evalNotifier.value = eval;
         _depthNotifier.value = depth;
+        // Track eval history for the chart
+        if (_evalHistory.length < _game.moveHistory.length) {
+          _evalHistory.add(eval);
+        } else if (_evalHistory.isNotEmpty) {
+          _evalHistory.last = eval; // Update current position's eval
+        }
         if (bestMove.isNotEmpty) {
           _game.updateEvaluation(eval, bestMove, depth);
           setState(() {
@@ -375,6 +383,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _sound.play(ChessSound.gameStart);
     _evalNotifier.value = null;
     _depthNotifier.value = 0;
+    _evalHistory.clear();
     _clock?.dispose();
     if (!_state.timeControl.isUnlimited) {
       _clock = ChessClock(timeControl: _state.timeControl);
@@ -668,6 +677,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               ],
             ),
           ),
+
+          // Eval chart (shows eval trajectory across the game)
+          if (_evalHistory.length > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: EvalChart(evals: List.unmodifiable(_evalHistory)),
+            ),
 
           // Move annotation (if available)
           if (lastAnnotation != null)
