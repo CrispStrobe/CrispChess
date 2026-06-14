@@ -12,6 +12,7 @@ import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
+import '../services/multi_engine_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
@@ -27,6 +28,8 @@ import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
+import 'engine_match_screen.dart';
+import 'pgn_database_screen.dart';
 import 'position_editor_screen.dart';
 import 'puzzle_screen.dart';
 import 'settings_screen.dart';
@@ -78,6 +81,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final BoardAnnotations _boardAnnotations = BoardAnnotations();
   /// Track secondary (right-click) drag for arrow drawing.
   String? _arrowDragFrom;
+
+  /// Multi-engine analysis service (null when not active).
+  MultiEngineService? _multiEngine;
+  StreamSubscription<MultiEngineEvent>? _multiEngineSub;
 
   @override
   void initState() {
@@ -774,6 +781,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   @override
   void dispose() {
     _eventSubscription?.cancel();
+    _multiEngineSub?.cancel();
+    _multiEngine?.dispose();
     _evalNotifier.dispose();
     _depthNotifier.dispose();
     _clock?.dispose();
@@ -865,7 +874,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       );
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.compare_arrows, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Multi-engine analysis',
+                    onPressed: _startMultiEngineAnalysis,
+                  ),
+                  const SizedBox(width: 4),
                   Icon(Icons.expand_less, size: 20),
                 ],
               ),
@@ -983,6 +1000,86 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
           ),
 
+          // Multi-engine comparison (when active)
+          if (_multiEngine != null && _multiEngine!.results.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.compare_arrows, size: 14, color: theme.colorScheme.primary),
+                      const SizedBox(width: 4),
+                      Text('Multi-Engine', style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      )),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, size: 16, color: Colors.red.shade300),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Stop multi-engine',
+                        onPressed: () {
+                          _multiEngineSub?.cancel();
+                          _multiEngine?.dispose();
+                          setState(() => _multiEngine = null);
+                        },
+                      ),
+                    ],
+                  ),
+                  for (final result in _multiEngine!.results)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 70,
+                            child: Text(result.engineName,
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            width: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: result.eval >= 0
+                                  ? Colors.blue.withValues(alpha: 0.15)
+                                  : Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              result.eval >= 0
+                                  ? '+${result.eval.toStringAsFixed(1)}'
+                                  : result.eval.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold,
+                                color: result.eval >= 0 ? Colors.blue : Colors.orange,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text('d${result.depth}',
+                            style: TextStyle(fontSize: 9, color: theme.textTheme.bodySmall?.color)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(result.pv ?? result.bestMove,
+                              style: TextStyle(fontSize: 10, fontFamily: 'monospace',
+                                color: theme.textTheme.bodySmall?.color),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Divider(height: 8),
+                ],
+              ),
+            ),
+
           // Eval chart (shows eval trajectory across the game)
           if (_evalHistory.length > 1)
             Padding(
@@ -1044,6 +1141,73 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _startMultiEngineAnalysis() async {
+    // Create a second engine for comparison
+    final engines = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'Lc0'];
+    final currentEngine = _engineService.engineName;
+
+    final selected = await showDialog<List<String>>(
+      context: context,
+      builder: (ctx) {
+        final chosen = <String>{};
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('Multi-Engine Analysis'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Select engines to compare:', style: TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                for (final name in engines)
+                  CheckboxListTile(
+                    title: Text(name, style: const TextStyle(fontSize: 13)),
+                    subtitle: name == currentEngine
+                        ? const Text('(current opponent)', style: TextStyle(fontSize: 11))
+                        : null,
+                    value: chosen.contains(name),
+                    dense: true,
+                    onChanged: (v) {
+                      setDialogState(() {
+                        if (v == true) chosen.add(name); else chosen.remove(name);
+                      });
+                    },
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: chosen.length >= 2 ? () => Navigator.pop(ctx, chosen.toList()) : null,
+                child: const Text('Start'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || selected.length < 2) return;
+
+    // Dispose previous multi-engine
+    _multiEngineSub?.cancel();
+    _multiEngine?.dispose();
+
+    final multi = MultiEngineService();
+    for (final name in selected) {
+      final engine = createEngine(name);
+      await multi.addEngine(engine);
+    }
+
+    _multiEngine = multi;
+    _multiEngineSub = multi.events.listen((event) {
+      if (mounted) setState(() {}); // Rebuild to show updated results
+    });
+
+    // Start analysis
+    multi.analyzeAll(_game.positionCommand, depth: _state.hintDepth);
+    setState(() {});
   }
 
   Widget _buildAnalysisRefreshButton() {
@@ -1433,6 +1597,29 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  Future<void> _openPgnDatabase() async {
+    final pgn = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const PgnDatabaseScreen()),
+    );
+    if (pgn != null && mounted) {
+      if (_game.loadPgn(pgn)) {
+        _clock?.pause();
+        _evalNotifier.value = null;
+        _depthNotifier.value = 0;
+        _evalHistory.clear();
+        _pvLines.clear();
+        setState(() {
+          _state = _state.copyWith(
+            statusMessage: 'Game loaded from database',
+            isThinking: false,
+            hintMove: null,
+          );
+        });
+      }
+    }
+  }
+
   Future<void> _openPositionEditor() async {
     final fen = await Navigator.push<String>(
       context,
@@ -1649,6 +1836,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _loadFen();
                 case 'setup_position':
                   _openPositionEditor();
+                case 'pgn_database':
+                  _openPgnDatabase();
                 case 'flip':
                   setState(() {
                     _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
@@ -1657,6 +1846,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _confirmResign();
                 case 'draw':
                   _offerDraw();
+                case 'clear_arrows':
+                  setState(() => _boardAnnotations.clear());
                 case 'bookmark':
                   _prefs.addBookmark(_game.currentFEN);
                   if (mounted) {
@@ -1664,6 +1855,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       const SnackBar(content: Text('Position bookmarked')),
                     );
                   }
+                case 'engine_match':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
                 case 'puzzles':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) =>
@@ -1697,6 +1891,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               const PopupMenuItem(value: 'setup_position', child: ListTile(
                 leading: Icon(Icons.grid_on), title: Text('Setup Position'),
                 contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'pgn_database', child: ListTile(
+                leading: Icon(Icons.storage), title: Text('PGN Database'),
+                contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'flip', child: ListTile(
                 leading: Icon(Icons.swap_vert), title: Text('Flip Board'),
                 contentPadding: EdgeInsets.zero, dense: true)),
@@ -1706,8 +1903,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               const PopupMenuItem(value: 'resign', child: ListTile(
                 leading: Icon(Icons.flag), title: Text('Resign'),
                 contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'clear_arrows', child: ListTile(
+                leading: Icon(Icons.layers_clear), title: Text('Clear Annotations'),
+                contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'bookmark', child: ListTile(
                 leading: Icon(Icons.bookmark_add), title: Text('Bookmark Position'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'engine_match', child: ListTile(
+                leading: Icon(Icons.sports_esports), title: Text('Engine vs Engine'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'puzzles', child: ListTile(
                 leading: Icon(Icons.extension), title: Text('Puzzles'),
@@ -1769,22 +1972,42 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       return SizedBox(
                         width: size,
                         height: size,
-                        child: GestureDetector(
-                          // Secondary (right-click) gestures for drawing arrows
-                          onSecondaryTapDown: (details) {
+                        child: Listener(
+                          // Use Listener for right-click (secondary button) detection
+                          onPointerDown: (event) {
+                            // Only handle secondary (right) button
+                            if (event.buttons != 2) return;
                             final squareSize = size / 8;
-                            final col = (details.localPosition.dx / squareSize).floor();
-                            final row = (details.localPosition.dy / squareSize).floor();
-                            if (col >= 0 && col < 8 && row >= 0 && row < 8) {
-                              final r = _state.boardFlipped ? 7 - row : row;
-                              final c = _state.boardFlipped ? 7 - col : col;
-                              final sq = _game.squareToAlgebraic(r, c);
-                              setState(() {
+                            final col = (event.localPosition.dx / squareSize).floor().clamp(0, 7);
+                            final row = (event.localPosition.dy / squareSize).floor().clamp(0, 7);
+                            final r = _state.boardFlipped ? 7 - row : row;
+                            final c = _state.boardFlipped ? 7 - col : col;
+                            _arrowDragFrom = _game.squareToAlgebraic(r, c);
+                          },
+                          onPointerUp: (event) {
+                            if (_arrowDragFrom == null) return;
+                            final squareSize = size / 8;
+                            final col = (event.localPosition.dx / squareSize).floor().clamp(0, 7);
+                            final row = (event.localPosition.dy / squareSize).floor().clamp(0, 7);
+                            final r = _state.boardFlipped ? 7 - row : row;
+                            final c = _state.boardFlipped ? 7 - col : col;
+                            final toSq = _game.squareToAlgebraic(r, c);
+                            final fromSq = _arrowDragFrom!;
+                            _arrowDragFrom = null;
+
+                            setState(() {
+                              if (fromSq == toSq) {
+                                // Same square — toggle highlight
                                 _boardAnnotations.addHighlight(
-                                  BoardHighlight(square: sq, color: Colors.red),
+                                  BoardHighlight(square: fromSq, color: Colors.red),
                                 );
-                              });
-                            }
+                              } else {
+                                // Different squares — draw arrow
+                                _boardAnnotations.addArrow(
+                                  BoardArrow(from: fromSq, to: toSq, color: Colors.green),
+                                );
+                              }
+                            });
                           },
                           child: ChessBoard(
                             board: _game.board,
