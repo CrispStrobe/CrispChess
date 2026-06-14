@@ -74,6 +74,7 @@ class EngineAnalysisResult {
 class MultiEngineService {
   final List<ChessEngine> _engines = [];
   final List<StreamSubscription<EvalInfo>?> _subscriptions = [];
+  final List<VoidCallback> _stateListeners = [];
   final _eventController = StreamController<MultiEngineEvent>.broadcast();
 
   /// Latest results from each engine.
@@ -93,7 +94,7 @@ class MultiEngineService {
       state: engine.state,
     ));
 
-    engine.stateNotifier.addListener(() {
+    void listener() {
       if (index < results.length) {
         results[index] = results[index].copyWith(state: engine.state);
         _eventController.add(MultiEngineStateChange(
@@ -102,7 +103,9 @@ class MultiEngineService {
           state: engine.state,
         ));
       }
-    });
+    }
+    engine.stateNotifier.addListener(listener);
+    _stateListeners.add(listener);
 
     if (engine.state == EngineState.idle) {
       await engine.initialize();
@@ -154,9 +157,11 @@ class MultiEngineService {
   void removeEngine(int index) {
     if (index < 0 || index >= _engines.length) return;
     _subscriptions[index]?.cancel();
+    _engines[index].stateNotifier.removeListener(_stateListeners[index]);
     _engines[index].dispose();
     _engines.removeAt(index);
     _subscriptions.removeAt(index);
+    _stateListeners.removeAt(index);
     results.removeAt(index);
   }
 
@@ -164,10 +169,12 @@ class MultiEngineService {
   void dispose() {
     for (int i = 0; i < _engines.length; i++) {
       _subscriptions[i]?.cancel();
+      _engines[i].stateNotifier.removeListener(_stateListeners[i]);
       _engines[i].dispose();
     }
     _engines.clear();
     _subscriptions.clear();
+    _stateListeners.clear();
     results.clear();
     _eventController.close();
   }

@@ -227,4 +227,29 @@ class GameTree {
 
   /// Whether we're at the end of the current line (no children).
   bool get atEnd => current.children.isEmpty;
+
+  /// Count total nodes in the tree (for diagnostics).
+  int get nodeCount {
+    int count = 0;
+    void walk(GameTreeNode node) {
+      count++;
+      for (final child in node.children) walk(child);
+    }
+    walk(root);
+    return count;
+  }
+
+  /// Prune variations beyond a maximum node count to prevent memory bloat.
+  /// Keeps the main line intact, removes deepest variations first.
+  void pruneIfNeeded({int maxNodes = 5000}) {
+    if (nodeCount <= maxNodes) return;
+    // Remove all non-main-line variations
+    void pruneVariations(GameTreeNode node) {
+      if (node.children.length > 1) {
+        node.children.removeRange(1, node.children.length);
+      }
+      for (final child in node.children) pruneVariations(child);
+    }
+    pruneVariations(root);
+  }
 }

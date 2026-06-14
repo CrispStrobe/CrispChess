@@ -262,9 +262,11 @@ class TournamentService {
         engine2: engines[j],
         config: MatchConfig(numGames: 1, depthPerMove: depthPerMove, alternateColors: false),
       );
-      match1.events.listen((e) => _eventController.add(e));
+      final sub1 = match1.events.listen((e) => _eventController.add(e));
       final r1 = await match1.run();
       results.addAll(r1);
+      await sub1.cancel();
+      match1.dispose();
 
       if (_stopped) break;
 
@@ -278,9 +280,11 @@ class TournamentService {
         engine2: engines[i],
         config: MatchConfig(numGames: 1, depthPerMove: depthPerMove, alternateColors: false),
       );
-      match2.events.listen((e) => _eventController.add(e));
+      final sub2 = match2.events.listen((e) => _eventController.add(e));
       final r2 = await match2.run();
       results.addAll(r2);
+      await sub2.cancel();
+      match2.dispose();
     }
 
     _eventController.add(MatchFinished(results));

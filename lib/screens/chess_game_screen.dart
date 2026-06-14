@@ -213,24 +213,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         if (pvIndex <= 1) {
           _evalNotifier.value = eval;
           _depthNotifier.value = depth;
-          // Track eval history for the chart
-          if (_evalHistory.length < _game.moveHistory.length) {
+          // Track eval history for the chart (capped at 500 moves)
+          if (_evalHistory.length < _game.moveHistory.length && _evalHistory.length < 500) {
             _evalHistory.add(eval);
           } else if (_evalHistory.isNotEmpty) {
             _evalHistory.last = eval;
           }
         }
-        // Update Multi-PV lines
+        // Update Multi-PV lines (capped at 5 lines)
         if (pv != null && pv.isNotEmpty) {
           final line = PvLine(eval: eval, depth: depth, pv: pv, pvIndex: pvIndex);
-          // Replace or add line at this pvIndex
           final idx = pvIndex - 1;
+          if (idx >= 5) break; // Max 5 PV lines
           while (_pvLines.length <= idx) {
             _pvLines.add(line);
           }
           _pvLines[idx] = line;
-          // Clear stale lines from previous depths
-          if (pvIndex == 1) {
+          if (pvIndex == 1 && _pvLines.length > 1) {
             _pvLines.removeRange(1, _pvLines.length);
           }
         }
@@ -396,10 +395,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           }
         });
       } else {
-        // Pondering: start background analysis while waiting for player.
+        // Pondering: light background analysis while waiting for player.
+        // Use reduced depth to limit CPU/memory usage.
         _engineService.requestAnalysis(
           _game.positionCommand,
-          depth: _state.hintDepth,
+          depth: (_state.hintDepth ~/ 2).clamp(6, 12),
         );
       }
     }
@@ -1336,21 +1336,30 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     // Dispose previous multi-engine
     _multiEngineSub?.cancel();
     _multiEngine?.dispose();
+    _multiEngine = null;
 
     final multi = MultiEngineService();
-    for (final name in selected) {
-      final engine = createEngine(name);
-      await multi.addEngine(engine);
+    try {
+      for (final name in selected) {
+        final engine = createEngine(name);
+        await multi.addEngine(engine);
+      }
+
+      _multiEngine = multi;
+      _multiEngineSub = multi.events.listen((event) {
+        if (mounted) setState(() {});
+      });
+
+      multi.analyzeAll(_game.positionCommand, depth: _state.hintDepth);
+      setState(() {});
+    } catch (e) {
+      multi.dispose();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Multi-engine failed: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
-
-    _multiEngine = multi;
-    _multiEngineSub = multi.events.listen((event) {
-      if (mounted) setState(() {}); // Rebuild to show updated results
-    });
-
-    // Start analysis
-    multi.analyzeAll(_game.positionCommand, depth: _state.hintDepth);
-    setState(() {});
   }
 
   Widget _buildAnalysisRefreshButton() {

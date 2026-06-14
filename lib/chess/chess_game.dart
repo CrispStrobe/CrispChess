@@ -197,6 +197,8 @@ class ChessGame with ChangeNotifier {
 
     node.annotation = annotation;
     _annotations.add(annotation);
+    // Cap annotations to prevent unbounded memory growth
+    if (_annotations.length > 500) _annotations.removeAt(0);
     notifyListeners();
   }
 
