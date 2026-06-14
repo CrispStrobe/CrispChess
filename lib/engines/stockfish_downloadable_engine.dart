@@ -19,12 +19,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'chess_engine.dart';
 
-/// Download URL for stockfish.js WASM build
+/// Download URL for stockfish.js WASM build (GPL-3.0, downloaded separately)
 const _stockfishJsUrl =
-    'https://raw.githubusercontent.com/nicl/stockfish.js/master/stockfish.js';
-
-/// Fallback: bundled stockfish.js from app assets
-const _stockfishJsAsset = 'assets/stockfish.js';
+    'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
 
 /// Status of the Stockfish download
 enum DownloadStatus { notDownloaded, downloading, ready, error }
@@ -90,18 +87,18 @@ class StockfishDownloadableEngine implements ChessEngine {
       await dir.create(recursive: true);
       final targetFile = File('${dir.path}/stockfish.js');
 
-      // Try loading from bundled assets first (faster, no network)
+      // Download from CDN (GPL-3.0, never bundled with app)
+      debugPrint('[Stockfish] Downloading from $_stockfishJsUrl...');
+      final client = HttpClient();
       try {
-        final bytes = await rootBundle.load(_stockfishJsAsset);
-        await targetFile.writeAsBytes(bytes.buffer.asUint8List());
-        debugPrint('[Stockfish] Loaded from bundled assets');
+        final request = await client.getUrl(Uri.parse(_stockfishJsUrl));
+        final response = await request.close();
+        await response.pipe(targetFile.openWrite());
+        debugPrint('[Stockfish] Downloaded to ${targetFile.path}');
         _downloadStatus.value = DownloadStatus.ready;
-        return;
-      } catch (_) {
-        debugPrint('[Stockfish] Not bundled, would need network download');
+      } finally {
+        client.close();
       }
-
-      _downloadStatus.value = DownloadStatus.error;
     } catch (e) {
       debugPrint('[Stockfish] Download failed: $e');
       _downloadStatus.value = DownloadStatus.error;

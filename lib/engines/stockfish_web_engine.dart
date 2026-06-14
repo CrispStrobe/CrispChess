@@ -8,8 +8,11 @@ import 'chess_engine.dart';
 ///
 /// Uses the niklasf/stockfish.js compiled Stockfish which communicates
 /// via postMessage (UCI protocol over Web Worker messages).
-/// GPL-3.0 licensed.
+/// GPL-3.0 licensed — downloaded at runtime, never bundled in app binary.
 class StockfishEngine implements ChessEngine {
+  // Stockfish.js downloaded from CDN at runtime (not bundled with app)
+  static const _stockfishCdnUrl =
+      'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
   web.Worker? _worker;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   Completer<String>? _moveCompleter;
@@ -40,7 +43,8 @@ class StockfishEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
 
     try {
-      _worker = web.Worker('stockfish.js'.toJS);
+      // Download Stockfish from CDN — never bundled with the app
+      _worker = web.Worker(_stockfishCdnUrl.toJS);
       debugPrint('[StockfishWeb] Worker created');
 
       final readyCompleter = Completer<void>();

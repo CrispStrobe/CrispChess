@@ -3,24 +3,17 @@
 This file documents third-party components distributed with CrispChess
 that have licenses different from CrispChess's own MIT license.
 
-## stockfish.js (web/stockfish.js, assets/stockfish.js)
+## Stockfish (downloaded at runtime, NOT bundled)
 
 - **License:** GPL-3.0
-- **Author:** Niklas Fiekas (Emscripten compilation)
+- **Author:** Niklas Fiekas (JS/WASM compilation)
 - **Source:** https://github.com/niklasf/stockfish.js
 - **Original authors:** T. Romstad, M. Costalba, J. Kiiski, G. Linscott et al.
 
-Stockfish.js is the Stockfish chess engine compiled to JavaScript via
-Emscripten. It is distributed alongside CrispChess but is NOT compiled
-into the CrispChess binary. It runs as a Web Worker (web) or in a
-separate JavaScript runtime (iOS), maintaining process isolation from
-the MIT-licensed application code.
-
-The full GPL-3.0 license text is available at:
-https://www.gnu.org/licenses/gpl-3.0.html
-
-The source code for the distributed version is available at:
-https://github.com/niklasf/stockfish.js
+Stockfish is NOT included in the CrispChess distribution. It is
+downloaded from CDN (cdn.jsdelivr.net) at runtime when the user
+selects it, and runs in a Web Worker (web) or separate process
+(desktop). No GPL code is bundled with or compiled into CrispChess.
 
 ## ONNX Runtime Web (web/ort.min.js)
 
