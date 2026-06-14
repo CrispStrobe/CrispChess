@@ -1,8 +1,10 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
+import 'game_state.dart' show ChessVariant;
 import 'game_tree.dart';
 import 'move_analyzer.dart';
 import 'pgn.dart';
+import 'variants.dart';
 
 enum PieceType { pawn, knight, bishop, rook, queen, king }
 enum PieceColor { white, black }
@@ -163,6 +165,13 @@ class ChessGame with ChangeNotifier {
     _cachedLegalMoves = null;
     _cachedBoard = null;
 
+    // Track three-check counts
+    if (variant == ChessVariant.threeCheck && _game.in_check) {
+      // The side that just moved gave check
+      if (whiteToMove) whiteChecks++;
+      else blackChecks++;
+    }
+
     // Get SAN from the last move in the chess history
     final sanList = moveHistorySan;
     final san = sanList.isNotEmpty ? sanList.last : uciMove;
@@ -223,11 +232,30 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   bool _resigned = false;
   bool _drawAgreed = false;
 
-  bool get isGameOver => _game.game_over || _resigned || _drawAgreed;
+  /// Active variant mode.
+  ChessVariant variant = ChessVariant.standard;
+
+  /// Three-check: count of checks given by each side.
+  int whiteChecks = 0;
+  int blackChecks = 0;
+
+  bool get isGameOver {
+    if (_game.game_over || _resigned || _drawAgreed) return true;
+    // Variant win conditions
+    if (variant == ChessVariant.kingOfTheHill && checkKothWin(_game.fen)) return true;
+    if (variant == ChessVariant.threeCheck && checkThreeCheckWin(whiteChecks, blackChecks)) return true;
+    return false;
+  }
 
   String get gameOverReason {
     if (_resigned) return 'Resignation';
     if (_drawAgreed) return 'Draw by agreement';
+    if (variant == ChessVariant.kingOfTheHill && checkKothWin(_game.fen)) {
+      return 'King of the Hill';
+    }
+    if (variant == ChessVariant.threeCheck && checkThreeCheckWin(whiteChecks, blackChecks)) {
+      return 'Three-check';
+    }
     if (_game.in_checkmate) return 'Checkmate';
     if (_game.in_stalemate) return 'Stalemate';
     if (_game.in_threefold_repetition) return 'Draw — threefold repetition';
@@ -255,8 +283,15 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   String? get winner {
     if (_drawAgreed || _game.in_stalemate || _game.in_draw) return null;
     if (_resigned) {
-      // The side who resigned loses
       return whiteToMove ? 'Black' : 'White';
+    }
+    if (variant == ChessVariant.kingOfTheHill) {
+      final w = kothWinner(_game.fen);
+      if (w != null) return w;
+    }
+    if (variant == ChessVariant.threeCheck) {
+      if (whiteChecks >= 3) return 'White';
+      if (blackChecks >= 3) return 'Black';
     }
     if (!_game.in_checkmate) return null;
     return _game.turn == chess.Color.WHITE ? 'Black' : 'White';
@@ -406,6 +441,8 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _lastDepth = null;
     _resigned = false;
     _drawAgreed = false;
+    whiteChecks = 0;
+    blackChecks = 0;
     _tree = GameTree(startFen: _game.fen);
     notifyListeners();
   }

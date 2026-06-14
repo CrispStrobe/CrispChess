@@ -1,5 +1,8 @@
 import 'chess_clock.dart';
 
+/// Supported chess variant modes.
+enum ChessVariant { standard, chess960, kingOfTheHill, threeCheck }
+
 class GameState {
   final int strengthLevel;
   final int hintDepth;
@@ -23,6 +26,7 @@ class GameState {
   final String pieceTheme;
   final bool boardFlipped;
   final String? lastMoveUci;
+  final bool isLastMoveCapture;
 
   const GameState({
     this.strengthLevel = 10,
@@ -47,6 +51,7 @@ class GameState {
     this.pieceTheme = 'chessnut',
     this.boardFlipped = false,
     this.lastMoveUci,
+    this.isLastMoveCapture = false,
   });
 
   /// Whether animation is enabled (speed > 0).
@@ -88,6 +93,7 @@ class GameState {
     String? pieceTheme,
     bool? boardFlipped,
     Object? lastMoveUci = _sentinel,
+    bool? isLastMoveCapture,
   }) =>
       GameState(
         strengthLevel: strengthLevel ?? this.strengthLevel,
@@ -122,5 +128,6 @@ class GameState {
         lastMoveUci: identical(lastMoveUci, _sentinel)
             ? this.lastMoveUci
             : lastMoveUci as String?,
+        isLastMoveCapture: isLastMoveCapture ?? this.isLastMoveCapture,
       );
 }

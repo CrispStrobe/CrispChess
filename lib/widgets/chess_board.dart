@@ -3,6 +3,7 @@ import '../chess/board_annotations.dart';
 import '../chess/chess_game.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'board_annotation_overlay.dart';
+import 'capture_effect.dart';
 
 class ChessBoard extends StatefulWidget {
   final List<List<ChessPiece?>> board;
@@ -21,6 +22,8 @@ class ChessBoard extends StatefulWidget {
   final String? lastMoveUci; // e.g. "e2e4" — triggers slide animation
   final BoardAnnotations? annotations; // user-drawn arrows and highlights
   final GlobalKey? repaintBoundaryKey; // key for screenshot capture
+  final bool isCapture; // true if the last move was a capture (triggers effect)
+  final bool isCheckmate; // true when game ended in checkmate (king glow)
 
   const ChessBoard({
     Key? key,
@@ -40,6 +43,8 @@ class ChessBoard extends StatefulWidget {
     this.lastMoveUci,
     this.annotations,
     this.repaintBoundaryKey,
+    this.isCapture = false,
+    this.isCheckmate = false,
   }) : super(key: key);
 
   @override
@@ -55,6 +60,10 @@ class _ChessBoardState extends State<ChessBoard>
   // Animation state: piece sliding from one square to another
   int? _animFromRow, _animFromCol, _animToRow, _animToCol;
   ChessPiece? _animPiece;
+
+  // Capture effect state
+  int? _captureRow, _captureCol;
+  bool _showCaptureEffect = false;
 
   @override
   void initState() {
@@ -118,6 +127,12 @@ class _ChessBoardState extends State<ChessBoard>
       _animFromCol = fromCol;
       _animToRow = toRow;
       _animToCol = toCol;
+      // Trigger capture effect
+      if (widget.isCapture) {
+        _captureRow = toRow;
+        _captureCol = toCol;
+        _showCaptureEffect = true;
+      }
     });
     _animController.forward(from: 0);
   }
@@ -216,6 +231,8 @@ class _ChessBoardState extends State<ChessBoard>
                             final isLastMove =
                                 squareName == lastFrom || squareName == lastTo;
 
+                            final isCheckmateKing = isKingInDanger && widget.isCheckmate;
+
                             return _ChessSquare(
                               row: row,
                               col: col,
@@ -227,6 +244,7 @@ class _ChessBoardState extends State<ChessBoard>
                               isHintFrom: isHintFrom,
                               isHintTo: isHintTo,
                               isKingInDanger: isKingInDanger,
+                              isCheckmateKing: isCheckmateKing,
                               isLastMove: isLastMove,
                               showCoordinate: visualCol == 0 || visualRow == 7,
                               coordinateLabel: visualCol == 0
@@ -300,6 +318,19 @@ class _ChessBoardState extends State<ChessBoard>
                         );
                       },
                     ),
+                  // Capture particle burst effect
+                  if (_showCaptureEffect && _captureRow != null && _captureCol != null)
+                    CaptureEffect(
+                      row: _captureRow!,
+                      col: _captureCol!,
+                      squareSize: squareSize,
+                      flipped: widget.flipped,
+                      onComplete: () {
+                        if (mounted) {
+                          setState(() => _showCaptureEffect = false);
+                        }
+                      },
+                    ),
                 ],
               );
             },
@@ -321,6 +352,7 @@ class _ChessSquare extends StatelessWidget {
   final bool isHintFrom;
   final bool isHintTo;
   final bool isKingInDanger;
+  final bool isCheckmateKing;
   final bool isLastMove;
   final bool showCoordinate;
   final String? coordinateLabel;
@@ -340,6 +372,7 @@ class _ChessSquare extends StatelessWidget {
     required this.isHintFrom,
     required this.isHintTo,
     required this.isKingInDanger,
+    this.isCheckmateKing = false,
     this.isLastMove = false,
     this.showCoordinate = false,
     this.coordinateLabel,
@@ -365,7 +398,9 @@ class _ChessSquare extends StatelessWidget {
           },
           builder: (context, candidateData, rejectedData) {
             Color? bgColor;
-            if (isKingInDanger) {
+            if (isCheckmateKing) {
+              bgColor = Colors.red.withValues(alpha: 0.85);
+            } else if (isKingInDanger) {
               bgColor = Colors.red.withValues(alpha: 0.7);
             } else if (isSelected) {
               bgColor = Colors.blue.withValues(alpha: 0.5);
@@ -391,6 +426,15 @@ class _ChessSquare extends StatelessWidget {
                     : isSelected
                         ? Border.all(color: Colors.blue, width: 3)
                         : null,
+                boxShadow: isCheckmateKing
+                    ? [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.6),
+                          blurRadius: 12,
+                          spreadRadius: 4,
+                        ),
+                      ]
+                    : null,
               ),
               child: Stack(
                 children: [

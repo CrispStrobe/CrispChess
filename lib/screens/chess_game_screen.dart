@@ -24,7 +24,7 @@ import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
-import '../chess/xp_system.dart';
+import '../chess/xp_system.dart' show XpAwards, levelFromXp, PlayerLevel;
 import '../main.dart' show themeNotifier;
 import 'about_screen.dart';
 import 'game_summary_screen.dart';
@@ -478,6 +478,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
         _game.squareToAlgebraic(toRow, toCol);
 
+    // Detect capture before making the move
+    final isCapture = _game.board[toRow][toCol] != null;
+
     if (_game.makeMove(uciMove)) {
       _boardAnnotations.clear(); // Clear drawn annotations on move
       _playMoveSound(uciMove);
@@ -486,7 +489,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       setState(() {
         final san = _game.moveHistorySan;
         final lastSan = san.isNotEmpty ? san.last : uciMove;
-        _state = _state.copyWith(lastMove: 'You: $lastSan', hintMove: null, lastMoveUci: uciMove);
+        _state = _state.copyWith(
+            lastMove: 'You: $lastSan', hintMove: null,
+            lastMoveUci: uciMove, isLastMoveCapture: isCapture);
 
         if (_game.isGameOver) {
           _clock?.pause();
@@ -617,9 +622,49 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
+  void _showLevelUpDialog(PlayerLevel newLevel) {
+    final icon = switch (newLevel) {
+      PlayerLevel.pawn => Icons.circle,
+      PlayerLevel.knight => Icons.hotel,
+      PlayerLevel.bishop => Icons.church,
+      PlayerLevel.rook => Icons.account_balance,
+      PlayerLevel.queen => Icons.auto_awesome,
+      PlayerLevel.grandmaster => Icons.stars,
+    };
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 64, color: Colors.amber),
+            const SizedBox(height: 16),
+            Text('Level Up!',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold, color: Colors.amber.shade700)),
+            const SizedBox(height: 8),
+            Text('You reached ${newLevel.title}!',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text('${_prefs.totalXp} XP',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showGameOverDialog() {
     // Track game stats + award XP
     _prefs.gamesPlayed = _prefs.gamesPlayed + 1;
+    final levelBefore = levelFromXp(_prefs.totalXp);
     bool playerWon = false;
     if (_game.winner != null) {
       playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
@@ -632,6 +677,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       }
     } else {
       _prefs.addXp(XpAwards.gameDraw);
+    }
+
+    // Check for level-up
+    final levelAfter = levelFromXp(_prefs.totalXp);
+    if (levelAfter != levelBefore) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _showLevelUpDialog(levelAfter);
+      });
     }
 
     // Rate app prompt after 3rd win (non-intrusive)
@@ -2135,6 +2188,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             lastMoveUci: _state.lastMoveUci,
                             annotations: _mergedAnnotations,
                             repaintBoundaryKey: _boardKey,
+                            isCapture: _state.isLastMoveCapture,
+                            isCheckmate: _game.isGameOver && _game.gameOverReason == 'Checkmate',
                           ),
                         ),
                       );

@@ -42,8 +42,8 @@
 - [x] Last move highlighting (warm brown tint on from/to squares)
 - [x] Captured pieces tray with material advantage badge (+N)
 - [ ] Animated hint/analysis arrows on the board (L-shaped for knight moves)
-- [ ] Capture visual effect (particle burst on capture square)
-- [ ] Checkmate flourish (glow on mated king + shockwave ring)
+- [x] Capture visual effect (particle burst on capture square)
+- [x] Checkmate flourish (glow + boxShadow on mated king square)
 
 ### Game Flow
 - [x] Confirmation dialog before New Game (prevent accidental loss)
@@ -104,8 +104,8 @@
 ### Mistakes Tracker
 - [x] Persist blunders tracker in shared_preferences
 - [x] "My Mistakes" screen — list tracked blunders
-- [ ] Resolving a mistake (re-solving) — needs puzzle integration
-- [ ] Spaced repetition — re-present failed puzzles at increasing intervals
+- [x] Resolving a mistake (re-solving) — spaced repetition system
+- [x] Spaced repetition — re-present at 1d/3d/7d/14d/30d intervals
 
 ## Phase 9: Gamification & Persistence
 
@@ -118,7 +118,7 @@
 ### XP & Progression
 - [x] XP system: game win/draw/loss, puzzle solve
 - [x] Player level tiers (Pawn → Grandmaster, 6 levels)
-- [ ] Level-up celebration dialog (lower priority)
+- [x] Level-up celebration dialog with tier icon
 - [x] Daily login streak with bonus XP
 
 ### Achievements
@@ -135,8 +135,8 @@
 
 ### Variants (future)
 - [x] Chess960 / Fischer Random position generator
-- [ ] King of the Hill
-- [ ] Three-check
+- [x] King of the Hill (win by king on d4/d5/e4/e5)
+- [x] Three-check (win by giving check 3 times)
 
 ## Phase 11: Advanced Features
 
@@ -251,7 +251,7 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 - [x] Game list view — players, result, date, ECO, event
 - [x] Search/filter by player name, result
 - [x] Click game to load onto board
-- [ ] Database statistics (most common openings, win rates)
+- [x] Database statistics (most common openings, win rates)
 
 ### Engine vs Engine
 - [x] Match mode — two engines play N games (alternating colors)

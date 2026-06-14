@@ -176,6 +176,22 @@ class PreferencesService {
 
   void clearMistakes() => _prefs?.remove(_keyMistakes);
 
+  // Spaced repetition queue
+  static const _keySrQueue = 'sr_queue';
+
+  List<String> get srQueue =>
+      _prefs?.getStringList(_keySrQueue) ?? [];
+
+  void saveSrQueue(List<String> items) =>
+      _prefs?.setStringList(_keySrQueue, items);
+
+  void addToSrQueue(String itemJson) {
+    final q = srQueue;
+    q.add(itemJson);
+    if (q.length > 500) q.removeRange(0, q.length - 500);
+    _prefs?.setStringList(_keySrQueue, q);
+  }
+
   // Puzzle stats
   static const _keyPuzzlesSolved = 'puzzlesSolved';
 
