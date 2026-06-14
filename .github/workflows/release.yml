@@ -111,6 +111,42 @@ jobs:
           name: frozenight-libs
           path: frozenight-libs.tar.gz
 
+  build-macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build macos --release
+      - run: |
+          cd build/macos/Build/Products/Release
+          tar czf $GITHUB_WORKSPACE/CrispChess-macos.tar.gz CrispChess.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: CrispChess-macos.tar.gz
+
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build windows --release
+      - name: Package
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath CrispChess-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: CrispChess-windows-x64.zip
+
   build-web:
     name: Web (WASM)
     runs-on: ubuntu-latest
@@ -136,7 +172,7 @@ jobs:
 
   create-release:
     name: GitHub Release
-    needs: [build-android, build-linux, build-linux-frozenight, build-frozenight-libs, build-web]
+    needs: [build-android, build-linux, build-linux-frozenight, build-frozenight-libs, build-macos, build-windows, build-web]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -150,5 +186,7 @@ jobs:
             artifacts/android-apk/app-release.apk
             artifacts/linux-x64/CrispChess-linux-x64.tar.gz
             artifacts/linux-x64-frozenight/CrispChess-linux-x64-frozenight.tar.gz
+            artifacts/macos-app/CrispChess-macos.tar.gz
+            artifacts/windows-x64/CrispChess-windows-x64.zip
             artifacts/web/CrispChess-web.tar.gz
             artifacts/frozenight-libs/frozenight-libs.tar.gz
