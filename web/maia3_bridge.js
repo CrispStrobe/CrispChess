@@ -27,7 +27,7 @@ async function maia3Load(variant, onProgress) {
     // Use webgl backend to avoid WASM memory conflict with Flutter WASM
     if (globalThis.ort.env) {
       globalThis.ort.env.wasm.numThreads = 1;
-      globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+      globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
     }
 
     if (typeof globalThis.Maia3Class === 'undefined') {

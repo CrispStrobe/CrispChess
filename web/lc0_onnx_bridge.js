@@ -44,7 +44,7 @@ async function lc0OnnxLoad(modelUrl) {
 
   if (globalThis.ort.env) {
     globalThis.ort.env.wasm.numThreads = 1;
-    globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+    globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
   }
 
   console.log('[Lc0ONNX] Loading model from: ' + modelUrl);
