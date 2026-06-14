@@ -123,12 +123,58 @@ class PreferencesService {
     _prefs?.setStringList(_keyBookmarks, bm);
   }
 
-  // XP
+  // XP + streak
   static const _keyXp = 'totalXp';
+  static const _keyLastLoginDate = 'lastLoginDate';
+  static const _keyStreak = 'dailyStreak';
 
   int get totalXp => _prefs?.getInt(_keyXp) ?? 0;
   void addXp(int amount) =>
       _prefs?.setInt(_keyXp, totalXp + amount);
+
+  int get dailyStreak => _prefs?.getInt(_keyStreak) ?? 0;
+
+  /// Check daily login and update streak. Returns XP earned.
+  int checkDailyLogin() {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastLogin = _prefs?.getString(_keyLastLoginDate);
+
+    if (lastLogin == today) return 0; // Already logged in today
+
+    _prefs?.setString(_keyLastLoginDate, today);
+
+    if (lastLogin != null) {
+      final lastDate = DateTime.parse(lastLogin);
+      final diff = DateTime.now().difference(lastDate).inDays;
+      if (diff == 1) {
+        // Consecutive day
+        final newStreak = dailyStreak + 1;
+        _prefs?.setInt(_keyStreak, newStreak);
+        final xp = 5 + (newStreak.clamp(0, 10));
+        addXp(xp);
+        return xp;
+      }
+    }
+    // Reset streak
+    _prefs?.setInt(_keyStreak, 1);
+    addXp(5);
+    return 5;
+  }
+
+  // Mistakes tracker
+  static const _keyMistakes = 'mistakes';
+
+  List<String> get mistakes =>
+      _prefs?.getStringList(_keyMistakes) ?? [];
+
+  void addMistake(String mistakeJson) {
+    final m = mistakes;
+    m.insert(0, mistakeJson);
+    if (m.length > 200) m.removeRange(200, m.length);
+    _prefs?.setStringList(_keyMistakes, m);
+  }
+
+  void clearMistakes() => _prefs?.remove(_keyMistakes);
 
   // Puzzle stats
   static const _keyPuzzlesSolved = 'puzzlesSolved';

@@ -85,11 +85,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
     _initializeEngine();
     _puzzleDb.load();
-    // Show onboarding on first launch, then check for saved game
-    Future.delayed(const Duration(milliseconds: 500), () {
-      OnboardingService.showIfFirstLaunch(context).then((_) {
-        _checkSavedGame();
-      });
+    // Show onboarding, check daily login, then check saved game
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      await OnboardingService.showIfFirstLaunch(context);
+      // Daily login streak
+      final streakXp = _prefs.checkDailyLogin();
+      if (streakXp > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Daily login: +$streakXp XP (streak: ${_prefs.dailyStreak})'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      _checkSavedGame();
     });
   }
 
