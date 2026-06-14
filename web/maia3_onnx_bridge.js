@@ -5,20 +5,22 @@
 let maia3OnnxSession = null;
 
 async function maia3OnnxLoad(modelUrl) {
-  if (maia3OnnxSession) {
-    console.log('[Maia3ONNX] Session already loaded, releasing old one');
-    try { await maia3OnnxSession.release(); } catch(_) {}
-    maia3OnnxSession = null;
+  // Release any existing sessions (both bridges share ONNX Runtime)
+  await maia3OnnxClose();
+  if (typeof globalThis.maia3Close === 'function') {
+    try { await globalThis.maia3Close(); } catch(_) {}
   }
 
   if (typeof globalThis.ort === 'undefined') {
     throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
   }
 
-  // Configure WASM
+  // Configure WASM — proxy=true runs ONNX in a Web Worker to avoid
+  // memory conflicts with Flutter's own WASM runtime
   if (globalThis.ort.env) {
     globalThis.ort.env.wasm.numThreads = 1;
     globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+    globalThis.ort.env.wasm.proxy = true;
   }
 
   console.log('[Maia3ONNX] Loading model from: ' + modelUrl);
@@ -60,7 +62,6 @@ async function maia3OnnxInfer(tokens, selfElo, oppoElo) {
 
   const ort = globalThis.ort;
 
-  // tokens: Float32Array of 6144 elements → [1, 64, 96]
   const tokensTensor = new ort.Tensor('float32', tokens, [1, 64, 96]);
   const selfEloTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(selfElo)]), [1]);
   const oppoEloTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(oppoElo)]), [1]);
@@ -73,7 +74,6 @@ async function maia3OnnxInfer(tokens, selfElo, oppoElo) {
 
   const result = await maia3OnnxSession.run(feeds);
 
-  // Concatenate into a single Float32Array: [moveLogits(4352), valueLogits(3)]
   const moveData = result.logits_move.data;
   const valueData = result.logits_value.data;
   const combined = new Float32Array(4352 + 3);
@@ -84,7 +84,9 @@ async function maia3OnnxInfer(tokens, selfElo, oppoElo) {
 
 async function maia3OnnxClose() {
   if (maia3OnnxSession) {
-    try { await maia3OnnxSession.release(); } catch(_) {}
+    try { await maia3OnnxSession.release(); } catch(e) {
+      console.warn('[Maia3ONNX] Release error:', e);
+    }
     maia3OnnxSession = null;
   }
 }

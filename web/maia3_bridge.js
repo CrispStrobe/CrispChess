@@ -9,26 +9,27 @@ async function maia3Load(variant, onProgress) {
   // If already loaded with same variant, skip
   if (maia3Instance && maia3CurrentVariant === variant) return;
 
-  // If loading or different variant, close old instance
-  if (maia3Instance) {
-    await maia3Close();
+  // Close any existing sessions (both bridges share ONNX Runtime)
+  await maia3Close();
+  if (typeof globalThis.maia3OnnxClose === 'function') {
+    try { await globalThis.maia3OnnxClose(); } catch(_) {}
   }
+
   if (maia3Loading) return;
   maia3Loading = true;
 
   try {
-    // ort.min.js is loaded via <script> tag in index.html
     if (typeof globalThis.ort === 'undefined') {
       throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
     }
 
-    // Configure ONNX Runtime for browser (single-threaded, CDN WASM)
+    // Configure ONNX Runtime for browser
     if (globalThis.ort.env) {
       globalThis.ort.env.wasm.numThreads = 1;
       globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+      globalThis.ort.env.wasm.proxy = true;
     }
 
-    // maia3-bundle.js is loaded via <script> tag — sets globalThis.Maia3Class
     if (typeof globalThis.Maia3Class === 'undefined') {
       throw new Error('Maia3 bundle not loaded — check maia3-bundle.js in index.html');
     }
@@ -63,7 +64,9 @@ async function maia3PredictMove(fen, selfElo) {
 
 async function maia3Close() {
   if (maia3Instance) {
-    await maia3Instance.close();
+    try { await maia3Instance.close(); } catch(e) {
+      console.warn('[Maia3] Close error:', e);
+    }
     maia3Instance = null;
     maia3CurrentVariant = null;
   }
