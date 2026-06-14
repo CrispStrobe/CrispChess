@@ -15,12 +15,10 @@ async function maia3OnnxLoad(modelUrl) {
     throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
   }
 
-  // Configure WASM — proxy=true runs ONNX in a Web Worker to avoid
-  // memory conflicts with Flutter's own WASM runtime
+  // Configure WASM — single-threaded, no proxy (proxy causes "worker not ready")
   if (globalThis.ort.env) {
     globalThis.ort.env.wasm.numThreads = 1;
     globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
-    globalThis.ort.env.wasm.proxy = true;
   }
 
   console.log('[Maia3ONNX] Loading model from: ' + modelUrl);
