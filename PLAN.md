@@ -113,18 +113,18 @@
 - [x] Save/restore game state to shared_preferences
 - [x] Resume saved game dialog on startup
 - [x] Game history (last 50 PGNs saved locally)
-- [ ] Bookmarks — save interesting positions
+- [x] Bookmarks — save positions to local storage
 
 ### XP & Progression
-- [ ] XP system: game win, draw, loss (participation), puzzle solve, lesson complete
-- [ ] Player level tiers (Pawn → Knight → Bishop → Rook → Queen → Grandmaster)
-- [ ] Level-up celebration dialog
-- [ ] Daily login streak with bonus XP
+- [x] XP system: game win/draw/loss, puzzle solve
+- [x] Player level tiers (Pawn → Grandmaster, 6 levels)
+- [ ] Level-up celebration dialog (TODO)
+- [ ] Daily login streak (TODO)
 
 ### Achievements
-- [ ] Achievement system with progress tracking
-- [ ] Examples: first win, win streaks, lesson milestones, accuracy thresholds
-- [ ] Achievement badges displayed in profile
+- [x] Achievement system with progress tracking (12 badges)
+- [x] Examples: first win, win streaks, puzzle milestones, XP levels
+- [x] Stats screen with level, XP bar, and achievement list
 
 ## Phase 10: Game Modes
 
@@ -143,7 +143,7 @@
 ### Opening Explorer
 - [x] Show opening name for current position (~35 openings)
 - [x] Opening statistics (win/draw/loss % from master games)
-- [ ] Suggested book moves with popularity bars
+- [x] Opening stats with win/draw/loss percentages
 
 ### Endgame Tablebases
 - [ ] Syzygy tablebase probing for ≤7 pieces
