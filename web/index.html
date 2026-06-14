@@ -23,8 +23,23 @@
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
   </script>
-  <!-- Chess engine dependencies -->
-  <script src="ort.min.js"></script>
+  <!-- Chess engine dependencies (lazy-loaded on demand) -->
+  <script>
+    // Lazy-load ONNX Runtime only when a Maia3/Lc0 engine is selected.
+    // Saves ~340KB on initial page load.
+    window._loadOrt = function() {
+      if (window._ortLoaded) return window._ortLoaded;
+      window._ortLoaded = new Promise(function(resolve, reject) {
+        if (window.ort) { resolve(); return; }
+        var s = document.createElement('script');
+        s.src = 'ort.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return window._ortLoaded;
+    };
+  </script>
   <script type="module" src="maia3-bundle.js"></script>
   <!-- Chess engine bridges -->
   <script src="cache_helper.js" defer></script>

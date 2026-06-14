@@ -20,8 +20,13 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
   int _numGames = 2;
   int _depth = 8;
   bool _running = false;
+  bool _tournamentMode = false;
   EngineMatchService? _match;
+  TournamentService? _tournament;
   StreamSubscription<MatchEvent>? _sub;
+
+  /// Selected engines for tournament mode.
+  final Set<String> _tournamentEngines = {'Built-in', 'Frozenight', 'Maia3 Dart'};
 
   final List<GameResult> _results = [];
   String _currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -36,6 +41,8 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
     _sub?.cancel();
     _match?.stop();
     _match?.dispose();
+    _tournament?.stop();
+    _tournament?.dispose();
     super.dispose();
   }
 
@@ -95,11 +102,60 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
     await _match!.run();
   }
 
+  Future<void> _startTournament() async {
+    if (_tournamentEngines.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least 3 engines'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    setState(() {
+      _running = true;
+      _results.clear();
+      _status = 'Initializing tournament...';
+    });
+
+    final engines = _tournamentEngines.map((n) => createEngine(n)).toList();
+    _tournament = TournamentService(engines: engines, depthPerMove: _depth);
+
+    _sub = _tournament!.events.listen((event) {
+      if (!mounted) return;
+      switch (event) {
+        case TournamentRoundStart(:final round, :final totalRounds, :final white, :final black):
+          setState(() {
+            _currentGame = round;
+            _currentMoveCount = 0;
+            _currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+            _status = 'Round $round/$totalRounds: $white vs $black';
+          });
+        case MatchMovePlayed(:final fen, :final move):
+          setState(() {
+            _currentFen = fen;
+            _currentMoveCount++;
+          });
+        case MatchGameFinished(:final result):
+          setState(() => _results.add(result));
+        case MatchFinished(:final results):
+          final standings = TournamentService.standings(results);
+          setState(() {
+            _running = false;
+            _status = 'Tournament complete! Winner: ${standings.first.key}';
+          });
+        default:
+          break;
+      }
+    });
+
+    await _tournament!.run();
+  }
+
   void _stopMatch() {
     _match?.stop();
+    _tournament?.stop();
     setState(() {
       _running = false;
-      _status = 'Match stopped';
+      _status = 'Stopped';
     });
   }
 
@@ -143,40 +199,92 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
 
           // Config (when not running)
           if (!_running) ...[
+            // Mode toggle
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(child: _engineDropdown('White', _engine1Name, (v) => setState(() => _engine1Name = v))),
-                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('vs')),
-                  Expanded(child: _engineDropdown('Black', _engine2Name, (v) => setState(() => _engine2Name = v))),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Match'), icon: Icon(Icons.sports_esports, size: 16)),
+                  ButtonSegment(value: true, label: Text('Tournament'), icon: Icon(Icons.emoji_events, size: 16)),
                 ],
+                selected: {_tournamentMode},
+                onSelectionChanged: (s) => setState(() => _tournamentMode = s.first),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  const Text('Games: ', style: TextStyle(fontSize: 13)),
-                  DropdownButton<int>(
-                    value: _numGames,
-                    underline: const SizedBox.shrink(),
-                    items: [2, 4, 6, 10, 20].map((n) =>
-                      DropdownMenuItem(value: n, child: Text('$n'))).toList(),
-                    onChanged: (v) => setState(() => _numGames = v!),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text('Depth: ', style: TextStyle(fontSize: 13)),
-                  DropdownButton<int>(
-                    value: _depth,
-                    underline: const SizedBox.shrink(),
-                    items: [4, 6, 8, 10, 12, 15].map((n) =>
-                      DropdownMenuItem(value: n, child: Text('$n'))).toList(),
-                    onChanged: (v) => setState(() => _depth = v!),
-                  ),
-                ],
+
+            if (!_tournamentMode) ...[
+              // Match mode: select two engines
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(child: _engineDropdown('White', _engine1Name, (v) => setState(() => _engine1Name = v))),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('vs')),
+                    Expanded(child: _engineDropdown('Black', _engine2Name, (v) => setState(() => _engine2Name = v))),
+                  ],
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const Text('Games: ', style: TextStyle(fontSize: 13)),
+                    DropdownButton<int>(
+                      value: _numGames,
+                      underline: const SizedBox.shrink(),
+                      items: [2, 4, 6, 10, 20].map((n) =>
+                        DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+                      onChanged: (v) => setState(() => _numGames = v!),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text('Depth: ', style: TextStyle(fontSize: 13)),
+                    DropdownButton<int>(
+                      value: _depth,
+                      underline: const SizedBox.shrink(),
+                      items: [4, 6, 8, 10, 12, 15].map((n) =>
+                        DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+                      onChanged: (v) => setState(() => _depth = v!),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Tournament mode: select 3+ engines
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Select engines (${_tournamentEngines.length} selected, min 3):',
+                      style: const TextStyle(fontSize: 12)),
+                    Wrap(
+                      spacing: 6,
+                      children: _engineNames.map((name) => FilterChip(
+                        label: Text(name, style: const TextStyle(fontSize: 12)),
+                        selected: _tournamentEngines.contains(name),
+                        onSelected: (v) => setState(() {
+                          if (v) _tournamentEngines.add(name);
+                          else _tournamentEngines.remove(name);
+                        }),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text('Depth: ', style: TextStyle(fontSize: 13)),
+                        DropdownButton<int>(
+                          value: _depth,
+                          underline: const SizedBox.shrink(),
+                          items: [4, 6, 8, 10, 12].map((n) =>
+                            DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+                          onChanged: (v) => setState(() => _depth = v!),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
 
           // Results table
@@ -229,9 +337,9 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
       floatingActionButton: _running
           ? null
           : FloatingActionButton.extended(
-              onPressed: _startMatch,
+              onPressed: _tournamentMode ? _startTournament : _startMatch,
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Start Match'),
+              label: Text(_tournamentMode ? 'Start Tournament' : 'Start Match'),
             ),
     );
   }

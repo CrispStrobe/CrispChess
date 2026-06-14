@@ -127,6 +127,27 @@ class AlphaBetaSearch {
       }
     }
 
+    // Null move pruning: skip our turn and search at reduced depth.
+    // If the score still exceeds beta, the position is so good we can prune.
+    // Don't use in check, at low depth, or near endgame (zugzwang risk).
+    if (depth >= 3 && !_game.in_check && ply > 0) {
+      // Simulate null move by swapping turn in FEN
+      final fen = _game.fen;
+      final parts = fen.split(' ');
+      parts[1] = parts[1] == 'w' ? 'b' : 'w'; // swap turn
+      parts[3] = '-'; // clear en passant
+      final nullFen = parts.join(' ');
+      final savedFen = fen;
+
+      _game.load(nullFen);
+      final nullScore = -_alphaBeta(depth - 1 - 2, -beta, -beta + 1, ply + 1);
+      _game.load(savedFen);
+
+      if (nullScore >= beta) {
+        return beta; // Null move cutoff
+      }
+    }
+
     // TT lookup
     final hash = _quickHash();
     final ttEntry = _tt.probe(hash);
@@ -165,16 +186,21 @@ class AlphaBetaSearch {
       _nodes++;
 
       int score;
-      // Late Move Reductions: search later quiet moves at reduced depth
-      if (moveIndex >= 4 && depth >= 3 && !_game.in_check && !isCapture) {
-        // Reduced search first
-        score = -_alphaBeta(depth - 2, -beta, -alpha, ply + 1);
-        // Re-search at full depth if it looks promising
-        if (score > alpha) {
+      if (moveIndex == 0) {
+        // First move (expected best): search with full window
+        score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
+      } else {
+        // PVS: search with zero-width window first
+        // Combined with Late Move Reductions for later quiet moves
+        if (moveIndex >= 4 && depth >= 3 && !_game.in_check && !isCapture) {
+          score = -_alphaBeta(depth - 2, -alpha - 1, -alpha, ply + 1);
+        } else {
+          score = -_alphaBeta(depth - 1, -alpha - 1, -alpha, ply + 1);
+        }
+        // Re-search with full window if it fails high
+        if (score > alpha && score < beta) {
           score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
         }
-      } else {
-        score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
       }
       _game.undo();
       moveIndex++;

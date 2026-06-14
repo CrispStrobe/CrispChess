@@ -199,3 +199,111 @@ class EngineMatchService {
     return scores;
   }
 }
+
+/// Round-robin tournament event.
+class TournamentRoundStart extends MatchEvent {
+  final int round;
+  final int totalRounds;
+  final String white;
+  final String black;
+  TournamentRoundStart(this.round, this.totalRounds, this.white, this.black);
+}
+
+/// Runs a round-robin tournament between 3+ engines.
+///
+/// Each pair plays 2 games (one as white, one as black).
+class TournamentService {
+  final List<ChessEngine> engines;
+  final int depthPerMove;
+  final _eventController = StreamController<MatchEvent>.broadcast();
+  bool _stopped = false;
+  final List<GameResult> results = [];
+
+  Stream<MatchEvent> get events => _eventController.stream;
+
+  TournamentService({required this.engines, this.depthPerMove = 8});
+
+  /// Generate all pairings for a round-robin.
+  List<(int, int)> get _pairings {
+    final pairs = <(int, int)>[];
+    for (int i = 0; i < engines.length; i++) {
+      for (int j = i + 1; j < engines.length; j++) {
+        pairs.add((i, j));
+      }
+    }
+    return pairs;
+  }
+
+  int get totalGames => _pairings.length * 2; // 2 games per pairing
+
+  /// Run the tournament.
+  Future<List<GameResult>> run() async {
+    _stopped = false;
+    results.clear();
+
+    // Initialize all engines
+    for (final e in engines) {
+      if (e.state == EngineState.idle) await e.initialize();
+    }
+
+    final pairings = _pairings;
+    int round = 0;
+
+    for (final (i, j) in pairings) {
+      if (_stopped) break;
+
+      // Game 1: engine[i] as white
+      round++;
+      _eventController.add(TournamentRoundStart(
+          round, totalGames, engines[i].name, engines[j].name));
+
+      final match1 = EngineMatchService(
+        engine1: engines[i],
+        engine2: engines[j],
+        config: MatchConfig(numGames: 1, depthPerMove: depthPerMove, alternateColors: false),
+      );
+      match1.events.listen((e) => _eventController.add(e));
+      final r1 = await match1.run();
+      results.addAll(r1);
+
+      if (_stopped) break;
+
+      // Game 2: engine[j] as white
+      round++;
+      _eventController.add(TournamentRoundStart(
+          round, totalGames, engines[j].name, engines[i].name));
+
+      final match2 = EngineMatchService(
+        engine1: engines[j],
+        engine2: engines[i],
+        config: MatchConfig(numGames: 1, depthPerMove: depthPerMove, alternateColors: false),
+      );
+      match2.events.listen((e) => _eventController.add(e));
+      final r2 = await match2.run();
+      results.addAll(r2);
+    }
+
+    _eventController.add(MatchFinished(results));
+    return results;
+  }
+
+  void stop() {
+    _stopped = true;
+    for (final e in engines) {
+      e.stop();
+    }
+  }
+
+  void dispose() {
+    _stopped = true;
+    _eventController.close();
+  }
+
+  /// Get standings sorted by score (descending).
+  static List<MapEntry<String, double>> standings(List<GameResult> results) {
+    final scores = EngineMatchService.scores(results);
+    final sorted = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted;
+  }
+}

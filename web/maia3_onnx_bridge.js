@@ -11,8 +11,14 @@ async function maia3OnnxLoad(modelUrl) {
     try { await globalThis.maia3Close(); } catch(_) {}
   }
 
+  // Lazy-load ONNX Runtime if not yet loaded
   if (typeof globalThis.ort === 'undefined') {
-    throw new Error('ONNX Runtime not loaded — check ort.min.js in index.html');
+    if (typeof window._loadOrt === 'function') {
+      await window._loadOrt();
+    }
+    if (typeof globalThis.ort === 'undefined') {
+      throw new Error('ONNX Runtime not loaded — check ort.min.js');
+    }
   }
 
   // Configure WASM — single-threaded, no proxy (proxy causes "worker not ready")

@@ -258,7 +258,14 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 - [x] Configurable depth per engine
 - [x] Live board display during match
 - [x] Results table (wins/draws/losses, score totals)
-- [ ] Tournament mode — round-robin with 3+ engines
+- [x] Tournament mode — round-robin with 3+ engines, standings table
+
+### PGN Database
+- [x] Open .pgn database (paste multi-game PGN)
+- [x] Game list view — players, result, date, ECO, event
+- [x] Search/filter by player name, result
+- [x] Click game to load onto board
+- [x] Database statistics (result distribution, top ECOs, most active players)
 
 ## Phase 16: Built-in Engine Performance
 
@@ -269,11 +276,11 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 - [x] Reusable static Map in `_makeMove()` — reduce GC pressure
 - [x] Cache `_moveToUci()` — pre-compute in `_ScoredMove` (computed once per move)
 - [x] SEE-like pruning — skip losing captures in quiescence
-- [ ] Null move pruning
-- [ ] Principal variation search (PVS) — narrow window for non-PV nodes
+- [x] Null move pruning — skip turn, search at R=2 reduced depth
+- [x] Principal variation search (PVS) — zero-width window for non-first moves
 
 ### Web Build Optimization
 - [x] Exclude `ort.min.js.map` (1.3 MB source map) from production deploy
 - [x] Add `Cache-Control` headers for immutable assets (WASM, SVG, JS bundles)
-- [ ] Lazy-load ONNX Runtime — only download when Maia3 engine is selected
+- [x] Lazy-load ONNX Runtime — only download when Maia3/Lc0 engine is selected
 - [ ] Service worker for PWA offline support

@@ -38,8 +38,14 @@ async function lc0OnnxLoad(modelUrl) {
     try { await globalThis.maia3Close(); } catch(_) {}
   }
 
+  // Lazy-load ONNX Runtime if not yet loaded
   if (typeof globalThis.ort === 'undefined') {
-    throw new Error('ONNX Runtime not loaded');
+    if (typeof window._loadOrt === 'function') {
+      await window._loadOrt();
+    }
+    if (typeof globalThis.ort === 'undefined') {
+      throw new Error('ONNX Runtime not loaded');
+    }
   }
 
   if (globalThis.ort.env) {

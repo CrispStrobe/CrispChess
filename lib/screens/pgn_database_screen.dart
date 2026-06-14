@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../chess/pgn_database.dart';
@@ -55,6 +56,114 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
     });
   }
 
+  void _showStats() {
+    if (_allGames == null || _allGames!.isEmpty) return;
+    final games = _allGames!;
+
+    // Result distribution
+    int white = 0, black = 0, draw = 0;
+    for (final g in games) {
+      if (g.result == '1-0') white++;
+      else if (g.result == '0-1') black++;
+      else if (g.result == '1/2-1/2') draw++;
+    }
+
+    // Most common ECO codes
+    final ecoCount = <String, int>{};
+    for (final g in games) {
+      if (g.eco.isNotEmpty) {
+        ecoCount[g.eco] = (ecoCount[g.eco] ?? 0) + 1;
+      }
+    }
+    final topEcos = ecoCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    // Most active players
+    final playerCount = <String, int>{};
+    for (final g in games) {
+      if (g.white != '?') playerCount[g.white] = (playerCount[g.white] ?? 0) + 1;
+      if (g.black != '?') playerCount[g.black] = (playerCount[g.black] ?? 0) + 1;
+    }
+    final topPlayers = playerCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Database Statistics'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${games.length} games', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              const Text('Results', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 4),
+              _statBar('White wins', white, games.length, Colors.green),
+              _statBar('Black wins', black, games.length, Colors.red),
+              _statBar('Draws', draw, games.length, Colors.grey),
+              const SizedBox(height: 12),
+              if (topEcos.isNotEmpty) ...[
+                const Text('Top Openings (ECO)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 4),
+                for (final eco in topEcos.take(8))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 36, child: Text(eco.key, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        Expanded(child: LinearProgressIndicator(
+                          value: eco.value / games.length,
+                          minHeight: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        )),
+                        const SizedBox(width: 4),
+                        Text('${eco.value}', style: const TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 12),
+              ],
+              if (topPlayers.isNotEmpty) ...[
+                const Text('Most Active Players', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 4),
+                for (final p in topPlayers.take(8))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text('${p.key}: ${p.value} games', style: const TextStyle(fontSize: 12)),
+                  ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
+  Widget _statBar(String label, int count, int total, Color color) {
+    final pct = total > 0 ? count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 12))),
+          Expanded(child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 10,
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          )),
+          const SizedBox(width: 6),
+          Text('${(pct * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,6 +172,12 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
             ? 'PGN Database'
             : '${_filtered.length} / ${_allGames!.length} games'),
         actions: [
+          if (_allGames != null && _allGames!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.analytics),
+              tooltip: 'Database statistics',
+              onPressed: _showStats,
+            ),
           IconButton(
             icon: const Icon(Icons.paste),
             tooltip: 'Load PGN from clipboard',
