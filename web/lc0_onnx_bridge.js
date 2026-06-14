@@ -73,7 +73,7 @@ async function lc0OnnxLoad(modelUrl) {
 
   lc0OnnxSession = await globalThis.ort.InferenceSession.create(
     modelBytes.buffer,
-    { executionProviders: ['webgl', 'wasm'] }
+    { executionProviders: ['wasm'] }
   );
   console.log('[Lc0ONNX] Session ready');
   console.log('[Lc0ONNX] Inputs:', lc0OnnxSession.inputNames);
