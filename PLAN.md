@@ -20,15 +20,14 @@
 - [x] Move animation with adjustable speed (instant/fast/normal/slow)
 - [x] Analysis panel toggle (eval/depth/bestmove)
 - [x] Play as White or Black
-- [x] Move hints
-- [x] Undo
+- [x] Move hints, undo, abort
 - [x] 8 piece themes (MIT/CC0/CC-BY)
 - [x] Responsive layout (desktop + mobile)
 - [x] About screen with selectable git hash
 
 ### Infrastructure
 - [x] CI: all platforms (Android/iOS/macOS/Linux/Windows/Web WASM)
-- [x] CI: Frozenight builds for 7 targets (WASM, Linux, macOS, iOS, Android, Windows)
+- [x] CI: Frozenight builds for 7 targets
 - [x] Vercel auto-deploy
 - [x] GPL compliance (no GPL code bundled, Stockfish downloaded at runtime)
 - [x] THIRD_PARTY_LICENSES.md
@@ -36,67 +35,108 @@
 
 ---
 
-## Phase 6: Training & Puzzles
+## Phase 6: In-Game Polish (quick wins)
+
+### Board Improvements
+- [ ] Board coordinate labels (a-h, 1-8) with toggle in settings
+- [ ] Last move highlighting (tint from/to squares)
+- [ ] Captured pieces tray with material advantage badge (+N)
+- [ ] Animated hint/analysis arrows on the board (L-shaped for knight moves)
+- [ ] Capture visual effect (particle burst on capture square)
+- [ ] Checkmate flourish (glow on mated king + shockwave ring)
+
+### Game Flow
+- [ ] Confirmation dialog before New Game / Exit (prevent accidental loss)
+- [ ] Draw offer — engine evaluates and accepts/declines based on eval
+- [ ] Resignation option
+- [ ] Precise game-end reason (checkmate/stalemate/timeout/repetition/50-move/insufficient/draw)
+- [ ] Pre-game side picker (White / Black / Random)
+- [ ] Long-press move list to quick-copy PGN
+
+### Player Identity
+- [ ] Player name chips above/below board (avatar + name + clock)
+- [ ] Pulsing indicator when it's your turn
+- [ ] Spinning ring on opponent avatar while engine thinks
+
+### Settings Additions
+- [ ] "Reset to defaults" button
+- [ ] "Allow Undo" toggle (disable for discipline mode)
+- [ ] AMOLED dark theme (pure black background)
+
+## Phase 7: Post-Game Analysis
+
+### Debrief Screen
+- [ ] Post-game summary with accuracy percentage
+- [ ] Eval chart — plot evaluation across all moves (white/black fill areas)
+- [ ] Interactive board — tap any move in the list to jump to that position
+- [ ] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
+- [ ] "Your best move" card with SAN + explanation
+- [ ] "Biggest mistake" card with SAN + what was better
+- [ ] Staggered entry animations for each section
+
+### Live Move Annotation
+- [ ] Classify each player move in real-time (compare to engine's best)
+- [ ] Show annotation in analysis panel with color/icon per category
+- [ ] Display alternative move suggestion ("Better: Nf3")
+
+### History Snapshots
+- [ ] Store eval before/after each move (no re-analysis needed for review)
+- [ ] Undo/redo via snapshot stack (not replay from scratch)
+
+## Phase 8: Training & Puzzles
 
 ### Puzzle System
-- [ ] Puzzle database — bundle 1000+ tactical puzzles (FEN + solution moves)
-  - Source: open puzzle databases (CC0)
-  - Categories: fork, pin, skewer, discovery, mate-in-1/2/3, endgame
-  - Store as compact binary or JSON asset
-- [ ] Puzzle UI screen — show position, player finds the right move(s)
-  - Highlight wrong moves in red, correct in green
-  - Show solution after 3 attempts or on request
-  - "Next puzzle" / "Retry" buttons
+- [ ] Bundle 1000+ tactical puzzles (FEN + solution moves, CC0 source)
+- [ ] Categories: fork, pin, skewer, discovery, mate-in-1/2/3, endgame
+- [ ] Puzzle UI: show position, validate player's move sequence
 - [ ] Puzzle difficulty rating (Glicko-2 or similar)
 - [ ] Daily puzzle — random puzzle shown on app open
 
 ### Drill Mode
 - [ ] Structured drills by topic (opening/middlegame/endgame)
 - [ ] Position grid with completion state (open/completed)
-- [ ] Progress tracking — persist locally (shared_preferences or SQLite)
-- [ ] Resume unfinished drill on app relaunch
+- [ ] Interactive lesson player with branching move trees
+- [ ] Coach bubble messages at each step with arrows/highlights
 - [ ] Post-drill summary screen
 
-### Spaced Repetition
-- [ ] Track which puzzles the user got wrong
-- [ ] Re-present failed puzzles at increasing intervals
-- [ ] Accuracy stats per category
+### Mistakes Tracker
+- [ ] Persist blunders across games (FEN, your move, better move, explanation)
+- [ ] "My Mistakes" screen — list active and resolved mistakes
+- [ ] Resolving a mistake (re-solving it correctly) marks it done
+- [ ] Spaced repetition — re-present failed puzzles at increasing intervals
 
-## Phase 7: Game Modes & Social
+## Phase 9: Gamification & Persistence
+
+### Game Persistence
+- [ ] Save/restore game state to local storage (Hive or shared_preferences)
+- [ ] "Continue last game" card on home screen with mini board preview
+- [ ] Game history list — review past games
+- [ ] Bookmarks — save interesting positions
+
+### XP & Progression
+- [ ] XP system: game win, draw, loss (participation), puzzle solve, lesson complete
+- [ ] Player level tiers (Pawn → Knight → Bishop → Rook → Queen → Grandmaster)
+- [ ] Level-up celebration dialog
+- [ ] Daily login streak with bonus XP
+
+### Achievements
+- [ ] Achievement system with progress tracking
+- [ ] Examples: first win, win streaks, lesson milestones, accuracy thresholds
+- [ ] Achievement badges displayed in profile
+
+## Phase 10: Game Modes
 
 ### Two-Player Local
 - [ ] Pass-and-play mode on same device
 - [ ] Auto-flip board between turns
 - [ ] Optional chess clock for local games
 
-### Game Persistence
-- [ ] Save/restore game state to local storage
-- [ ] Game history list — review past games
-- [ ] Bookmarks — save interesting positions
+### Variants (future)
+- [ ] Chess960 / Fischer Random
+- [ ] King of the Hill
+- [ ] Three-check
 
-### Post-Game Analysis
-- [ ] Post-game summary screen (moves, blunders, accuracy)
-- [ ] Full game analysis — engine evaluates every move
-- [ ] Move quality annotations (brilliant/good/inaccuracy/mistake/blunder)
-- [ ] Best move comparison (your move vs engine's suggestion)
-
-## Phase 8: UI Polish
-
-### Visual
-- [ ] Dark theme with layered depth tokens
-- [ ] Press-scale tap animations on interactive elements
-- [ ] Board coordinate labels (a-h, 1-8)
-- [ ] Last move highlighting (from/to square tint)
-- [ ] Premove support (queue move while opponent thinks)
-- [ ] Captured pieces display
-
-### UX
-- [ ] Onboarding — brief intro on first launch
-- [ ] Keyboard shortcuts (web/desktop)
-- [ ] Right-click draw arrows on board (analysis)
-- [ ] Move input by typing algebraic notation
-
-## Phase 9: Advanced Engine Features
+## Phase 11: Advanced Features
 
 ### Opening Explorer
 - [ ] Show opening name for current position (ECO codes)
@@ -105,16 +145,36 @@
 
 ### Endgame Tablebases
 - [ ] Syzygy tablebase probing for ≤7 pieces
-- [ ] Download tablebases on demand (~1GB for 6-piece)
+- [ ] Download tablebases on demand
 - [ ] Perfect endgame play indicator
 
 ### Engine Improvements
 - [ ] Built-in engine: null-move pruning, late move reductions
-- [ ] Built-in engine: endgame-specific evaluation
 - [ ] Pondering (engine thinks during opponent's turn)
 - [ ] Multi-PV analysis (show top N lines)
 
-## Phase 10: Distribution
+### AI Coach (BYOK)
+- [ ] LLM-powered game analysis — send FEN/PGN, get natural language feedback
+- [ ] "Ask Coach" bottom sheet during game (scoped per game)
+- [ ] Bring-your-own-key model (user provides API key)
+- [ ] Privacy-first: data usage disclosure, no server-side storage
+
+## Phase 12: UI Polish
+
+### Visual
+- [ ] Dark theme with layered depth tokens (deepest → surface → raised)
+- [ ] Press-scale tap animations on interactive elements
+- [ ] Premove support (queue move while opponent thinks)
+- [ ] Decorative background watermark (subtle chess piece, low opacity)
+- [ ] SAN notation in move list (instead of raw UCI)
+
+### UX
+- [ ] Onboarding — brief intro on first launch
+- [ ] Keyboard shortcuts (web/desktop)
+- [ ] Right-click draw arrows on board (analysis mode)
+- [ ] Rate app prompt after a win (contextual, non-intrusive)
+
+## Phase 13: Distribution
 
 ### App Stores
 - [ ] Google Play Store listing + screenshots
@@ -122,7 +182,7 @@
 - [ ] F-Droid (fully open source build)
 - [ ] Microsoft Store / Snap / Flatpak
 
-### Community
-- [ ] Online chess platform API integration (import games, puzzles)
+### Sharing
 - [ ] Share game as image (board screenshot)
 - [ ] Share game as animated GIF
+- [ ] Online chess platform API integration (import games, puzzles)
