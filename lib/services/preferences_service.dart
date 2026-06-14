@@ -102,6 +102,43 @@ class PreferencesService {
     _prefs?.setStringList(_keyGameHistory, history);
   }
 
+  // Bookmarks
+  static const _keyBookmarks = 'bookmarks';
+
+  List<String> get bookmarks =>
+      _prefs?.getStringList(_keyBookmarks) ?? [];
+
+  void addBookmark(String fen) {
+    final bm = bookmarks;
+    if (!bm.contains(fen)) {
+      bm.insert(0, fen);
+      if (bm.length > 100) bm.removeRange(100, bm.length);
+      _prefs?.setStringList(_keyBookmarks, bm);
+    }
+  }
+
+  void removeBookmark(String fen) {
+    final bm = bookmarks;
+    bm.remove(fen);
+    _prefs?.setStringList(_keyBookmarks, bm);
+  }
+
+  // Puzzle stats
+  static const _keyPuzzlesSolved = 'puzzlesSolved';
+
+  int get puzzlesSolved => _prefs?.getInt(_keyPuzzlesSolved) ?? 0;
+  set puzzlesSolved(int v) => _prefs?.setInt(_keyPuzzlesSolved, v);
+
+  // Games won
+  static const _keyGamesWon = 'gamesWon';
+  static const _keyGamesPlayed = 'gamesPlayed';
+
+  int get gamesWon => _prefs?.getInt(_keyGamesWon) ?? 0;
+  set gamesWon(int v) => _prefs?.setInt(_keyGamesWon, v);
+
+  int get gamesPlayed => _prefs?.getInt(_keyGamesPlayed) ?? 0;
+  set gamesPlayed(int v) => _prefs?.setInt(_keyGamesPlayed, v);
+
   /// Reset all preferences to defaults.
   Future<void> resetToDefaults() async {
     await _prefs?.clear();

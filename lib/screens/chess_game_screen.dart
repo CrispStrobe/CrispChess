@@ -490,6 +490,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _showGameOverDialog() {
+    // Track game stats
+    _prefs.gamesPlayed = _prefs.gamesPlayed + 1;
+    if (_game.winner != null) {
+      final playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
+          (!_state.playAsBlack && _game.winner == 'White');
+      if (playerWon) _prefs.gamesWon = _prefs.gamesWon + 1;
+    }
+
     // Save completed game to history
     final pgn = _game.toPgn(
       engineName: _state.twoPlayerMode ? 'Human' : _engineService.engineName,
@@ -1311,6 +1319,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _confirmResign();
                 case 'draw':
                   _offerDraw();
+                case 'bookmark':
+                  _prefs.addBookmark(_game.currentFEN);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Position bookmarked')),
+                    );
+                  }
                 case 'puzzles':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) =>
@@ -1340,6 +1355,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'resign', child: ListTile(
                 leading: Icon(Icons.flag), title: Text('Resign'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'bookmark', child: ListTile(
+                leading: Icon(Icons.bookmark_add), title: Text('Bookmark Position'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'puzzles', child: ListTile(
                 leading: Icon(Icons.extension), title: Text('Puzzles'),
