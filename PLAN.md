@@ -103,8 +103,8 @@
 
 ### Mistakes Tracker
 - [x] Persist blunders tracker in shared_preferences
-- [ ] "My Mistakes" screen — list active and resolved mistakes
-- [ ] Resolving a mistake (re-solving it correctly) marks it done
+- [x] "My Mistakes" screen — list tracked blunders
+- [ ] Resolving a mistake (re-solving) — needs puzzle integration
 - [ ] Spaced repetition — re-present failed puzzles at increasing intervals
 
 ## Phase 9: Gamification & Persistence
@@ -134,7 +134,7 @@
 - [x] Chess clock available for local games
 
 ### Variants (future)
-- [ ] Chess960 / Fischer Random
+- [x] Chess960 / Fischer Random position generator
 - [ ] King of the Hill
 - [ ] Three-check
 
@@ -174,7 +174,7 @@
 - [x] Onboarding — tips dialog on first launch
 - [x] Keyboard shortcuts (Z=undo, H=hint, N=new, F=flip, A=analysis)
 - [ ] Right-click draw arrows on board (analysis mode)
-- [ ] Rate app prompt after a win (contextual, non-intrusive)
+- [x] Rate app prompt after 3rd win (non-intrusive snackbar)
 
 ## Phase 13: Internationalization
 

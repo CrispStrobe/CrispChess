@@ -505,8 +505,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _showGameOverDialog() {
     // Track game stats + award XP
     _prefs.gamesPlayed = _prefs.gamesPlayed + 1;
+    bool playerWon = false;
     if (_game.winner != null) {
-      final playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
+      playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
           (!_state.playAsBlack && _game.winner == 'White');
       if (playerWon) {
         _prefs.gamesWon = _prefs.gamesWon + 1;
@@ -516,6 +517,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       }
     } else {
       _prefs.addXp(XpAwards.gameDraw);
+    }
+
+    // Rate app prompt after 3rd win (non-intrusive)
+    if (playerWon && _prefs.gamesWon == 3) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Enjoying CrispChess? Consider leaving a review!'),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Dismiss',
+                onPressed: () {},
+              ),
+            ),
+          );
+        }
+      });
     }
 
     // Save completed game to history
