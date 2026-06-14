@@ -4,6 +4,7 @@ class GameState {
   final int strengthLevel;
   final int hintDepth;
   final bool showValidMoves;
+  final bool allowUndo;
   final int animationSpeed; // 0=instant, 1=fast, 2=normal, 3=slow
   final TimeControl timeControl;
   final int? selectedRow;
@@ -25,6 +26,7 @@ class GameState {
     this.strengthLevel = 10,
     this.hintDepth = 15,
     this.showValidMoves = true,
+    this.allowUndo = true,
     this.animationSpeed = 2,
     this.timeControl = TimeControl.unlimited,
     this.selectedRow,
@@ -63,6 +65,7 @@ class GameState {
     int? strengthLevel,
     int? hintDepth,
     bool? showValidMoves,
+    bool? allowUndo,
     int? animationSpeed,
     TimeControl? timeControl,
     Object? selectedRow = _sentinel,
@@ -84,6 +87,7 @@ class GameState {
         strengthLevel: strengthLevel ?? this.strengthLevel,
         hintDepth: hintDepth ?? this.hintDepth,
         showValidMoves: showValidMoves ?? this.showValidMoves,
+        allowUndo: allowUndo ?? this.allowUndo,
         animationSpeed: animationSpeed ?? this.animationSpeed,
         timeControl: timeControl ?? this.timeControl,
         selectedRow: identical(selectedRow, _sentinel)

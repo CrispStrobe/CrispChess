@@ -32,6 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _selectedEngine;
   late String _maia3Variant;
   bool _showValidMoves = true;
+  bool _allowUndo = true;
   int _animationSpeed = 2;
   late TimeControl _timeControl;
   String _themeMode = 'system';
@@ -444,6 +445,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _showValidMoves = value),
                 ),
                 const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Allow Undo'),
+                  subtitle: const Text('Disable for discipline mode'),
+                  value: _allowUndo,
+                  onChanged: (value) =>
+                      setState(() => _allowUndo = value),
+                ),
+                const Divider(height: 1),
                 ListTile(
                   title: const Text('Animation Speed'),
                   subtitle: Slider(
@@ -574,6 +583,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'strengthLevel': _strengthLevel,
             'hintDepth': _hintDepth,
             'showValidMoves': _showValidMoves,
+            'allowUndo': _allowUndo,
             'animationSpeed': _animationSpeed,
             'playAsBlack': _playAsBlack,
             'pieceTheme': _pieceTheme,

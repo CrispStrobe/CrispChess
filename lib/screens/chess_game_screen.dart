@@ -466,6 +466,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           strengthLevel: result['strengthLevel']! as int,
           hintDepth: result['hintDepth']! as int,
           showValidMoves: result['showValidMoves']! as bool,
+          allowUndo: result['allowUndo'] as bool? ?? true,
           animationSpeed: result['animationSpeed'] as int? ?? 2,
           timeControl: result['timeControl'] as TimeControl? ?? TimeControl.unlimited,
           playAsBlack: newPlayAsBlack,
@@ -1058,11 +1059,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 });
               },
             ),
-          IconButton(
-            icon: const Icon(Icons.undo, size: 20),
-            tooltip: 'Undo',
-            onPressed: _state.isThinking ? null : _undoMove,
-          ),
+          if (_state.allowUndo)
+            IconButton(
+              icon: const Icon(Icons.undo, size: 20),
+              tooltip: 'Undo',
+              onPressed: _state.isThinking ? null : _undoMove,
+            ),
           IconButton(
             icon: const Icon(Icons.lightbulb_outline, size: 20),
             tooltip: 'Hint',
@@ -1226,7 +1228,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   Widget _buildMoveHistory() {
-    return Container(
+    return GestureDetector(
+      onLongPress: _game.moveHistorySan.isNotEmpty ? () {
+        _exportPgn();
+      } : null,
+      child: Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -1270,6 +1276,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 );
               },
             ),
+    ),
     );
   }
 
