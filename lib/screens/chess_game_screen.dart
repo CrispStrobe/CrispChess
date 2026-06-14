@@ -238,6 +238,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   onPressed: () {
                     final fallback = createEngine('Built-in');
                     _engineService.switchEngine(fallback);
+                    _prefs.engine = 'Built-in'; // Persist so it doesn't retry on reload
                   },
                 ),
               ),

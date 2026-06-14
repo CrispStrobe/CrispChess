@@ -6,16 +6,15 @@ import 'chess_engine.dart';
 
 /// Available Stockfish versions for web (all GPL-3.0, downloaded at runtime).
 enum StockfishVersion {
-  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB', null),
-  sf18lite('Stockfish 18 Lite (NNUE)', 'https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish-18-lite-single.js', 3400, '~7MB', 'https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish.wasm');
+  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB'),
+  sf18asm('Stockfish 18 (NNUE)', 'https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish-18-asm.js', 3400, '~10MB');
 
   final String label;
   final String url;
   final int elo;
   final String size;
-  final String? wasmUrl; // Companion WASM file URL (null = self-contained)
 
-  const StockfishVersion(this.label, this.url, this.elo, this.size, this.wasmUrl);
+  const StockfishVersion(this.label, this.url, this.elo, this.size);
 }
 
 /// Stockfish engine running as a Web Worker via stockfish.js (WASM/JS).
@@ -41,7 +40,7 @@ class StockfishEngine implements ChessEngine {
   static StockfishVersion _versionFromId(String? id) {
     return switch (id) {
       'sf10' => StockfishVersion.sf10,
-      'sf18lite' => StockfishVersion.sf18lite,
+      'sf18asm' || 'sf18lite' => StockfishVersion.sf18asm,
       _ => StockfishVersion.sf10,
     };
   }
@@ -68,39 +67,9 @@ class StockfishEngine implements ChessEngine {
     try {
       debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
 
-      // Fetch JS source as Dart String
+      // Fetch JS source, create blob URL for same-origin Worker loading
       final jsResponse = await web.window.fetch(sfVersion.url.toJS).toDart;
-      var jsSource = (await (jsResponse as web.Response).text().toDart).toDart;
-
-      // If there's a companion WASM file, fetch it and embed inline
-      if (sfVersion.wasmUrl != null) {
-        debugPrint('[StockfishWeb] Fetching WASM from ${sfVersion.wasmUrl}...');
-        final wasmResponse = await web.window.fetch(sfVersion.wasmUrl!.toJS).toDart;
-        final wasmBlob = await (wasmResponse as web.Response).blob().toDart;
-        debugPrint('[StockfishWeb] WASM fetched: ${wasmBlob.size} bytes');
-
-        // Strategy: create a self-extracting blob URL.
-        // We bundle the WASM as a second blob alongside the JS in a combined worker.
-        // The Emscripten loader uses locateFile or wasmBinary.
-        // We prepend JS that fetches the WASM from a known URL we control.
-
-        // Create a WASM blob URL accessible from the worker
-        final wasmBlobUrl = web.URL.createObjectURL(wasmBlob);
-
-        // The trick: blob URLs created in the main thread ARE accessible
-        // from workers on the same origin. The worker's fetch() can load them.
-        // Replace the relative path with the absolute blob URL.
-        jsSource = jsSource.replaceAll(
-          'w="stockfish.wasm"',
-          'w="$wasmBlobUrl"',
-        );
-        debugPrint('[StockfishWeb] WASM blob URL injected');
-      }
-
-      final jsBlob = web.Blob(
-        [jsSource.toJS].toJS,
-        web.BlobPropertyBag(type: 'application/javascript'),
-      );
+      final jsBlob = await (jsResponse as web.Response).blob().toDart;
       final blobUrl = web.URL.createObjectURL(jsBlob);
       _worker = web.Worker(blobUrl.toJS);
       debugPrint('[StockfishWeb] Worker created from blob');
