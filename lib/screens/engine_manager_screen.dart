@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import '../engines/generic_uci_engine.dart';
+import '../engines/generic_uci_engine.dart'
+    if (dart.library.js_interop) '../engines/generic_uci_engine_web.dart';
 import '../engines/uci_option.dart';
 import '../services/engine_profile_store.dart';
 
@@ -86,19 +86,6 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
     );
 
     if (result == null) return;
-
-    // Verify the binary exists
-    if (!await File(result.path).exists()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('File not found: ${result.path}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
 
     // Probe the engine to detect its name and options
     if (mounted) {

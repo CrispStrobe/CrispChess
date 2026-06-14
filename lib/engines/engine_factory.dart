@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'chess_engine.dart';
 import 'dart_engine.dart';
-import 'generic_uci_engine.dart';
+import 'generic_uci_engine.dart'
+    if (dart.library.js_interop) 'generic_uci_engine_web.dart';
 import 'lc0_engine.dart' if (dart.library.js_interop) 'lc0_web_engine.dart';
 
 // Conditional imports: web gets *_web_engine.dart, native gets the stub/FFI version.

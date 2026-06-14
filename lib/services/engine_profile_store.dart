@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../engines/generic_uci_engine.dart';
+import '../engines/generic_uci_engine_stub.dart';
 
 class EngineProfileStore {
   static const _key = 'uci_engine_profiles';

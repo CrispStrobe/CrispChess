@@ -8,33 +8,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'generic_uci_engine_stub.dart';
 import 'uci_option.dart';
 
-/// Persisted engine profile — name, binary path, and option overrides.
-class EngineProfile {
-  String name;
-  String path;
-  final Map<String, String> optionOverrides;
-
-  EngineProfile({
-    required this.name,
-    required this.path,
-    Map<String, String>? optionOverrides,
-  }) : optionOverrides = optionOverrides ?? {};
-
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'path': path,
-    'options': optionOverrides,
-  };
-
-  factory EngineProfile.fromJson(Map<String, dynamic> json) => EngineProfile(
-    name: json['name'] as String,
-    path: json['path'] as String,
-    optionOverrides: (json['options'] as Map<String, dynamic>?)
-        ?.map((k, v) => MapEntry(k, v.toString())) ?? {},
-  );
-}
+export 'generic_uci_engine_stub.dart' show EngineProfile;
 
 class GenericUciEngine implements ChessEngine {
   final EngineProfile profile;
