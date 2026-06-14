@@ -33,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _maia3Variant;
   bool _showValidMoves = true;
   bool _allowUndo = true;
+  String _hintEngine = 'same';
   int _animationSpeed = 2;
   late TimeControl _timeControl;
   String _themeMode = 'system';
@@ -394,13 +395,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
-          // Hint depth
-          Text('Hint Depth', style: Theme.of(context).textTheme.titleLarge),
+          // Hints & Analysis
+          Text('Hints & Analysis', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Analysis Depth: $_hintDepth',
                       style: const TextStyle(
@@ -413,6 +415,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     label: _hintDepth.toString(),
                     onChanged: (value) =>
                         setState(() => _hintDepth = value.round()),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    title: const Text('Hint Engine'),
+                    subtitle: Text(_hintEngine == 'same'
+                        ? 'Same as opponent'
+                        : _hintEngine,
+                        style: const TextStyle(fontSize: 12)),
+                    contentPadding: EdgeInsets.zero,
+                    trailing: DropdownButton<String>(
+                      value: _hintEngine,
+                      underline: const SizedBox.shrink(),
+                      onChanged: (v) => setState(() => _hintEngine = v!),
+                      items: const [
+                        DropdownMenuItem(value: 'same', child: Text('Same as opponent', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Built-in', child: Text('Built-in', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Stockfish', child: Text('Stockfish', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Frozenight', child: Text('Frozenight', style: TextStyle(fontSize: 13))),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -599,6 +621,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'showValidMoves': _showValidMoves,
             'allowUndo': _allowUndo,
             'animationSpeed': _animationSpeed,
+            'hintEngine': _hintEngine,
             'playAsBlack': _playAsBlack,
             'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,

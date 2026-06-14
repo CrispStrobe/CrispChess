@@ -7,6 +7,7 @@ class GameState {
   final bool allowUndo;
   final bool twoPlayerMode;
   final int animationSpeed; // 0=instant, 1=fast, 2=normal, 3=slow
+  final String hintEngine; // 'same' = use game engine, or engine name
   final TimeControl timeControl;
   final int? selectedRow;
   final int? selectedCol;
@@ -30,6 +31,7 @@ class GameState {
     this.allowUndo = true,
     this.twoPlayerMode = false,
     this.animationSpeed = 2,
+    this.hintEngine = 'same',
     this.timeControl = TimeControl.unlimited,
     this.selectedRow,
     this.selectedCol,
@@ -70,6 +72,7 @@ class GameState {
     bool? allowUndo,
     bool? twoPlayerMode,
     int? animationSpeed,
+    String? hintEngine,
     TimeControl? timeControl,
     Object? selectedRow = _sentinel,
     Object? selectedCol = _sentinel,
@@ -93,6 +96,7 @@ class GameState {
         allowUndo: allowUndo ?? this.allowUndo,
         twoPlayerMode: twoPlayerMode ?? this.twoPlayerMode,
         animationSpeed: animationSpeed ?? this.animationSpeed,
+        hintEngine: hintEngine ?? this.hintEngine,
         timeControl: timeControl ?? this.timeControl,
         selectedRow: identical(selectedRow, _sentinel)
             ? this.selectedRow

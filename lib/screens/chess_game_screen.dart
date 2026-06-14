@@ -440,14 +440,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  ChessEngine? _hintEngineInstance;
+
   void _getHint() {
+    if (!_isPlayerTurn || _state.isThinking) return;
+
+    // Use a separate engine for hints if configured
+    if (_state.hintEngine != 'same') {
+      _getHintFromSeparateEngine();
+      return;
+    }
+
     if (_engineService.state != EngineState.ready) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Engine not ready')),
+        const SnackBar(content: Text('Engine not ready')),
       );
       return;
     }
-    if (!_isPlayerTurn || _state.isThinking) return;
 
     setState(() {
       _state = _state.copyWith(
@@ -635,6 +644,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           showValidMoves: result['showValidMoves']! as bool,
           allowUndo: result['allowUndo'] as bool? ?? true,
           animationSpeed: result['animationSpeed'] as int? ?? 2,
+          hintEngine: result['hintEngine'] as String? ?? 'same',
           timeControl: result['timeControl'] as TimeControl? ?? TimeControl.unlimited,
           playAsBlack: newPlayAsBlack,
           pieceTheme: result['pieceTheme'] as String? ?? 'chessnut',
@@ -716,6 +726,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _depthNotifier.dispose();
     _clock?.dispose();
     _sound.dispose();
+    _hintEngineInstance?.dispose();
     _game.dispose();
     _engineService.dispose();
     super.dispose();
@@ -1122,6 +1133,42 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _getHintFromSeparateEngine() async {
+    setState(() {
+      _state = _state.copyWith(
+        isThinking: true,
+        statusMessage: 'Getting hint from ${_state.hintEngine}...',
+      );
+    });
+
+    try {
+      // Create or reuse the hint engine
+      _hintEngineInstance ??= createEngine(_state.hintEngine);
+      if (_hintEngineInstance!.state == EngineState.idle) {
+        await _hintEngineInstance!.initialize();
+      }
+
+      final move = await _hintEngineInstance!.bestMove(
+        _game.positionCommand,
+        depth: _state.hintDepth,
+      );
+
+      if (mounted) {
+        _handleHintResponse(move);
+      }
+    } catch (e) {
+      debugPrint('[CrispChess] Hint engine error: $e');
+      if (mounted) {
+        setState(() {
+          _state = _state.copyWith(
+            isThinking: false,
+            statusMessage: 'Hint failed — try "Same as opponent"',
+          );
+        });
+      }
+    }
   }
 
   void _autoSaveGame() {
