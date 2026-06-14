@@ -6,14 +6,16 @@ import 'chess_engine.dart';
 
 /// Available Stockfish versions for web (all GPL-3.0, downloaded at runtime).
 enum StockfishVersion {
-  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB');
+  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB', null),
+  sf18lite('Stockfish 18 Lite (NNUE)', 'https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish-18-lite-single.js', 3400, '~7MB', 'https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish.wasm');
 
   final String label;
   final String url;
   final int elo;
   final String size;
+  final String? wasmUrl; // Companion WASM file URL (null = self-contained)
 
-  const StockfishVersion(this.label, this.url, this.elo, this.size);
+  const StockfishVersion(this.label, this.url, this.elo, this.size, this.wasmUrl);
 }
 
 /// Stockfish engine running as a Web Worker via stockfish.js (WASM/JS).
@@ -39,8 +41,8 @@ class StockfishEngine implements ChessEngine {
   static StockfishVersion _versionFromId(String? id) {
     return switch (id) {
       'sf10' => StockfishVersion.sf10,
-      'sf18full' => StockfishVersion.sf18full,
-      _ => StockfishVersion.sf18lite,
+      'sf18lite' => StockfishVersion.sf18lite,
+      _ => StockfishVersion.sf10, // Default to SF10 (most compatible)
     };
   }
 
@@ -65,10 +67,37 @@ class StockfishEngine implements ChessEngine {
 
     try {
       debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
-      // Web Workers can't load cross-origin scripts directly.
-      // Fetch the script, create a Blob URL, then create the Worker.
-      final response = await web.window.fetch(sfVersion.url.toJS).toDart;
-      final blob = await (response as web.Response).blob().toDart;
+
+      // Fetch JS source
+      final jsResponse = await web.window.fetch(sfVersion.url.toJS).toDart;
+      var jsText = await (jsResponse as web.Response).text().toDart;
+
+      // If there's a companion WASM file, pre-fetch it and inject as
+      // base64-encoded wasmBinary so the worker doesn't need to fetch it
+      if (sfVersion.wasmUrl != null) {
+        debugPrint('[StockfishWeb] Fetching WASM from ${sfVersion.wasmUrl}...');
+        final wasmResponse = await web.window.fetch(sfVersion.wasmUrl!.toJS).toDart;
+        final wasmBlob = await (wasmResponse as web.Response).blob().toDart;
+        // Create a blob URL the worker can access for the WASM
+        final wasmBlobUrl = web.URL.createObjectURL(wasmBlob);
+        // Patch the JS: override locateFile to return our blob URL for .wasm
+        jsText = '''
+var _wasmBlobUrl = "$wasmBlobUrl";
+var _origLocateFile;
+$jsText
+''';
+        // Replace the hardcoded 'stockfish.wasm' with our blob URL
+        jsText = jsText.replaceAll(
+          'w="stockfish.wasm"',
+          'w=_wasmBlobUrl',
+        );
+        debugPrint('[StockfishWeb] WASM injected');
+      }
+
+      final blob = web.Blob(
+        [jsText.toJS].toJS,
+        web.BlobPropertyBag(type: 'application/javascript'),
+      );
       final blobUrl = web.URL.createObjectURL(blob);
       _worker = web.Worker(blobUrl.toJS);
       debugPrint('[StockfishWeb] Worker created from blob');

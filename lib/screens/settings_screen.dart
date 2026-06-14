@@ -280,7 +280,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ('sf10', 'Stockfish 10', '~1MB', '~2800 ELO'),
                   ('sf18lite', 'Stockfish 18 Lite (NNUE)', '~7MB', '~3400 ELO'),
-                  ('sf18full', 'Stockfish 18 Full (NNUE)', '~113MB', '~3600 ELO'),
                 ].map((v) {
                   final (id, name, size, elo) = v;
                   return RadioListTile<String>(
