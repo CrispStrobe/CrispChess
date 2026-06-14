@@ -62,12 +62,12 @@
 ## Phase 7: Post-Game Analysis
 
 ### Debrief Screen
-- [ ] Post-game summary with accuracy percentage
+- [x] Post-game summary with accuracy percentage
 - [x] Eval chart — plot evaluation across all moves (green/red fill areas)
 - [ ] Interactive board — tap any move in the list to jump to that position
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
-- [ ] "Your best move" card with SAN + explanation
-- [ ] "Biggest mistake" card with SAN + what was better
+- [x] "Your best move" card with SAN + eval gain
+- [x] "Biggest mistake" card with SAN + eval loss
 - [ ] Staggered entry animations for each section
 
 ### Live Move Annotation
@@ -164,11 +164,11 @@
 ## Phase 12: UI Polish
 
 ### Visual
-- [ ] Dark theme with layered depth tokens (deepest → surface → raised)
+- [x] Dark theme with AMOLED black (system/light/dark)
 - [ ] Press-scale tap animations on interactive elements
 - [ ] Premove support (queue move while opponent thinks)
 - [ ] Decorative background watermark (subtle chess piece, low opacity)
-- [ ] SAN notation in move list (instead of raw UCI)
+- [x] SAN notation in move list and status messages
 
 ### UX
 - [ ] Onboarding — brief intro on first launch

@@ -69,6 +69,25 @@ class PreferencesService {
   bool get showValidMoves => _prefs?.getBool(_keyShowValidMoves) ?? true;
   set showValidMoves(bool v) => _prefs?.setBool(_keyShowValidMoves, v);
 
+  // Game state persistence
+  static const _keyGameFen = 'gameFen';
+  static const _keyGameMoves = 'gameMoves';
+
+  String? get savedGameFen => _prefs?.getString(_keyGameFen);
+  String? get savedGameMoves => _prefs?.getString(_keyGameMoves);
+
+  void saveGame(String fen, List<String> moves) {
+    _prefs?.setString(_keyGameFen, fen);
+    _prefs?.setString(_keyGameMoves, moves.join(' '));
+  }
+
+  void clearSavedGame() {
+    _prefs?.remove(_keyGameFen);
+    _prefs?.remove(_keyGameMoves);
+  }
+
+  bool get hasSavedGame => _prefs?.containsKey(_keyGameFen) ?? false;
+
   /// Reset all preferences to defaults.
   Future<void> resetToDefaults() async {
     await _prefs?.clear();

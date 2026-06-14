@@ -81,7 +81,58 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _engineService = EngineService(engine);
     }
     _initializeEngine();
-    _puzzleDb.load(); // Non-blocking background load
+    _puzzleDb.load();
+    // Check for saved game after init
+    Future.delayed(const Duration(milliseconds: 500), _checkSavedGame);
+  }
+
+  void _checkSavedGame() {
+    if (!mounted) return;
+    if (_prefs.hasSavedGame) {
+      final moves = _prefs.savedGameMoves;
+      if (moves != null && moves.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Resume game?'),
+            content: Text('You have a saved game (${moves.split(" ").length} moves).'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _prefs.clearSavedGame();
+                },
+                child: const Text('Discard'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _resumeSavedGame();
+                },
+                child: const Text('Resume'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _resumeSavedGame() {
+    final moves = _prefs.savedGameMoves;
+    if (moves == null || moves.isEmpty) return;
+    // Replay moves
+    final moveList = moves.split(' ');
+    _game.reset();
+    for (final m in moveList) {
+      if (!_game.makeMove(m)) break;
+    }
+    setState(() {
+      _state = _state.copyWith(
+        statusMessage: 'Game resumed',
+        lastMoveUci: moveList.isNotEmpty ? moveList.last : null,
+      );
+    });
   }
 
   void _initializeEngine() {
@@ -225,6 +276,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (_game.makeMove(uciMove)) {
       _playMoveSound(uciMove);
       _clock?.switchTurn();
+      _autoSaveGame();
       setState(() {
         _state = _state.copyWith(
           lastMoveUci: uciMove,
@@ -310,6 +362,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (_game.makeMove(uciMove)) {
       _playMoveSound(uciMove);
       _clock?.switchTurn();
+      _autoSaveGame();
       setState(() {
         final san = _game.moveHistorySan;
         final lastSan = san.isNotEmpty ? san.last : uciMove;
@@ -402,6 +455,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _evalNotifier.value = null;
     _depthNotifier.value = 0;
     _evalHistory.clear();
+    _prefs.clearSavedGame();
     _clock?.dispose();
     if (!_state.timeControl.isUnlimited) {
       _clock = ChessClock(timeControl: _state.timeControl);
@@ -975,6 +1029,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         ],
       ),
     );
+  }
+
+  void _autoSaveGame() {
+    if (_game.moveHistory.isNotEmpty && !_game.isGameOver) {
+      _prefs.saveGame(_game.currentFEN, _game.moveHistory);
+    } else {
+      _prefs.clearSavedGame();
+    }
   }
 
   void _playMoveSound(String uci) {
