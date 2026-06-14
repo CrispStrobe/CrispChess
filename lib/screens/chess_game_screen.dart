@@ -734,6 +734,69 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     };
   }
 
+  void _confirmResign() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Resign?'),
+        content: Text('${_engineService.engineName} wins by resignation.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _game.resign();
+              _clock?.pause();
+              _sound.play(ChessSound.gameEnd);
+              setState(() {
+                _state = _state.copyWith(
+                  isThinking: false,
+                  statusMessage: 'You resigned',
+                );
+              });
+              _showGameOverDialog();
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Resign'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _offerDraw() {
+    // Engine evaluates: accepts if eval is within ±1.5 pawns
+    final eval = _evalNotifier.value;
+    final engineAdvantage = eval != null ? eval.abs() : 0.0;
+
+    if (engineAdvantage < 1.5) {
+      // Engine accepts draw
+      _game.agreeToDraw();
+      _clock?.pause();
+      _sound.play(ChessSound.gameEnd);
+      setState(() {
+        _state = _state.copyWith(
+          isThinking: false,
+          statusMessage: 'Draw agreed',
+        );
+      });
+      _showGameOverDialog();
+    } else {
+      // Engine declines
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${_engineService.engineName} declines the draw offer.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
   void _confirmNewGame() {
     if (_game.moveHistory.isEmpty) {
       _newGame();
@@ -1002,6 +1065,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   setState(() {
                     _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
                   });
+                case 'resign':
+                  _confirmResign();
+                case 'draw':
+                  _offerDraw();
                 case 'settings':
                   _openSettings();
                 case 'about':
@@ -1021,6 +1088,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'flip', child: ListTile(
                 leading: Icon(Icons.swap_vert), title: Text('Flip Board'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'draw', child: ListTile(
+                leading: Icon(Icons.handshake), title: Text('Offer Draw'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'resign', child: ListTile(
+                leading: Icon(Icons.flag), title: Text('Resign'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'settings', child: ListTile(
                 leading: Icon(Icons.settings), title: Text('Settings'),
@@ -1134,19 +1207,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         color: Colors.grey.shade50,
         border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
-      child: _game.moveHistory.isEmpty
+      child: _game.moveHistorySan.isEmpty
           ? const Center(
               child: Text('No moves yet',
                   style: TextStyle(color: Colors.grey, fontSize: 12)))
           : ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: (_game.moveHistory.length / 2).ceil(),
+              itemCount: (_game.moveHistorySan.length / 2).ceil(),
               itemBuilder: (context, index) {
                 final moveNum = index + 1;
-                final whiteMove = _game.moveHistory[index * 2];
+                final san = _game.moveHistorySan;
+                final whiteMove = san[index * 2];
                 final blackMove =
-                    index * 2 + 1 < _game.moveHistory.length
-                        ? _game.moveHistory[index * 2 + 1]
+                    index * 2 + 1 < san.length
+                        ? san[index * 2 + 1]
                         : null;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),

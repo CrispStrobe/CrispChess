@@ -200,19 +200,56 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   _annotations[_annotations.length - 1] = completeAnnotation;
 }
   
-  bool get isGameOver => _game.game_over;
-  
+  bool _resigned = false;
+  bool _drawAgreed = false;
+
+  bool get isGameOver => _game.game_over || _resigned || _drawAgreed;
+
   String get gameOverReason {
-    if (_game.in_checkmate) return 'Checkmate!';
-    if (_game.in_draw) return 'Draw';
-    if (_game.in_stalemate) return 'Stalemate!';
-    if (_game.in_threefold_repetition) return 'Threefold Repetition!';
+    if (_resigned) return 'Resignation';
+    if (_drawAgreed) return 'Draw by agreement';
+    if (_game.in_checkmate) return 'Checkmate';
+    if (_game.in_stalemate) return 'Stalemate';
+    if (_game.in_threefold_repetition) return 'Draw — threefold repetition';
+    if (_game.insufficient_material) return 'Draw — insufficient material';
+    if (_game.in_draw) return 'Draw — fifty-move rule';
     return 'Game Over';
   }
-  
+
   String? get winner {
+    if (_drawAgreed || _game.in_stalemate || _game.in_draw) return null;
+    if (_resigned) {
+      // The side who resigned loses
+      return whiteToMove ? 'Black' : 'White';
+    }
     if (!_game.in_checkmate) return null;
     return _game.turn == chess.Color.WHITE ? 'Black' : 'White';
+  }
+
+  /// Player resigns.
+  void resign() {
+    _resigned = true;
+    notifyListeners();
+  }
+
+  /// Agree to a draw.
+  void agreeToDraw() {
+    _drawAgreed = true;
+    notifyListeners();
+  }
+
+  /// Get move history in SAN notation (e.g., "e4", "Nf3", "O-O").
+  List<String> get moveHistorySan {
+    final pgn = _game.pgn();
+    if (pgn.isEmpty) return [];
+    // PGN format: "1. e4 e5 2. Nf3 Nc6 *"
+    final results = {'1-0', '0-1', '1/2-1/2', '*'};
+    return pgn
+        .replaceAll(RegExp(r'\d+\.+\s*'), '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((s) => s.isNotEmpty && !results.contains(s))
+        .toList();
   }
   
   void undoMove() {
@@ -276,6 +313,8 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _annotations.clear();
     _lastEvaluation = null;
     _lastDepth = null;
+    _resigned = false;
+    _drawAgreed = false;
     notifyListeners();
   }
 }
