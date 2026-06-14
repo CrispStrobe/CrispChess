@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show VoidCallback;
 import '../engines/chess_engine.dart';
 
 /// Events from a specific engine in multi-engine analysis.

@@ -96,6 +96,8 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
             _running = false;
             _status = 'Match complete! ${scores.entries.map((e) => '${e.key}: ${e.value}').join(' — ')}';
           });
+        case TournamentRoundStart():
+          break; // Handled in tournament mode
       }
     });
 
