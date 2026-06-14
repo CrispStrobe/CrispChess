@@ -139,6 +139,14 @@ class _ChessBoardState extends State<ChessBoard>
       hintTo = widget.hintMove!.substring(2, 4);
     }
 
+    // Last move squares
+    String? lastFrom;
+    String? lastTo;
+    if (widget.lastMoveUci != null && widget.lastMoveUci!.length >= 4) {
+      lastFrom = widget.lastMoveUci!.substring(0, 2);
+      lastTo = widget.lastMoveUci!.substring(2, 4);
+    }
+
     final isAnimating = _animPiece != null;
 
     return AspectRatio(
@@ -198,6 +206,9 @@ class _ChessBoardState extends State<ChessBoard>
                               }
                             }
 
+                            final isLastMove =
+                                squareName == lastFrom || squareName == lastTo;
+
                             return _ChessSquare(
                               row: row,
                               col: col,
@@ -209,6 +220,13 @@ class _ChessBoardState extends State<ChessBoard>
                               isHintFrom: isHintFrom,
                               isHintTo: isHintTo,
                               isKingInDanger: isKingInDanger,
+                              isLastMove: isLastMove,
+                              showCoordinate: visualCol == 0 || visualRow == 7,
+                              coordinateLabel: visualCol == 0
+                                  ? '${8 - row}'
+                                  : visualRow == 7
+                                      ? String.fromCharCode(97 + col)
+                                      : null,
                               onSquareTap: widget.onSquareTap,
                               onMove: widget.onMove,
                               pieceTheme: widget.pieceTheme,
@@ -285,6 +303,9 @@ class _ChessSquare extends StatelessWidget {
   final bool isHintFrom;
   final bool isHintTo;
   final bool isKingInDanger;
+  final bool isLastMove;
+  final bool showCoordinate;
+  final String? coordinateLabel;
   final Function(int row, int col)? onSquareTap;
   final Function(int fromRow, int fromCol, int toRow, int toCol)? onMove;
   final String pieceTheme;
@@ -301,6 +322,9 @@ class _ChessSquare extends StatelessWidget {
     required this.isHintFrom,
     required this.isHintTo,
     required this.isKingInDanger,
+    this.isLastMove = false,
+    this.showCoordinate = false,
+    this.coordinateLabel,
     required this.onSquareTap,
     required this.onMove,
     required this.pieceTheme,
@@ -333,6 +357,10 @@ class _ChessSquare extends StatelessWidget {
                   : Colors.green.withValues(alpha: 0.4);
             } else if (isHintSquare) {
               bgColor = Colors.yellow.withValues(alpha: 0.5);
+            } else if (isLastMove) {
+              bgColor = isLight
+                  ? Colors.amber.withValues(alpha: 0.35)
+                  : Colors.amber.withValues(alpha: 0.45);
             } else {
               bgColor = isLight ? Colors.brown[200] : Colors.brown[400];
             }
@@ -348,14 +376,18 @@ class _ChessSquare extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  if (piece == null)
-                    Center(
+                  // Coordinate label (rank on left edge, file on bottom edge)
+                  if (showCoordinate && coordinateLabel != null)
+                    Positioned(
+                      left: 2,
+                      top: 1,
                       child: Text(
-                        squareName,
+                        coordinateLabel!,
                         style: TextStyle(
-                          fontSize: 8,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
                           color: isLight
-                              ? Colors.brown[400]
+                              ? Colors.brown[500]
                               : Colors.brown[200],
                         ),
                       ),

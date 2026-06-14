@@ -616,7 +616,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _annotationColor(lastAnnotation.quality),
+                  color: _annotationColor(lastAnnotation.evaluation.quality),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Column(
@@ -625,12 +625,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                     Row(
                       children: [
                         Text(
-                          '${_annotationSymbol(lastAnnotation.quality)} ${lastAnnotation.move}',
+                          '${_annotationSymbol(lastAnnotation.evaluation.quality)} ${lastAnnotation.move}',
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                         const SizedBox(width: 8),
-                        Text(lastAnnotation.quality.name,
+                        Text(lastAnnotation.evaluation.quality.name,
                             style: const TextStyle(fontSize: 11)),
                       ],
                     ),
