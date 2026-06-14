@@ -68,37 +68,30 @@ class StockfishEngine implements ChessEngine {
     try {
       debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
 
-      // Fetch JS source
+      // Fetch JS source as Dart String
       final jsResponse = await web.window.fetch(sfVersion.url.toJS).toDart;
-      var jsText = await (jsResponse as web.Response).text().toDart;
+      var jsSource = (await (jsResponse as web.Response).text().toDart).toDart;
 
-      // If there's a companion WASM file, pre-fetch it and inject as
-      // base64-encoded wasmBinary so the worker doesn't need to fetch it
+      // If there's a companion WASM file, pre-fetch it and inject
       if (sfVersion.wasmUrl != null) {
         debugPrint('[StockfishWeb] Fetching WASM from ${sfVersion.wasmUrl}...');
         final wasmResponse = await web.window.fetch(sfVersion.wasmUrl!.toJS).toDart;
         final wasmBlob = await (wasmResponse as web.Response).blob().toDart;
-        // Create a blob URL the worker can access for the WASM
         final wasmBlobUrl = web.URL.createObjectURL(wasmBlob);
-        // Patch the JS: override locateFile to return our blob URL for .wasm
-        jsText = '''
-var _wasmBlobUrl = "$wasmBlobUrl";
-var _origLocateFile;
-$jsText
-''';
-        // Replace the hardcoded 'stockfish.wasm' with our blob URL
-        jsText = jsText.replaceAll(
+        // Patch: replace the hardcoded WASM filename with our blob URL
+        jsSource = 'var _wasmBlobUrl = "$wasmBlobUrl";\n$jsSource';
+        jsSource = jsSource.replaceAll(
           'w="stockfish.wasm"',
           'w=_wasmBlobUrl',
         );
-        debugPrint('[StockfishWeb] WASM injected');
+        debugPrint('[StockfishWeb] WASM patched with blob URL');
       }
 
-      final blob = web.Blob(
-        [jsText.toJS].toJS,
+      final jsBlob = web.Blob(
+        [jsSource.toJS].toJS,
         web.BlobPropertyBag(type: 'application/javascript'),
       );
-      final blobUrl = web.URL.createObjectURL(blob);
+      final blobUrl = web.URL.createObjectURL(jsBlob);
       _worker = web.Worker(blobUrl.toJS);
       debugPrint('[StockfishWeb] Worker created from blob');
 
