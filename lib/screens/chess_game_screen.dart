@@ -19,6 +19,7 @@ import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
+import '../chess/xp_system.dart';
 import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'puzzle_screen.dart';
@@ -490,12 +491,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _showGameOverDialog() {
-    // Track game stats
+    // Track game stats + award XP
     _prefs.gamesPlayed = _prefs.gamesPlayed + 1;
     if (_game.winner != null) {
       final playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
           (!_state.playAsBlack && _game.winner == 'White');
-      if (playerWon) _prefs.gamesWon = _prefs.gamesWon + 1;
+      if (playerWon) {
+        _prefs.gamesWon = _prefs.gamesWon + 1;
+        _prefs.addXp(XpAwards.gameWin(_state.strengthLevel));
+      } else {
+        _prefs.addXp(XpAwards.gameLoss);
+      }
+    } else {
+      _prefs.addXp(XpAwards.gameDraw);
     }
 
     // Save completed game to history

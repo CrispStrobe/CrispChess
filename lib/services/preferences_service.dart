@@ -123,6 +123,13 @@ class PreferencesService {
     _prefs?.setStringList(_keyBookmarks, bm);
   }
 
+  // XP
+  static const _keyXp = 'totalXp';
+
+  int get totalXp => _prefs?.getInt(_keyXp) ?? 0;
+  void addXp(int amount) =>
+      _prefs?.setInt(_keyXp, totalXp + amount);
+
   // Puzzle stats
   static const _keyPuzzlesSolved = 'puzzlesSolved';
 
