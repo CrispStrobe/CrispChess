@@ -85,7 +85,7 @@ class Maia3Engine implements ChessEngine {
 
   @override
   void dispose() {
-    _jsClose().toDart.catchError((_) {});
+    _jsClose().toDart.catchError((_) => null);
     _loaded = false;
     _stateNotifier.value = EngineState.disposed;
   }
