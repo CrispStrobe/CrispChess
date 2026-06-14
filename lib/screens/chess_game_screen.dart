@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
@@ -492,6 +493,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           maia3Variant: _maia3Variant,
         );
         _engineService.switchEngine(newEngine);
+      }
+
+      // Apply theme if changed
+      final themeMode = result['themeMode'] as String?;
+      if (themeMode != null) {
+        _prefs.init().then((_) async {
+          final sp = await SharedPreferences.getInstance();
+          await sp.setString('themeMode', themeMode);
+        });
       }
 
       // Persist all preferences

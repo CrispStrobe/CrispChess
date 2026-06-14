@@ -38,18 +38,19 @@
 ## Phase 6: In-Game Polish (quick wins)
 
 ### Board Improvements
-- [ ] Board coordinate labels (a-h, 1-8) with toggle in settings
-- [ ] Last move highlighting (tint from/to squares)
-- [ ] Captured pieces tray with material advantage badge (+N)
+- [x] Board coordinate labels (a-h, 1-8)
+- [x] Last move highlighting (warm brown tint on from/to squares)
+- [x] Captured pieces tray with material advantage badge (+N)
 - [ ] Animated hint/analysis arrows on the board (L-shaped for knight moves)
 - [ ] Capture visual effect (particle burst on capture square)
 - [ ] Checkmate flourish (glow on mated king + shockwave ring)
 
 ### Game Flow
-- [ ] Confirmation dialog before New Game / Exit (prevent accidental loss)
-- [ ] Draw offer — engine evaluates and accepts/declines based on eval
-- [ ] Resignation option
-- [ ] Precise game-end reason (checkmate/stalemate/timeout/repetition/50-move/insufficient/draw)
+- [x] Confirmation dialog before New Game (prevent accidental loss)
+- [x] Draw offer — engine evaluates and accepts/declines based on eval
+- [x] Resignation option with confirmation
+- [x] Precise game-end reason (checkmate/stalemate/repetition/50-move/insufficient/resign/draw)
+- [x] SAN notation in move history (e4, Nf3 instead of e2e4, g1f3)
 - [ ] Pre-game side picker (White / Black / Random)
 - [ ] Long-press move list to quick-copy PGN
 
@@ -59,7 +60,7 @@
 - [ ] Spinning ring on opponent avatar while engine thinks
 
 ### Settings Additions
-- [ ] "Reset to defaults" button
+- [x] "Reset to defaults" button
 - [ ] "Allow Undo" toggle (disable for discipline mode)
 - [ ] AMOLED dark theme (pure black background)
 
@@ -67,23 +68,27 @@
 
 ### Debrief Screen
 - [ ] Post-game summary with accuracy percentage
-- [ ] Eval chart — plot evaluation across all moves (white/black fill areas)
+- [x] Eval chart — plot evaluation across all moves (green/red fill areas)
 - [ ] Interactive board — tap any move in the list to jump to that position
-- [ ] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
+- [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [ ] "Your best move" card with SAN + explanation
 - [ ] "Biggest mistake" card with SAN + what was better
 - [ ] Staggered entry animations for each section
 
 ### Live Move Annotation
-- [ ] Classify each player move in real-time (compare to engine's best)
-- [ ] Show annotation in analysis panel with color/icon per category
+- [x] Classify each player move in real-time (compare to engine's best)
+- [x] Show annotation in analysis panel with color/icon per category
 - [ ] Display alternative move suggestion ("Better: Nf3")
 
 ### History Snapshots
-- [ ] Store eval before/after each move (no re-analysis needed for review)
+- [x] Store eval per move for chart (no re-analysis needed)
 - [ ] Undo/redo via snapshot stack (not replay from scratch)
 
 ## Phase 7.5: Player Preferences Persistence
+
+- [x] Save all settings to shared_preferences
+- [x] Auto-load on app start, auto-save on change
+- [x] Reset to defaults button
 
 - [ ] Save all settings to local storage (shared_preferences)
   - Preferred engine + variant

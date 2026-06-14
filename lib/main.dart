@@ -1,28 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/chess_game_screen.dart';
 
 void main() {
-  // Logger.root.level = Level.ALL;
   Logger.root.level = Level.WARNING;
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  runApp(const MyApp());
+  runApp(const CrispChessApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CrispChessApp extends StatefulWidget {
+  const CrispChessApp({super.key});
+
+  @override
+  State<CrispChessApp> createState() => _CrispChessAppState();
+}
+
+class _CrispChessAppState extends State<CrispChessApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final theme = prefs.getString('themeMode') ?? 'system';
+    setState(() {
+      _themeMode = switch (theme) {
+        'dark' => ThemeMode.dark,
+        'light' => ThemeMode.light,
+        _ => ThemeMode.system,
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CrispChess',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorSchemeSeed: Colors.brown,
+        brightness: Brightness.light,
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorSchemeSeed: Colors.brown,
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.black, // AMOLED
+      ),
+      themeMode: _themeMode,
       home: const ChessGameScreen(),
     );
   }
