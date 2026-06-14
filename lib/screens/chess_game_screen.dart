@@ -9,6 +9,7 @@ import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
+import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
@@ -31,6 +32,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   GameState _state = const GameState();
   ChessClock? _clock;
   final SoundService _sound = SoundService();
+  final PreferencesService _prefs = PreferencesService();
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
@@ -40,6 +42,36 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     super.initState();
     _game = ChessGame();
     _engineService = EngineService(DartEngine());
+    _loadPreferencesAndInit();
+  }
+
+  Future<void> _loadPreferencesAndInit() async {
+    await _prefs.init();
+    _maia3Variant = _prefs.variant;
+    _sound.enabled = _prefs.soundEnabled;
+    setState(() {
+      _state = _state.copyWith(
+        strengthLevel: _prefs.strengthLevel,
+        hintDepth: _prefs.hintDepth,
+        animationSpeed: _prefs.animationSpeed,
+        playAsBlack: _prefs.playAsBlack,
+        pieceTheme: _prefs.pieceTheme,
+        timeControl: _prefs.timeControl,
+        showValidMoves: _prefs.showValidMoves,
+      );
+    });
+
+    // Initialize with saved engine
+    final savedEngine = _prefs.engine;
+    if (savedEngine != 'Built-in') {
+      final elo = 800 + (_prefs.strengthLevel * 60);
+      final engine = createEngine(
+        savedEngine,
+        playerElo: elo,
+        maia3Variant: _maia3Variant,
+      );
+      _engineService = EngineService(engine);
+    }
     _initializeEngine();
   }
 
@@ -452,6 +484,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         );
         _engineService.switchEngine(newEngine);
       }
+
+      // Persist all preferences
+      _prefs.engine = selectedEngine ?? _engineService.engineName;
+      _prefs.variant = _maia3Variant;
+      _prefs.strengthLevel = _state.strengthLevel;
+      _prefs.hintDepth = _state.hintDepth;
+      _prefs.animationSpeed = _state.animationSpeed;
+      _prefs.playAsBlack = _state.playAsBlack;
+      _prefs.pieceTheme = _state.pieceTheme;
+      _prefs.timeControl = _state.timeControl;
+      _prefs.showValidMoves = _state.showValidMoves;
     }
   }
 
