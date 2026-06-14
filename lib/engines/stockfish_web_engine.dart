@@ -72,7 +72,7 @@ class StockfishEngine implements ChessEngine {
       final response = await web.window.fetch(sfVersion.url.toJS).toDart;
       final blob = await (response as web.Response).blob().toDart;
       final blobUrl = web.URL.createObjectURL(blob);
-      _worker = web.Worker(blobUrl);
+      _worker = web.Worker(blobUrl.toJS);
       debugPrint('[StockfishWeb] Worker created from blob');
 
       final readyCompleter = Completer<void>();

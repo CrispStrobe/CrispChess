@@ -472,11 +472,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     setState(() {
       _state = _state.copyWith(analysisExpanded: expanding);
     });
-    if (expanding && !_state.isThinking) {
+    if (expanding && !_state.isThinking &&
+        _engineService.state == EngineState.ready) {
       _engineService.requestAnalysis(
         _game.positionCommand,
         depth: _state.hintDepth,
       );
+    } else if (expanding && _engineService.state != EngineState.ready) {
+      // Engine not ready — just show the panel, analysis will start when ready
+      debugPrint('[CrispChess] Analysis panel opened but engine not ready');
     } else if (!expanding) {
       _engineService.stop();
     }
