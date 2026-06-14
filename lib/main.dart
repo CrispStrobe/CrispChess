@@ -7,13 +7,16 @@ import 'screens/chess_game_screen.dart';
 /// Global theme notifier — settings screen updates this, app rebuilds.
 final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
 
+/// Global locale notifier — null means system default.
+final localeNotifier = ValueNotifier<Locale?>(null);
+
 void main() {
   Logger.root.level = Level.WARNING;
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  // Load saved theme before app starts
+  // Load saved theme and locale before app starts
   SharedPreferences.getInstance().then((prefs) {
     final theme = prefs.getString('themeMode') ?? 'system';
     themeNotifier.value = switch (theme) {
@@ -21,6 +24,10 @@ void main() {
       'light' => ThemeMode.light,
       _ => ThemeMode.system,
     };
+    final lang = prefs.getString('locale');
+    if (lang != null && lang != 'system') {
+      localeNotifier.value = Locale(lang);
+    }
   });
 
   runApp(const CrispChessApp());
@@ -34,8 +41,12 @@ class CrispChessApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, themeMode, _) {
+        return ValueListenableBuilder<Locale?>(
+          valueListenable: localeNotifier,
+          builder: (context, locale, _) {
         return MaterialApp(
           title: 'CrispChess',
+          locale: locale,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -58,6 +69,8 @@ class CrispChessApp extends StatelessWidget {
           ),
           themeMode: themeMode,
           home: const ChessGameScreen(),
+        );
+          },
         );
       },
     );

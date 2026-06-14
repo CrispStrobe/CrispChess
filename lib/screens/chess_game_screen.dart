@@ -25,7 +25,7 @@ import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
 import '../chess/xp_system.dart' show XpAwards, levelFromXp, PlayerLevel;
-import '../main.dart' show themeNotifier;
+import '../main.dart' show themeNotifier, localeNotifier;
 import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
@@ -843,6 +843,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         };
       }
 
+      // Apply language change
+      final language = result['language'] as String?;
+      if (language != null) {
+        SharedPreferences.getInstance().then((sp) {
+          sp.setString('locale', language);
+        });
+        localeNotifier.value = language == 'system' ? null : Locale(language);
+      }
+
       // Persist all preferences
       _prefs.engine = selectedEngine ?? _engineService.engineName;
       _prefs.variant = _maia3Variant;
@@ -1556,7 +1565,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
     try {
       // Create or reuse the hint engine
-      _hintEngineInstance ??= createEngine(_state.hintEngine);
+      _hintEngineInstance ??= createEngine(_state.hintEngine, maia3Variant: _maia3Variant);
       if (_hintEngineInstance!.state == EngineState.idle) {
         await _hintEngineInstance!.initialize();
       }

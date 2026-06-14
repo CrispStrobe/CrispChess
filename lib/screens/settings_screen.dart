@@ -42,6 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _animationSpeed = 2;
   late TimeControl _timeControl;
   String _themeMode = 'system';
+  String _language = 'system';
   bool _playAsBlack = false;
   String _pieceTheme = 'chessnut';
 
@@ -614,6 +615,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
+          // Language
+          const SizedBox(height: 24),
+          Text('Language', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          Card(
+            child: Column(
+              children: [
+                for (final (value, label) in [
+                  ('system', 'System Default'),
+                  ('en', 'English'),
+                  ('de', 'Deutsch'),
+                ])
+                  RadioListTile<String>(
+                    value: value,
+                    groupValue: _language,
+                    onChanged: (v) => setState(() => _language = v!),
+                    title: Text(label, style: const TextStyle(fontSize: 14)),
+                    dense: true,
+                  ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 24),
           Center(
             child: TextButton.icon(
@@ -652,6 +676,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'maia3Variant': _maia3Variant,
             'timeControl': _timeControl,
             'themeMode': _themeMode,
+            'language': _language,
           });
         },
         icon: const Icon(Icons.check),
