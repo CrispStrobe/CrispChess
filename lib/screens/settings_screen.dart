@@ -162,8 +162,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return 'Master+';
   }
 
-  int _getEstimatedElo(int level) => 800 + (level * 80);
-  int _getSearchDepth(int level) => 3 + level;
+  String _getStrengthInfo(int level) {
+    switch (_selectedEngine) {
+      case 'Built-in':
+        return 'ELO ~${800 + level * 80}  ·  Depth ${3 + level}';
+      case 'Maia3' || 'Maia3 Dart':
+        final elo = 800 + (level * 60);
+        return 'Target ELO ~$elo (model adapts to play at this level)';
+      case 'Lc0':
+        return 'MCTS nodes: ${50 + level * level * 2} (more = stronger)';
+      case 'Stockfish':
+        return 'Skill Level $level  ·  Depth ${5 + level ~/ 4}';
+      case 'Frozenight':
+        return 'Depth ${2 + level ~/ 2} (search time ~${level}s)';
+      default:
+        return 'Level $level';
+    }
+  }
 
   static String _animationSpeedLabel(int speed) {
     switch (speed) {
@@ -369,7 +384,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'ELO ~${_getEstimatedElo(_strengthLevel)}  ·  Depth ${_getSearchDepth(_strengthLevel)}',
+                    _getStrengthInfo(_strengthLevel),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
