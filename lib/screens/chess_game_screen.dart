@@ -16,7 +16,9 @@ import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
+import '../chess/puzzle.dart';
 import 'about_screen.dart';
+import 'puzzle_screen.dart';
 import 'settings_screen.dart';
 
 class ChessGameScreen extends StatefulWidget {
@@ -35,6 +37,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   ChessClock? _clock;
   final SoundService _sound = SoundService();
   final PreferencesService _prefs = PreferencesService();
+  final PuzzleDatabase _puzzleDb = PuzzleDatabase();
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
@@ -76,6 +79,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _engineService = EngineService(engine);
     }
     _initializeEngine();
+    _puzzleDb.load(); // Non-blocking background load
   }
 
   void _initializeEngine() {
@@ -1163,6 +1167,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _confirmResign();
                 case 'draw':
                   _offerDraw();
+                case 'puzzles':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) =>
+                          PuzzleScreen(puzzleDb: _puzzleDb)));
                 case 'settings':
                   _openSettings();
                 case 'about':
@@ -1188,6 +1196,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'resign', child: ListTile(
                 leading: Icon(Icons.flag), title: Text('Resign'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'puzzles', child: ListTile(
+                leading: Icon(Icons.extension), title: Text('Puzzles'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'settings', child: ListTile(
                 leading: Icon(Icons.settings), title: Text('Settings'),
