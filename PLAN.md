@@ -52,17 +52,12 @@
 - [x] Precise game-end reason (checkmate/stalemate/repetition/50-move/insufficient/resign/draw)
 - [x] SAN notation in move history (e4, Nf3 instead of e2e4, g1f3)
 - [ ] Pre-game side picker (White / Black / Random)
-- [ ] Long-press move list to quick-copy PGN
-
-### Player Identity
-- [ ] Player name chips above/below board (avatar + name + clock)
-- [ ] Pulsing indicator when it's your turn
-- [ ] Spinning ring on opponent avatar while engine thinks
+- [x] Long-press move list to quick-copy PGN
 
 ### Settings Additions
 - [x] "Reset to defaults" button
-- [ ] "Allow Undo" toggle (disable for discipline mode)
-- [ ] AMOLED dark theme (pure black background)
+- [x] "Allow Undo" toggle (disable for discipline mode)
+- [x] AMOLED dark theme (pure black background, system/light/dark toggle)
 
 ## Phase 7: Post-Game Analysis
 
@@ -84,25 +79,11 @@
 - [x] Store eval per move for chart (no re-analysis needed)
 - [ ] Undo/redo via snapshot stack (not replay from scratch)
 
-## Phase 7.5: Player Preferences Persistence
+## Phase 7.5: Player Preferences Persistence (DONE)
 
-- [x] Save all settings to shared_preferences
+- [x] Save all settings to shared_preferences (engine, variant, strength, theme, etc.)
 - [x] Auto-load on app start, auto-save on change
 - [x] Reset to defaults button
-
-- [ ] Save all settings to local storage (shared_preferences)
-  - Preferred engine + variant
-  - Playing strength level
-  - Piece theme
-  - Animation speed
-  - Time control
-  - Play as black preference
-  - Sound on/off + volume
-  - Board coordinates toggle
-  - Analysis panel state
-- [ ] Auto-load preferences on app start
-- [ ] Cross-platform: shared_preferences works on all Flutter platforms
-- [ ] Reset to defaults button in settings
 
 ## Phase 8: Training & Puzzles
 

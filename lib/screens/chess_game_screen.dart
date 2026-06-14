@@ -722,9 +722,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             style: const TextStyle(fontSize: 11)),
                       ],
                     ),
-                    if (lastAnnotation.getFullDescription().isNotEmpty)
+                    if (lastAnnotation.evaluation.bestMove.isNotEmpty &&
+                        lastAnnotation.evaluation.quality != MoveQuality.brilliant &&
+                        lastAnnotation.evaluation.quality != MoveQuality.good &&
+                        lastAnnotation.evaluation.quality != MoveQuality.neutral)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Better: ${lastAnnotation.evaluation.bestMove}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ),
+                    if (lastAnnotation.getFullDescription().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(lastAnnotation.getFullDescription(),
                             style: const TextStyle(fontSize: 10)),
                       ),
@@ -826,7 +841,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _confirmNewGame() {
     if (_game.moveHistory.isEmpty) {
-      _newGame();
+      _showSidePicker();
       return;
     }
     showDialog(
@@ -842,9 +857,60 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _newGame();
+              _showSidePicker();
             },
             child: const Text('New Game'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSidePicker() {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Play as'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _state = _state.copyWith(playAsBlack: false));
+              _prefs.playAsBlack = false;
+              _newGame();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.circle, color: Colors.white),
+              title: Text('White'),
+              dense: true, contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _state = _state.copyWith(playAsBlack: true));
+              _prefs.playAsBlack = true;
+              _newGame();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.circle, color: Colors.black),
+              title: Text('Black'),
+              dense: true, contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final random = DateTime.now().millisecond % 2 == 0;
+              setState(() => _state = _state.copyWith(playAsBlack: random));
+              _prefs.playAsBlack = random;
+              _newGame();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.shuffle),
+              title: Text('Random'),
+              dense: true, contentPadding: EdgeInsets.zero,
+            ),
           ),
         ],
       ),
