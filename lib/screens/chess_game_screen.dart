@@ -30,6 +30,8 @@ import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
+import 'ai_coach_sheet.dart';
+import 'drill_screen.dart';
 import 'engine_match_screen.dart';
 import 'pgn_database_screen.dart';
 import 'position_editor_screen.dart';
@@ -1245,7 +1247,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     // Copy user annotations
     for (final a in _boardAnnotations.arrows) merged.arrows.add(a);
     for (final h in _boardAnnotations.highlights) merged.highlights.add(h);
-    // Add PV arrow from analysis (top line, if available)
+    // Add hint arrow (yellow)
+    if (_state.hintMove != null && _state.hintMove!.length >= 4) {
+      final hm = _state.hintMove!;
+      merged.arrows.add(BoardArrow(
+        from: hm.substring(0, 2),
+        to: hm.substring(2, 4),
+        color: Colors.yellow.shade700,
+      ));
+    }
+    // Add PV arrow from analysis (top line, blue)
     if (_pvLines.isNotEmpty && _state.analysisExpanded) {
       final bestPv = _pvLines.first.pv;
       if (bestPv.length >= 4) {
@@ -1963,7 +1974,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             IconButton(
               icon: const Icon(Icons.undo, size: 20),
               tooltip: 'Undo',
-              onPressed: _state.isThinking ? null : _undoMove,
+              onPressed: (_state.isThinking || !_game.canUndo) ? null : _undoMove,
+            ),
+          if (_state.allowUndo)
+            IconButton(
+              icon: const Icon(Icons.redo, size: 20),
+              tooltip: 'Redo',
+              onPressed: (_state.isThinking || !_game.canRedo)
+                  ? null
+                  : () {
+                      _game.redoMove();
+                      setState(() {
+                        _state = _state.copyWith(
+                          statusMessage: 'Position restored',
+                          hintMove: null,
+                        );
+                      });
+                    },
             ),
           IconButton(
             icon: const Icon(Icons.lightbulb_outline, size: 20),
@@ -2014,6 +2041,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       const SnackBar(content: Text('Position bookmarked')),
                     );
                   }
+                case 'ask_coach':
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => AiCoachSheet(
+                      fen: _game.currentFEN,
+                      pgn: _game.toPgn(engineName: _engineService.engineName, playAsBlack: _state.playAsBlack),
+                      lastMove: _game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : null,
+                    ),
+                  );
+                case 'drills':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DrillListScreen()));
                 case 'engine_match':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
@@ -2070,6 +2111,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'bookmark', child: ListTile(
                 leading: Icon(Icons.bookmark_add), title: Text('Bookmark Position'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'ask_coach', child: ListTile(
+                leading: Icon(Icons.psychology), title: Text('Ask Coach'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'drills', child: ListTile(
+                leading: Icon(Icons.school), title: Text('Drills'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'engine_match', child: ListTile(
                 leading: Icon(Icons.sports_esports), title: Text('Engine vs Engine'),
@@ -2236,6 +2283,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (key == LogicalKeyboardKey.keyZ ||
         key == LogicalKeyboardKey.arrowLeft) {
       if (_state.allowUndo && !_state.isThinking) _undoMove();
+    } else if (key == LogicalKeyboardKey.keyY ||
+        key == LogicalKeyboardKey.arrowRight) {
+      if (_state.allowUndo && !_state.isThinking && _game.canRedo) {
+        _game.redoMove();
+        setState(() => _state = _state.copyWith(statusMessage: 'Position restored', hintMove: null));
+      }
     } else if (key == LogicalKeyboardKey.keyH ||
         key == LogicalKeyboardKey.space) {
       if (_isPlayerTurn && !_state.isThinking) _getHint();

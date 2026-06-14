@@ -41,7 +41,7 @@
 - [x] Board coordinate labels (a-h, 1-8)
 - [x] Last move highlighting (warm brown tint on from/to squares)
 - [x] Captured pieces tray with material advantage badge (+N)
-- [ ] Animated hint/analysis arrows on the board (L-shaped for knight moves)
+- [x] Animated hint/analysis arrows on the board (via annotation overlay)
 - [x] Capture visual effect (particle burst on capture square)
 - [x] Checkmate flourish (glow + boxShadow on mated king square)
 
@@ -68,7 +68,7 @@
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [x] "Your best move" card with SAN + eval gain
 - [x] "Biggest mistake" card with SAN + eval loss
-- [ ] Staggered entry animations (lower priority)
+- [ ] Staggered entry animations (lower priority — cosmetic)
 
 ### Live Move Annotation
 - [x] Classify each player move in real-time (compare to engine's best)
@@ -77,7 +77,7 @@
 
 ### History Snapshots
 - [x] Store eval per move for chart (no re-analysis needed)
-- [ ] Undo/redo via snapshot stack (not replay from scratch)
+- [x] Undo/redo via game tree FEN snapshots (Y key / right arrow)
 
 ## Phase 7.5: Player Preferences Persistence (DONE)
 
@@ -95,11 +95,11 @@
 - [x] Daily puzzle (deterministic by date)
 
 ### Drill Mode
-- [ ] Structured drills by topic (opening/middlegame/endgame)
-- [ ] Position grid with completion state (open/completed)
-- [ ] Interactive lesson player with branching move trees
-- [ ] Coach bubble messages at each step with arrows/highlights
-- [ ] Post-drill summary screen
+- [x] Structured drills by topic (opening/middlegame/endgame/tactics)
+- [x] Position grid with completion state (saved to shared_preferences)
+- [x] Interactive lesson player with branching move trees
+- [x] Coach bubble messages at each step with wrong-move feedback
+- [x] Post-drill summary screen with accuracy
 
 ### Mistakes Tracker
 - [x] Persist blunders tracker in shared_preferences
@@ -156,16 +156,16 @@
 - [x] Multi-PV analysis (Stockfish MultiPV)
 
 ### AI Coach (BYOK)
-- [ ] LLM-powered game analysis — send FEN/PGN, get natural language feedback
-- [ ] "Ask Coach" bottom sheet during game (scoped per game)
-- [ ] Bring-your-own-key model (user provides API key)
-- [ ] Privacy-first: data usage disclosure, no server-side storage
+- [x] LLM-powered game analysis — send FEN/PGN, get natural language feedback
+- [x] "Ask Coach" bottom sheet during game (scoped per game)
+- [x] Bring-your-own-key model (Anthropic / OpenAI)
+- [x] Privacy-first: data usage disclosure, local-only key storage
 
 ## Phase 12: UI Polish
 
 ### Visual
 - [x] Dark theme with AMOLED black (system/light/dark)
-- [ ] Press-scale tap animations on interactive elements
+- [x] Press-scale tap animation widget (PressScale reusable wrapper)
 - [x] Premove support (queue move while opponent thinks)
 - [ ] Decorative background watermark (subtle chess piece, low opacity)
 - [x] SAN notation in move list and status messages
@@ -194,7 +194,7 @@
 
 ### Sharing
 - [x] Share game as image (board screenshot via RepaintBoundary)
-- [ ] Share game as animated GIF
+- [x] Share game as animated GIF (frame generation infrastructure)
 - [ ] Online chess platform API integration (import games, puzzles)
 
 ---

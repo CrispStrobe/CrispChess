@@ -324,15 +324,33 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   }
   
   void undoMove() {
+    if (_tree.atStart) return;
+    _tree.goBack();
+    _game.load(_tree.current.fen);
     _cachedLegalMoves = null;
     _cachedBoard = null;
-    _game.undo();
-    _tree.goBack();
     if (_annotations.isNotEmpty) {
       _annotations.removeLast();
     }
     notifyListeners();
   }
+
+  /// Redo: go forward in the main line (if there are children).
+  bool redoMove() {
+    if (_tree.atEnd) return false;
+    _tree.goForward();
+    _game.load(_tree.current.fen);
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    notifyListeners();
+    return true;
+  }
+
+  /// Whether redo is available.
+  bool get canRedo => !_tree.atEnd;
+
+  /// Whether undo is available.
+  bool get canUndo => !_tree.atStart;
 
   /// Navigate to a specific node in the game tree.
   /// Reloads the chess position from the node's FEN.
