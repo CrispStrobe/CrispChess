@@ -39,11 +39,9 @@ class StockfishEngine implements ChessEngine {
       : sfVersion = sfVersion ?? _versionFromId(variantId);
 
   static StockfishVersion _versionFromId(String? id) {
-    return switch (id) {
-      'sf10' => StockfishVersion.sf10,
-      'sf18lite' => StockfishVersion.sf18lite,
-      _ => StockfishVersion.sf10, // Default to SF10 (most compatible)
-    };
+    // SF18 needs companion WASM file — currently broken (WASM patching
+    // doesn't match minified code). Force SF10 for now.
+    return StockfishVersion.sf10;
   }
 
   @override
@@ -110,18 +108,30 @@ class StockfishEngine implements ChessEngine {
 
       _send('uci');
 
+      bool timedOut = false;
       await readyCompleter.future.timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 15),
         onTimeout: () {
-          debugPrint('[StockfishWeb] UCI handshake timeout (30s)');
+          debugPrint('[StockfishWeb] UCI handshake timeout (15s)');
+          timedOut = true;
         },
       );
+
+      if (timedOut) {
+        _worker?.terminate();
+        _worker = null;
+        debugPrint('[StockfishWeb] Engine timed out — terminating worker');
+        _stateNotifier.value = EngineState.error;
+        return;
+      }
 
       _send('isready');
       _stateNotifier.value = EngineState.ready;
       debugPrint('[StockfishWeb] ${sfVersion.label} ready');
     } catch (e) {
       debugPrint('[StockfishWeb] Init failed: $e');
+      _worker?.terminate();
+      _worker = null;
       _stateNotifier.value = EngineState.error;
     }
   }
