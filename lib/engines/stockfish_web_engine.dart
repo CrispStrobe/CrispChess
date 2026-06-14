@@ -6,9 +6,7 @@ import 'chess_engine.dart';
 
 /// Available Stockfish versions for web (all GPL-3.0, downloaded at runtime).
 enum StockfishVersion {
-  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB'),
-  sf18lite('Stockfish 18 Lite (NNUE)', 'https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite-single.js', 3400, '~7MB'),
-  sf18full('Stockfish 18 (NNUE)', 'https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-single.js', 3600, '~113MB');
+  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB');
 
   final String label;
   final String url;

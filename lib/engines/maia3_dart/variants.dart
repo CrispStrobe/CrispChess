@@ -3,8 +3,9 @@
 /// Ported from maia3-js/dist/variants.js (MIT).
 library;
 
+// int32-input models (Safari compat — no BigInt64Array needed)
 const String hfRepoBase =
-    'https://huggingface.co/cemoss17/maia3-onnx/resolve/main';
+    'https://huggingface.co/cstr/maia3-onnx-int32/resolve/main';
 
 /// A Maia3 model variant.
 class Maia3Variant {
@@ -49,24 +50,24 @@ const variants = <String, Maia3Variant>{
     id: '5m',
     alias: '5m',
     displayName: 'Maia3 5M',
-    onnxFile: 'maia3_5m.onnx',
-    url: '$hfRepoBase/maia3_5m.onnx',
+    onnxFile: 'maia3_5m_int32.onnx',
+    url: '$hfRepoBase/maia3_5m_int32.onnx',
     approxBytes: 25000000,
   ),
   '23m': Maia3Variant(
     id: '23m',
     alias: '23m',
     displayName: 'Maia3 23M',
-    onnxFile: 'maia3_23m.onnx',
-    url: '$hfRepoBase/maia3_23m.onnx',
+    onnxFile: 'maia3_23m_int32.onnx',
+    url: '$hfRepoBase/maia3_23m_int32.onnx',
     approxBytes: 92500000,
   ),
   '79m': Maia3Variant(
     id: '79m',
     alias: '79m',
     displayName: 'Maia3 79M',
-    onnxFile: 'maia3_79m.onnx',
-    url: '$hfRepoBase/maia3_79m.onnx',
+    onnxFile: 'maia3_79m_int32.onnx',
+    url: '$hfRepoBase/maia3_79m_int32.onnx',
     approxBytes: 313000000,
   ),
 };
