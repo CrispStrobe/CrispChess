@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import '../chess/chess_game.dart';
+import '../chess/game_tree.dart';
 import '../chess/move_analyzer.dart';
+import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
 
 /// Post-game summary screen showing accuracy, eval chart, and key moments.
-class GameSummaryScreen extends StatelessWidget {
+class GameSummaryScreen extends StatefulWidget {
   final List<String> movesSan;
   final List<double> evalHistory;
   final List<MoveAnnotation> annotations;
   final String gameResult;
   final String? winner;
   final String engineName;
+  /// Game tree for interactive position replay.
+  final GameTree? tree;
 
   const GameSummaryScreen({
     super.key,
@@ -20,14 +24,63 @@ class GameSummaryScreen extends StatelessWidget {
     required this.gameResult,
     this.winner,
     required this.engineName,
+    this.tree,
   });
+
+  @override
+  State<GameSummaryScreen> createState() => _GameSummaryScreenState();
+}
+
+class _GameSummaryScreenState extends State<GameSummaryScreen> {
+  int _selectedMoveIndex = -1; // -1 = starting position
+  List<List<ChessPiece?>>? _previewBoard;
+
+  void _showPosition(int moveIndex) {
+    if (widget.tree == null) return;
+    final mainLine = widget.tree!.root.mainLine;
+    if (moveIndex < 0 || moveIndex >= mainLine.length) {
+      setState(() {
+        _selectedMoveIndex = -1;
+        _previewBoard = _parseBoardFromFen(widget.tree!.root.fen);
+      });
+      return;
+    }
+    final node = mainLine[moveIndex];
+    setState(() {
+      _selectedMoveIndex = moveIndex;
+      _previewBoard = _parseBoardFromFen(node.fen);
+    });
+  }
+
+  List<List<ChessPiece?>> _parseBoardFromFen(String fen) {
+    final result = List.generate(8, (_) => List<ChessPiece?>.filled(8, null));
+    final rows = fen.split(' ')[0].split('/');
+    for (int r = 0; r < 8 && r < rows.length; r++) {
+      int c = 0;
+      for (var ch in rows[r].split('')) {
+        final empty = int.tryParse(ch);
+        if (empty != null) { c += empty; continue; }
+        final color = ch == ch.toUpperCase() ? PieceColor.white : PieceColor.black;
+        final type = switch (ch.toLowerCase()) {
+          'p' => PieceType.pawn, 'n' => PieceType.knight, 'b' => PieceType.bishop,
+          'r' => PieceType.rook, 'q' => PieceType.queen, 'k' => PieceType.king,
+          _ => PieceType.pawn,
+        };
+        if (c < 8) result[r][c] = ChessPiece(type, color);
+        c++;
+      }
+    }
+    return result;
+  }
+
+  String _squareToAlgebraic(int row, int col) =>
+      '${String.fromCharCode(97 + col)}${8 - row}';
 
   @override
   Widget build(BuildContext context) {
     // Calculate accuracy
-    final playerAnnotations = annotations.where((a) {
-      // Even indices are player moves (0-indexed: 0, 2, 4...)
-      final idx = annotations.indexOf(a);
+    final playerAnnotations = widget.annotations.where((a) {
+      final idx = widget.annotations.indexOf(a);
       return idx % 2 == 0;
     }).toList();
 
@@ -72,22 +125,22 @@ class GameSummaryScreen extends StatelessWidget {
         children: [
           // Result
           Card(
-            color: winner != null
-                ? (winner == 'White' ? Colors.blue.shade50 : Colors.orange.shade50)
+            color: widget.winner != null
+                ? (widget.winner == 'White' ? Colors.blue.shade50 : Colors.orange.shade50)
                 : Colors.grey.shade100,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text(gameResult,
+                  Text(widget.gameResult,
                       style: Theme.of(context).textTheme.headlineSmall),
-                  if (winner != null) ...[
+                  if (widget.winner != null) ...[
                     const SizedBox(height: 4),
-                    Text('$winner wins',
+                    Text('${widget.winner} wins',
                         style: Theme.of(context).textTheme.bodyLarge),
                   ],
                   const SizedBox(height: 4),
-                  Text('vs $engineName · ${movesSan.length} moves',
+                  Text('vs ${widget.engineName} · ${widget.movesSan.length} moves',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
@@ -131,7 +184,7 @@ class GameSummaryScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Eval chart
-          if (evalHistory.length > 1)
+          if (widget.evalHistory.length > 1)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -147,7 +200,7 @@ class GameSummaryScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    EvalChart(evals: evalHistory, height: 80),
+                    EvalChart(evals: widget.evalHistory, height: 80),
                   ],
                 ),
               ),
@@ -187,31 +240,104 @@ class GameSummaryScreen extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Move list
+          // Interactive board preview (shown when a move is tapped)
+          if (_previewBoard != null && widget.tree != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.skip_previous, size: 20),
+                          onPressed: () => _showPosition(-1),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          onPressed: _selectedMoveIndex > 0
+                              ? () => _showPosition(_selectedMoveIndex - 1)
+                              : null,
+                        ),
+                        Text('Move ${_selectedMoveIndex + 1}',
+                            style: const TextStyle(fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right, size: 20),
+                          onPressed: _selectedMoveIndex < widget.movesSan.length - 1
+                              ? () => _showPosition(_selectedMoveIndex + 1)
+                              : null,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.skip_next, size: 20),
+                          onPressed: () => _showPosition(widget.movesSan.length - 1),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 200,
+                      child: ChessBoard(
+                        board: _previewBoard!,
+                        whiteToMove: true,
+                        squareToAlgebraic: _squareToAlgebraic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          // Move list (clickable)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Moves',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      const Text('Moves',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      if (widget.tree != null) ...[
+                        const Spacer(),
+                        Text('Tap to view position',
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 4,
                     runSpacing: 2,
                     children: [
-                      for (int i = 0; i < movesSan.length; i++) ...[
+                      for (int i = 0; i < widget.movesSan.length; i++) ...[
                         if (i % 2 == 0)
                           Text('${i ~/ 2 + 1}.',
                               style: TextStyle(
                                   fontSize: 11, color: Colors.grey.shade600)),
-                        Text(movesSan[i],
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: i % 2 == 0
-                                    ? FontWeight.bold
-                                    : FontWeight.normal)),
+                        GestureDetector(
+                          onTap: widget.tree != null ? () => _showPosition(i) : null,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                            decoration: i == _selectedMoveIndex
+                                ? BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(color: Colors.blue, width: 1),
+                                  )
+                                : null,
+                            child: Text(widget.movesSan[i],
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: i == _selectedMoveIndex || i % 2 == 0
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: i == _selectedMoveIndex ? Colors.blue : null,
+                                )),
+                          ),
+                        ),
                       ],
                     ],
                   ),

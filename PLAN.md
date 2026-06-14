@@ -64,7 +64,7 @@
 ### Debrief Screen
 - [x] Post-game summary with accuracy percentage
 - [x] Eval chart — plot evaluation across all moves (green/red fill areas)
-- [ ] Interactive board — tap move to jump to position (TODO)
+- [x] Interactive board — tap move to jump to position with preview board
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [x] "Your best move" card with SAN + eval gain
 - [x] "Biggest mistake" card with SAN + eval loss
@@ -152,7 +152,7 @@
 
 ### Engine Improvements
 - [x] Built-in engine: reverse futility pruning, late move reductions
-- [ ] Pondering (engine thinks during opponent's turn)
+- [x] Pondering (engine analyzes during opponent's turn)
 - [x] Multi-PV analysis (Stockfish MultiPV)
 
 ### AI Coach (BYOK)
@@ -166,14 +166,14 @@
 ### Visual
 - [x] Dark theme with AMOLED black (system/light/dark)
 - [ ] Press-scale tap animations on interactive elements
-- [ ] Premove support (queue move while opponent thinks)
+- [x] Premove support (queue move while opponent thinks)
 - [ ] Decorative background watermark (subtle chess piece, low opacity)
 - [x] SAN notation in move list and status messages
 
 ### UX
 - [x] Onboarding — tips dialog on first launch
 - [x] Keyboard shortcuts (Z=undo, H=hint, N=new, F=flip, A=analysis)
-- [ ] Right-click draw arrows on board (analysis mode)
+- [x] Right-click draw arrows on board (analysis mode)
 - [x] Rate app prompt after 3rd win (non-intrusive snackbar)
 
 ## Phase 13: Internationalization
@@ -193,7 +193,7 @@
 - [ ] Microsoft Store / Snap / Flatpak
 
 ### Sharing
-- [ ] Share game as image (board screenshot)
+- [x] Share game as image (board screenshot via RepaintBoundary)
 - [ ] Share game as animated GIF
 - [ ] Online chess platform API integration (import games, puzzles)
 
@@ -216,7 +216,7 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 ### Multi-PV Display
 - [x] Send `setoption name MultiPV value N` (user-configurable, 1–5)
 - [x] Display top N engine lines as full move sequences with eval + depth
-- [ ] Highlight principal variation on the board (arrows for top line)
+- [x] Highlight principal variation on the board (blue arrow for best move)
 
 ### Multi-Engine Analysis
 - [x] Run 2+ engines simultaneously on the same position
@@ -283,4 +283,4 @@ platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
 - [x] Exclude `ort.min.js.map` (1.3 MB source map) from production deploy
 - [x] Add `Cache-Control` headers for immutable assets (WASM, SVG, JS bundles)
 - [x] Lazy-load ONNX Runtime — only download when Maia3/Lc0 engine is selected
-- [ ] Service worker for PWA offline support
+- [x] Service worker for PWA offline support

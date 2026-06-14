@@ -20,6 +20,7 @@ class ChessBoard extends StatefulWidget {
   final bool flipped;
   final String? lastMoveUci; // e.g. "e2e4" — triggers slide animation
   final BoardAnnotations? annotations; // user-drawn arrows and highlights
+  final GlobalKey? repaintBoundaryKey; // key for screenshot capture
 
   const ChessBoard({
     Key? key,
@@ -38,6 +39,7 @@ class ChessBoard extends StatefulWidget {
     this.flipped = false,
     this.lastMoveUci,
     this.annotations,
+    this.repaintBoundaryKey,
   }) : super(key: key);
 
   @override
@@ -160,6 +162,7 @@ class _ChessBoardState extends State<ChessBoard>
           border: Border.all(color: Colors.brown, width: 2),
         ),
         child: RepaintBoundary(
+          key: widget.repaintBoundaryKey,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final boardSize = constraints.maxWidth;

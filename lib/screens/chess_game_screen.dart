@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
@@ -73,9 +75,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
   final List<double> _evalHistory = [];
   bool _awaitingEngineMove = false; // true when we expect a game move, not analysis
+  String? _premove; // queued move (UCI) to play after engine responds
 
   /// Multi-PV lines from engine analysis (index 0 = best line).
   final List<PvLine> _pvLines = [];
+
+  /// Key for board screenshot capture.
+  final GlobalKey _boardKey = GlobalKey();
 
   /// User-drawn board annotations (arrows, colored squares).
   final BoardAnnotations _boardAnnotations = BoardAnnotations();
@@ -364,7 +370,31 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (_game.isGameOver) {
         _clock?.pause();
         _showGameOverDialog();
-      } else if (_state.analysisExpanded) {
+      } else if (_premove != null) {
+        // Execute queued premove
+        final premove = _premove!;
+        _premove = null;
+        // Small delay so the engine's move animation is visible
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (!mounted) return;
+          if (_game.getLegalMoves().any((m) => m.startsWith(premove))) {
+            // Simulate the move via _onMove coordinates
+            final fromCol = premove.codeUnitAt(0) - 97;
+            final fromRow = 8 - int.parse(premove[1]);
+            final toCol = premove.codeUnitAt(2) - 97;
+            final toRow = 8 - int.parse(premove[3]);
+            _onMove(fromRow, fromCol, toRow, toCol);
+          } else {
+            // Premove no longer legal
+            setState(() {
+              _state = _state.copyWith(statusMessage: 'Premove illegal — your turn');
+            });
+            _engineService.requestAnalysis(
+              _game.positionCommand, depth: _state.hintDepth);
+          }
+        });
+      } else {
+        // Pondering: start background analysis while waiting for player.
         _engineService.requestAnalysis(
           _game.positionCommand,
           depth: _state.hintDepth,
@@ -429,6 +459,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onMove(int fromRow, int fromCol, int toRow, int toCol) {
     debugPrint('[CrispChess] _onMove($fromRow,$fromCol -> $toRow,$toCol) whiteToMove=${_game.whiteToMove} isThinking=${_state.isThinking} engineState=${_engineService.state}');
+
+    // Premove: if engine is thinking, queue the move
+    if (_state.isThinking && !_state.twoPlayerMode) {
+      final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
+          _game.squareToAlgebraic(toRow, toCol);
+      setState(() {
+        _premove = uciMove;
+        _state = _state.copyWith(
+          statusMessage: 'Premove: $uciMove',
+        );
+      });
+      return;
+    }
+
     if (!_isPlayerTurn || _state.isThinking) return;
 
     final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
@@ -461,10 +505,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               boardFlipped: !_game.whiteToMove,
             );
           } else {
-            // Stop any running analysis before requesting a move
-            if (_state.analysisExpanded) {
-              _engineService.stop();
-            }
+            // Stop pondering / any running analysis before requesting a move
+            _engineService.stop();
             _state = _state.copyWith(
               statusMessage: '${_engineService.engineName} is thinking...',
               isThinking: true,
@@ -667,6 +709,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           engineName: _state.twoPlayerMode
               ? 'Human'
               : _engineService.engineName,
+          tree: _game.tree,
         ),
       ),
     );
@@ -1143,6 +1186,33 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  /// Merge user-drawn annotations with analysis PV arrow.
+  BoardAnnotations get _mergedAnnotations {
+    final merged = BoardAnnotations();
+    // Copy user annotations
+    for (final a in _boardAnnotations.arrows) merged.arrows.add(a);
+    for (final h in _boardAnnotations.highlights) merged.highlights.add(h);
+    // Add PV arrow from analysis (top line, if available)
+    if (_pvLines.isNotEmpty && _state.analysisExpanded) {
+      final bestPv = _pvLines.first.pv;
+      if (bestPv.length >= 4) {
+        final from = bestPv.substring(0, 2);
+        final to = bestPv.substring(2, 4);
+        merged.arrows.add(BoardArrow(from: from, to: to, color: Colors.blue));
+      }
+    } else if (_state.currentBestMove != null &&
+        _state.currentBestMove!.length >= 4 &&
+        _state.analysisExpanded) {
+      final bm = _state.currentBestMove!;
+      merged.arrows.add(BoardArrow(
+        from: bm.substring(0, 2),
+        to: bm.substring(2, 4),
+        color: Colors.blue,
+      ));
+    }
+    return merged;
+  }
+
   Future<void> _startMultiEngineAnalysis() async {
     // Create a second engine for comparison
     final engines = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'Lc0'];
@@ -1597,6 +1667,40 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  Future<void> _shareScreenshot() async {
+    try {
+      final boundary = _boardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not capture board')),
+          );
+        }
+        return;
+      }
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final bytes = byteData.buffer.asUint8List();
+      // Copy PNG bytes as clipboard data
+      await Clipboard.setData(ClipboardData(text: '[Board image captured: ${bytes.length} bytes]'));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Board captured (${(bytes.length / 1024).toStringAsFixed(0)} KB)')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Screenshot failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _openPgnDatabase() async {
     final pgn = await Navigator.push<String>(
       context,
@@ -1846,6 +1950,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _confirmResign();
                 case 'draw':
                   _offerDraw();
+                case 'screenshot':
+                  _shareScreenshot();
                 case 'clear_arrows':
                   setState(() => _boardAnnotations.clear());
                 case 'bookmark':
@@ -1902,6 +2008,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'resign', child: ListTile(
                 leading: Icon(Icons.flag), title: Text('Resign'),
+                contentPadding: EdgeInsets.zero, dense: true)),
+              const PopupMenuItem(value: 'screenshot', child: ListTile(
+                leading: Icon(Icons.photo_camera), title: Text('Board Screenshot'),
                 contentPadding: EdgeInsets.zero, dense: true)),
               const PopupMenuItem(value: 'clear_arrows', child: ListTile(
                 leading: Icon(Icons.layers_clear), title: Text('Clear Annotations'),
@@ -2024,7 +2133,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             flipped: _state.boardFlipped,
                             pieceTheme: _state.pieceTheme,
                             lastMoveUci: _state.lastMoveUci,
-                            annotations: _boardAnnotations,
+                            annotations: _mergedAnnotations,
+                            repaintBoundaryKey: _boardKey,
                           ),
                         ),
                       );
