@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, LogicalKeyboardKey;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import '../chess/chess_game.dart';
@@ -382,6 +382,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             _state = _state.copyWith(
               statusMessage: '$turn to move',
               isThinking: false,
+              boardFlipped: !_game.whiteToMove, // Auto-flip for pass-and-play
             );
           } else {
             _state = _state.copyWith(
@@ -1145,7 +1146,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return KeyboardListener(
+      focusNode: FocusNode()..requestFocus(),
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
       appBar: AppBar(
         titleSpacing: 8,
         title: Row(
@@ -1422,7 +1427,27 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ),
         ],
       ),
+    ),
     );
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.keyZ ||
+        key == LogicalKeyboardKey.arrowLeft) {
+      if (_state.allowUndo && !_state.isThinking) _undoMove();
+    } else if (key == LogicalKeyboardKey.keyH ||
+        key == LogicalKeyboardKey.space) {
+      if (_isPlayerTurn && !_state.isThinking) _getHint();
+    } else if (key == LogicalKeyboardKey.keyN) {
+      _confirmNewGame();
+    } else if (key == LogicalKeyboardKey.keyF) {
+      setState(() =>
+          _state = _state.copyWith(boardFlipped: !_state.boardFlipped));
+    } else if (key == LogicalKeyboardKey.keyA) {
+      _toggleAnalysis();
+    }
   }
 
   Widget _buildMoveHistory() {
