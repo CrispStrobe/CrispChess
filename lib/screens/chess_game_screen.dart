@@ -204,6 +204,33 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final piece = _game.board[row][col];
 
     if (_state.selectedRow != null && _state.selectedCol != null) {
+      // If tapping same square, deselect
+      if (_state.selectedRow == row && _state.selectedCol == col) {
+        setState(() {
+          _state = _state.copyWith(
+            selectedRow: null,
+            selectedCol: null,
+            validMoves: const [],
+          );
+        });
+        return;
+      }
+
+      // If tapping another own piece, reselect it
+      if (piece != null && piece.color == _playerColor) {
+        setState(() {
+          _state = _state.copyWith(
+            selectedRow: row,
+            selectedCol: col,
+            validMoves: _state.showValidMoves
+                ? _getValidMovesForSquare(row, col)
+                : const [],
+          );
+        });
+        return;
+      }
+
+      // Otherwise try to move
       _onMove(_state.selectedRow!, _state.selectedCol!, row, col);
       setState(() {
         _state = _state.copyWith(
@@ -228,16 +255,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _onMove(int fromRow, int fromCol, int toRow, int toCol) {
     debugPrint('[CrispChess] _onMove($fromRow,$fromCol -> $toRow,$toCol) whiteToMove=${_game.whiteToMove} isThinking=${_state.isThinking} engineState=${_engineService.state}');
     if (!_isPlayerTurn || _state.isThinking) return;
-
-    if (_engineService.state != EngineState.ready) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Engine not ready. Please wait.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
 
     final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
         _game.squareToAlgebraic(toRow, toCol);

@@ -359,8 +359,8 @@ class _ChessSquare extends StatelessWidget {
               bgColor = Colors.yellow.withValues(alpha: 0.5);
             } else if (isLastMove) {
               bgColor = isLight
-                  ? Colors.amber.withValues(alpha: 0.35)
-                  : Colors.amber.withValues(alpha: 0.45);
+                  ? const Color(0xFFF0D9B5) // subtle warm tint on light
+                  : const Color(0xFFB58863); // subtle warm tint on dark
             } else {
               bgColor = isLight ? Colors.brown[200] : Colors.brown[400];
             }
