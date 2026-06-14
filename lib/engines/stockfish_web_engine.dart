@@ -67,8 +67,13 @@ class StockfishEngine implements ChessEngine {
 
     try {
       debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
-      _worker = web.Worker(sfVersion.url.toJS);
-      debugPrint('[StockfishWeb] Worker created');
+      // Web Workers can't load cross-origin scripts directly.
+      // Fetch the script, create a Blob URL, then create the Worker.
+      final response = await web.window.fetch(sfVersion.url.toJS).toDart;
+      final blob = await (response as web.Response).blob().toDart;
+      final blobUrl = web.URL.createObjectURL(blob);
+      _worker = web.Worker(blobUrl);
+      debugPrint('[StockfishWeb] Worker created from blob');
 
       final readyCompleter = Completer<void>();
 
