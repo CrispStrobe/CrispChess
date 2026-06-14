@@ -88,8 +88,9 @@ class Lc0Weights {
 class Lc0Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final Lc0Weights weights;
+  final String? variantId;
 
-  Lc0Engine({this.weights = Lc0Weights.maia1900});
+  Lc0Engine({this.weights = Lc0Weights.maia1900, this.variantId});
 
   @override
   String get name => 'Lc0 (${weights.name})';

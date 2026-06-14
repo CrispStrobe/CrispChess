@@ -1,6 +1,6 @@
 import 'chess_engine.dart';
 import 'dart_engine.dart';
-import 'lc0_engine.dart';
+import 'lc0_engine.dart' if (dart.library.js_interop) 'lc0_web_engine.dart';
 
 // Conditional imports: web gets *_web_engine.dart, native gets the stub/FFI version.
 // Both files export the same class names.
@@ -37,7 +37,7 @@ ChessEngine createEngine(String name, {
         playerElo: playerElo ?? 1500,
       ); // MIT (pure Dart)
     case 'Lc0':
-      return Lc0Engine(); // GPL-3.0, downloaded separately
+      return Lc0Engine(variantId: maia3Variant); // GPL-3.0, downloaded separately
     default:
       return DartEngine(); // MIT, built-in
   }

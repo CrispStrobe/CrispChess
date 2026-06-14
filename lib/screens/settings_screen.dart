@@ -138,11 +138,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     engines.add(_EngineOption(
       name: 'Lc0',
       description: kIsWeb
-          ? 'MCTS + neural net (not available on web)'
+          ? 'MCTS + Maia neural net (ONNX Runtime Web)'
           : 'MCTS + neural net (downloaded separately)',
-      elo: '~1100–3300',
+      elo: '~1100–1900',
       license: 'GPL-3.0',
-      available: !kIsWeb, // Mobile/desktop only
+      available: true, // Web ONNX + native
       gplNotice: true,
     ));
 
