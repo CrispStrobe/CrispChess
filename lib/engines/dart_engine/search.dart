@@ -114,6 +114,16 @@ class AlphaBetaSearch {
 
     if (depth <= 0) return _quiescence(alpha, beta, ply);
 
+    // Reverse futility pruning: if static eval is far above beta,
+    // prune — the position is so good no move can make it worse.
+    if (depth <= 3 && !_game.in_check && ply > 0) {
+      final staticEval = evaluate(_game);
+      final margin = 120 * depth; // centipawns margin per depth
+      if (staticEval - margin >= beta) {
+        return staticEval; // Prune
+      }
+    }
+
     // TT lookup — use cheap hash
     final hash = _quickHash();
     final ttEntry = _tt.probe(hash);
@@ -135,14 +145,30 @@ class AlphaBetaSearch {
     String? bestMove;
     int bestScore = -999999;
     final origAlpha = alpha;
+    int moveIndex = 0;
 
     for (final move in moves) {
       if (_stopped) return 0;
 
+      // Check if capture before making the move
+      final isCapture = _game.get(move.toAlgebraic) != null;
       _makeMove(move);
       _nodes++;
-      final score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
+
+      int score;
+      // Late Move Reductions: search later quiet moves at reduced depth
+      if (moveIndex >= 4 && depth >= 3 && !_game.in_check && !isCapture) {
+        // Reduced search first
+        score = -_alphaBeta(depth - 2, -beta, -alpha, ply + 1);
+        // Re-search at full depth if it looks promising
+        if (score > alpha) {
+          score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
+        }
+      } else {
+        score = -_alphaBeta(depth - 1, -beta, -alpha, ply + 1);
+      }
       _game.undo();
+      moveIndex++;
 
       if (score > bestScore) {
         bestScore = score;

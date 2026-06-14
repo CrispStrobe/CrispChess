@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -66,24 +67,26 @@ class AboutScreen extends StatelessWidget {
           _section(Icons.memory, 'Chess Engines', Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              _EngineInfo('CrispEngine', '~1800 ELO', 'MIT',
-                  'Built-in pure Dart engine. Alpha-beta with transposition table. '
-                  'Works on all platforms including web (WASM).'),
+              _EngineInfo('Built-in', '~1800 ELO', 'MIT',
+                  'Pure Dart engine. Alpha-beta + TT + quiescence + '
+                  'reverse futility pruning + LMR. Works everywhere.'),
               SizedBox(height: 12),
-              _EngineInfo('Frozenight', '~2960 ELO', 'MIT / Apache-2.0',
-                  'NNUE-based Rust engine by MinusKelvin. '
-                  'Available on native platforms via FFI.'),
+              _EngineInfo('Maia3 / Maia3 Dart', '~1500-2500 ELO', 'MIT',
+                  'Neural network trained on human games. '
+                  'ELO-conditioned: plays like a human at your rating. '
+                  '3 model sizes (5M/23M/79M).'),
               SizedBox(height: 12),
-              _EngineInfo('Maia3', 'ELO-adaptive', 'MIT',
-                  'Neural network that predicts human-like chess moves. '
-                  'Trained on millions of real human games. '
-                  'Set your ELO and it plays like a human at that level. '
-                  '~21MB model downloaded on first use.'),
+              _EngineInfo('Lc0', '~1100-1900 ELO', 'GPL-3.0',
+                  'MCTS + Maia neural network. AlphaZero-style search. '
+                  'Downloaded at runtime, never compiled into app.'),
               SizedBox(height: 12),
-              _EngineInfo('Stockfish', '~3600 ELO', 'GPL-3.0',
-                  'Optional download — never compiled into this app. '
-                  'Runs via Web Worker (web), JavaScriptCore (iOS), '
-                  'or separate process (desktop). App stays MIT.'),
+              _EngineInfo('Frozenight', '~3226 ELO', 'MIT / Apache-2.0',
+                  'NNUE-based Rust engine. Compiled to WASM for web, '
+                  'native FFI for desktop/mobile.'),
+              SizedBox(height: 12),
+              _EngineInfo('Stockfish', '~2800-3400 ELO', 'GPL-3.0',
+                  'Downloaded at runtime — never compiled into app. '
+                  'Runs as Web Worker or separate process. App stays MIT.'),
             ],
           )),
 
@@ -109,9 +112,29 @@ class AboutScreen extends StatelessWidget {
             'of this software.',
           )),
 
-          _section(Icons.code, 'Source Code', const Text(
-            'github.com/CrispStrobe/CrispChess\n\n'
-            'Contributions welcome. Open an issue first for major changes.',
+          _section(Icons.code, 'Source Code', Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(const ClipboardData(
+                      text: 'https://github.com/CrispStrobe/CrispChess'));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('URL copied to clipboard')),
+                  );
+                },
+                child: Text(
+                  'https://github.com/CrispStrobe/CrispChess',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Contributions welcome. Open an issue first for major changes.'),
+            ],
           )),
 
           const SizedBox(height: 4),
