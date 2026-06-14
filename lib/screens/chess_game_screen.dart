@@ -632,6 +632,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           playAsBlack: _state.playAsBlack,
           maia3Variant: _maia3Variant,
           animationSpeed: _state.animationSpeed,
+          pieceTheme: _state.pieceTheme,
+          hintEngine: _state.hintEngine,
           timeControl: _state.timeControl,
         ),
       ),
@@ -937,7 +939,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
+                            color: Colors.green,
                           ),
                         ),
                       ),
@@ -958,13 +960,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   Color _annotationColor(MoveQuality q) {
     return switch (q) {
-      MoveQuality.brilliant => Colors.cyan.shade50,
-      MoveQuality.good => Colors.green.shade50,
-      MoveQuality.interesting => Colors.blue.shade50,
-      MoveQuality.neutral => Colors.grey.shade100,
-      MoveQuality.dubious => Colors.yellow.shade50,
-      MoveQuality.mistake => Colors.orange.shade50,
-      MoveQuality.blunder => Colors.red.shade50,
+      MoveQuality.brilliant => Colors.cyan.withValues(alpha: 0.15),
+      MoveQuality.good => Colors.green.withValues(alpha: 0.15),
+      MoveQuality.interesting => Colors.blue.withValues(alpha: 0.15),
+      MoveQuality.neutral => Colors.grey.withValues(alpha: 0.15),
+      MoveQuality.dubious => Colors.yellow.withValues(alpha: 0.15),
+      MoveQuality.mistake => Colors.orange.withValues(alpha: 0.15),
+      MoveQuality.blunder => Colors.red.withValues(alpha: 0.15),
     };
   }
 

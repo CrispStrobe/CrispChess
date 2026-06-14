@@ -9,6 +9,8 @@ class SettingsScreen extends StatefulWidget {
   final bool playAsBlack;
   final String maia3Variant;
   final int animationSpeed;
+  final String pieceTheme;
+  final String hintEngine;
   final TimeControl timeControl;
 
   const SettingsScreen({
@@ -19,6 +21,8 @@ class SettingsScreen extends StatefulWidget {
     this.playAsBlack = false,
     this.maia3Variant = '5m',
     this.animationSpeed = 2,
+    this.pieceTheme = 'chessnut',
+    this.hintEngine = 'same',
     this.timeControl = TimeControl.unlimited,
   }) : super(key: key);
 
@@ -66,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _playAsBlack = widget.playAsBlack;
     _maia3Variant = widget.maia3Variant;
     _animationSpeed = widget.animationSpeed;
+    _pieceTheme = widget.pieceTheme;
+    _hintEngine = widget.hintEngine;
     _timeControl = widget.timeControl;
   }
 
