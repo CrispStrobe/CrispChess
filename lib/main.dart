@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'screens/chess_game_screen.dart';
 
 void main() {
@@ -47,12 +46,14 @@ class _CrispChessAppState extends State<CrispChessApp> {
     return MaterialApp(
       title: 'CrispChess',
       localizationsDelegates: const [
-        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: AppLocalizations.supportedLocales,
+      supportedLocales: const [
+        Locale('en'),
+        Locale('de'),
+      ],
       theme: ThemeData(
         colorSchemeSeed: Colors.brown,
         brightness: Brightness.light,
