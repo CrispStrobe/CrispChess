@@ -569,12 +569,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       barrierDismissible: false,
       builder: (context) {
         final winner = _game.winner;
+        final explanation = _game.gameOverExplanation;
         return AlertDialog(
           title: Text(_game.gameOverReason),
           content: Text(
             winner != null
                 ? '$winner wins the game!'
-                : 'The game ended in a draw.',
+                : explanation.isNotEmpty
+                    ? explanation
+                    : 'The game ended in a draw.',
           ),
           actions: [
             TextButton(

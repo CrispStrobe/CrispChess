@@ -216,6 +216,22 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     return 'Game Over';
   }
 
+  /// Detailed explanation for the game-over reason.
+  String get gameOverExplanation {
+    if (_game.in_stalemate) {
+      return 'The side to move has no legal moves but is not in check. '
+             'This is a draw. To win, you need to deliver checkmate — '
+             'trapping the king while also putting it in check.';
+    }
+    if (_game.insufficient_material) {
+      return 'Neither side has enough pieces to force checkmate.';
+    }
+    if (_game.in_threefold_repetition) {
+      return 'The same position occurred three times.';
+    }
+    return '';
+  }
+
   String? get winner {
     if (_drawAgreed || _game.in_stalemate || _game.in_draw) return null;
     if (_resigned) {
