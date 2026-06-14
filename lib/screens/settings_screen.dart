@@ -431,8 +431,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       items: const [
                         DropdownMenuItem(value: 'same', child: Text('Same as opponent', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Built-in', child: Text('Built-in', style: TextStyle(fontSize: 13))),
-                        DropdownMenuItem(value: 'Stockfish', child: Text('Stockfish', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Maia3', child: Text('Maia3', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Maia3 Dart', child: Text('Maia3 Dart', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Lc0', child: Text('Lc0', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Frozenight', child: Text('Frozenight', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Stockfish', child: Text('Stockfish', style: TextStyle(fontSize: 13))),
                       ],
                     ),
                   ),

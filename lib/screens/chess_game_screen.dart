@@ -798,8 +798,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: eval >= 0
-                              ? Colors.blue.shade100
-                              : Colors.orange.shade100,
+                              ? Colors.blue.withValues(alpha: 0.2)
+                              : Colors.orange.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: Text(
@@ -810,8 +810,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: eval >= 0
-                                ? Colors.blue.shade700
-                                : Colors.orange.shade700,
+                                ? Colors.blue
+                                : Colors.orange,
                           ),
                         ),
                       );
@@ -1356,7 +1356,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       color: _engineService.state == EngineState.initializing
-                          ? Colors.orange.shade700
+                          ? Colors.orange
                           : Colors.grey.shade600,
                     ),
                   ),
@@ -1372,14 +1372,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   margin: const EdgeInsets.only(right: 4),
                   decoration: BoxDecoration(
-                    color: eval >= 0 ? Colors.blue.shade100 : Colors.orange.shade100,
+                    color: eval >= 0 ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text(
                     eval >= 0 ? '+${eval.toStringAsFixed(1)}' : eval.toStringAsFixed(1),
                     style: TextStyle(
                       fontSize: 11, fontWeight: FontWeight.bold,
-                      color: eval >= 0 ? Colors.blue.shade700 : Colors.orange.shade700,
+                      color: eval >= 0 ? Colors.blue : Colors.orange,
                     ),
                   ),
                 );
@@ -1629,8 +1629,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: _game.moveHistorySan.isEmpty
           ? const Center(

@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 import 'chess_engine.dart';
 
+@JS('cachedFetch')
+external JSPromise<JSObject> _cachedFetch(JSString url, JSString cacheName);
+
 /// Available Stockfish versions for web (all GPL-3.0, downloaded at runtime).
 enum StockfishVersion {
   sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB'),
@@ -67,8 +70,8 @@ class StockfishEngine implements ChessEngine {
     try {
       debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
 
-      // Fetch JS source, create blob URL for same-origin Worker loading
-      final jsResponse = await web.window.fetch(sfVersion.url.toJS).toDart;
+      // Fetch JS source (cached), create blob URL for same-origin Worker loading
+      final jsResponse = await _cachedFetch(sfVersion.url.toJS, 'crispchess-engines'.toJS).toDart;
       final jsBlob = await (jsResponse as web.Response).blob().toDart;
       final blobUrl = web.URL.createObjectURL(jsBlob);
       _worker = web.Worker(blobUrl.toJS);
