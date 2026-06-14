@@ -145,6 +145,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (_game.isGameOver) {
         _clock?.pause();
         _showGameOverDialog();
+      } else if (_state.analysisExpanded) {
+        _engineService.requestAnalysis(
+          _game.positionCommand,
+          depth: _state.hintDepth,
+        );
       }
     }
   }
@@ -421,6 +426,96 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     super.dispose();
   }
 
+  void _toggleAnalysis() {
+    final expanding = !_state.analysisExpanded;
+    setState(() {
+      _state = _state.copyWith(analysisExpanded: expanding);
+    });
+    if (expanding && !_state.isThinking) {
+      _engineService.requestAnalysis(
+        _game.positionCommand,
+        depth: _state.hintDepth,
+      );
+    } else if (!expanding) {
+      _engineService.stop();
+    }
+  }
+
+  Widget _buildAnalysisPanel() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade50,
+        border: Border(
+          top: BorderSide(color: Colors.blueGrey.shade200),
+          bottom: BorderSide(color: Colors.blueGrey.shade200),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Eval score
+          ValueListenableBuilder<double?>(
+            valueListenable: _evalNotifier,
+            builder: (context, eval, _) {
+              final display = eval != null
+                  ? (eval >= 0 ? '+${eval.toStringAsFixed(2)}' : eval.toStringAsFixed(2))
+                  : '...';
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: eval != null && eval >= 0
+                      ? Colors.blue.shade100
+                      : eval != null
+                          ? Colors.orange.shade100
+                          : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(display,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          // Depth
+          ValueListenableBuilder<int>(
+            valueListenable: _depthNotifier,
+            builder: (context, depth, _) {
+              return Text('d=$depth',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600));
+            },
+          ),
+          const SizedBox(width: 8),
+          // Best move
+          Expanded(
+            child: Text(
+              _state.currentBestMove != null
+                  ? 'Best: ${_state.currentBestMove}'
+                  : 'Analyzing...',
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Refresh button
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Re-analyze',
+            onPressed: _state.isThinking
+                ? null
+                : () {
+                    _engineService.requestAnalysis(
+                      _game.positionCommand,
+                      depth: _state.hintDepth,
+                    );
+                  },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _playMoveSound(String uci) {
     if (_game.inCheck) {
       _sound.play(ChessSound.check);
@@ -615,6 +710,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             tooltip: 'Hint',
             onPressed: (!_isPlayerTurn || _state.isThinking) ? null : _getHint,
           ),
+          IconButton(
+            icon: Icon(
+              _state.analysisExpanded ? Icons.analytics : Icons.analytics_outlined,
+              size: 20,
+              color: _state.analysisExpanded ? Colors.blue : null,
+            ),
+            tooltip: 'Analyze',
+            onPressed: _toggleAnalysis,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
             onSelected: (value) {
@@ -713,6 +817,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _state.playAsBlack ? _clock!.black : _clock!.white,
               isOpponent: false,
             ),
+          // Analysis panel (compact toggle)
+          if (_state.analysisExpanded)
+            _buildAnalysisPanel(),
           // Move history at bottom
           ListenableBuilder(
             listenable: _game,
