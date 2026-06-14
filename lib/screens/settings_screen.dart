@@ -501,7 +501,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // About
           Card(
-            color: Colors.grey.shade50,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -510,7 +509,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Row(
                     children: [
                       Icon(Icons.info_outline,
-                          size: 20, color: Colors.grey.shade700),
+                          size: 20, color: Theme.of(context).colorScheme.onSurface),
                       const SizedBox(width: 8),
                       const Text('About CrispChess',
                           style: TextStyle(

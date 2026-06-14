@@ -20,6 +20,7 @@ import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
 import '../chess/xp_system.dart';
+import '../main.dart' show themeNotifier;
 import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
@@ -662,13 +663,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _engineService.switchEngine(newEngine);
       }
 
-      // Apply theme if changed
+      // Apply theme immediately
       final themeMode = result['themeMode'] as String?;
       if (themeMode != null) {
-        _prefs.init().then((_) async {
-          final sp = await SharedPreferences.getInstance();
-          await sp.setString('themeMode', themeMode);
+        SharedPreferences.getInstance().then((sp) {
+          sp.setString('themeMode', themeMode);
         });
+        themeNotifier.value = switch (themeMode) {
+          'dark' => ThemeMode.dark,
+          'light' => ThemeMode.light,
+          _ => ThemeMode.system,
+        };
       }
 
       // Persist all preferences
