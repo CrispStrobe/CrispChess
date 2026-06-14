@@ -48,6 +48,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
   final List<double> _evalHistory = [];
+  bool _awaitingEngineMove = false; // true when we expect a game move, not analysis
 
   @override
   void initState() {
@@ -179,15 +180,18 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           });
         }
       case BestMoveEvent(:final move):
-        debugPrint('[CrispChess] Best move: $move');
+        debugPrint('[CrispChess] Best move: $move (awaiting=$_awaitingEngineMove, hint=${_state.waitingForHint}, analysis=${_state.analysisExpanded})');
         if (_state.waitingForHint) {
           _handleHintResponse(move);
-        } else {
-          // Don't guard on isThinking — the StateChangeEvent(ready) may
-          // arrive before BestMoveEvent due to the stateNotifier firing
-          // synchronously inside bestMove(), while BestMoveEvent is added
-          // to the stream after bestMove() returns.
+        } else if (_awaitingEngineMove) {
+          _awaitingEngineMove = false;
           _makeEngineMove(move);
+        } else {
+          // Analysis or stray event — just update display, don't play
+          debugPrint('[CrispChess] Treating as analysis result (not a game move)');
+          setState(() {
+            _state = _state.copyWith(currentBestMove: move);
+          });
         }
       case StateChangeEvent(:final state):
         debugPrint('[CrispChess] Engine state: $state');
@@ -402,12 +406,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               boardFlipped: !_game.whiteToMove,
             );
           } else {
+            // Stop any running analysis before requesting a move
+            if (_state.analysisExpanded) {
+              _engineService.stop();
+            }
             _state = _state.copyWith(
               statusMessage: '${_engineService.engineName} is thinking...',
               isThinking: true,
             );
             _requestEngineMove();
-            // Start pondering for the next move (after engine responds)
           }
         }
       });
@@ -425,6 +432,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _requestEngineMove() {
     debugPrint('[CrispChess] Requesting engine move: skill=${_state.strengthLevel}');
+    _awaitingEngineMove = true;
     _engineService.requestMove(
       _game.positionCommand,
       skillLevel: _state.strengthLevel,
@@ -475,6 +483,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _depthNotifier.value = 0;
     _evalHistory.clear();
     _prefs.clearSavedGame();
+    _awaitingEngineMove = false;
     _clock?.dispose();
     if (!_state.timeControl.isUnlimited) {
       _clock = ChessClock(timeControl: _state.timeControl);
@@ -731,12 +740,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final annotations = _game.annotations;
     final lastAnnotation = annotations.isNotEmpty ? annotations.last : null;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade300),
-          bottom: BorderSide(color: Colors.grey.shade300),
+          top: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+          bottom: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
         ),
       ),
       child: Column(
@@ -748,13 +760,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 children: [
-                  Icon(Icons.analytics, size: 16, color: Colors.blue.shade700),
+                  Icon(Icons.analytics, size: 16, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text('Analysis',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: Colors.blue.shade700)),
+                          color: theme.colorScheme.primary)),
                   const Spacer(),
                   // Eval badge (always visible)
                   ValueListenableBuilder<double?>(
@@ -811,20 +823,35 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
           ),
 
-          // Best move + refresh
+          // Best move + depth + refresh
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               children: [
+                // Best move
                 Expanded(
-                  child: Text(
-                    _state.currentBestMove != null
-                        ? 'Best: ${_state.currentBestMove}'
-                        : _engineService.state == EngineState.ready
-                            ? 'Tap refresh to analyze'
-                            : 'Engine loading...',
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _state.currentBestMove != null
+                            ? 'Best: ${_state.currentBestMove}'
+                            : _engineService.state == EngineState.ready
+                                ? 'Tap refresh to analyze'
+                                : 'Engine loading...',
+                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      ValueListenableBuilder<int>(
+                        valueListenable: _depthNotifier,
+                        builder: (context, depth, _) {
+                          if (depth == 0) return const SizedBox.shrink();
+                          return Text('Depth: $depth',
+                              style: TextStyle(fontSize: 10,
+                                  color: theme.textTheme.bodySmall?.color));
+                        },
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
