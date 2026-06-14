@@ -48,9 +48,10 @@ async function maia3OnnxLoad(modelUrl) {
     modelBytes = new Uint8Array(await response.arrayBuffer());
   }
 
+  // Try webgl first (no WASM memory conflict with Flutter), fall back to wasm
   maia3OnnxSession = await globalThis.ort.InferenceSession.create(
     modelBytes.buffer,
-    { executionProviders: ['wasm'] }
+    { executionProviders: ['webgl', 'wasm'] }
   );
   console.log('[Maia3ONNX] Session ready');
 }

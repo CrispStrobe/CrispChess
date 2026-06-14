@@ -24,10 +24,10 @@ async function maia3Load(variant, onProgress) {
     }
 
     // Configure ONNX Runtime for browser
+    // Use webgl backend to avoid WASM memory conflict with Flutter WASM
     if (globalThis.ort.env) {
       globalThis.ort.env.wasm.numThreads = 1;
       globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
-      globalThis.ort.env.wasm.proxy = true;
     }
 
     if (typeof globalThis.Maia3Class === 'undefined') {
@@ -38,6 +38,8 @@ async function maia3Load(variant, onProgress) {
     console.log('[Maia3] Creating instance (variant: ' + v + ')');
     maia3Instance = new globalThis.Maia3Class({
       variant: v,
+      // Try webgl first (no WASM memory conflict), fall back to wasm
+      executionProviders: ['webgl', 'wasm'],
       onProgress: (loaded, total) => {
         console.log('[Maia3] Model: ' + Math.round(loaded / total * 100) + '%');
       },
