@@ -19,6 +19,7 @@ import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
 import 'about_screen.dart';
+import 'game_summary_screen.dart';
 import 'puzzle_screen.dart';
 import 'settings_screen.dart';
 
@@ -445,13 +446,38 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _newGame();
+                _showGameSummary();
+              },
+              child: const Text('Review'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _confirmNewGame();
               },
               child: const Text('New Game'),
             ),
           ],
         );
       },
+    );
+  }
+
+  void _showGameSummary() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GameSummaryScreen(
+          movesSan: _game.moveHistorySan,
+          evalHistory: List.unmodifiable(_evalHistory),
+          annotations: _game.annotations,
+          gameResult: _game.gameOverReason,
+          winner: _game.winner,
+          engineName: _state.twoPlayerMode
+              ? 'Human'
+              : _engineService.engineName,
+        ),
+      ),
     );
   }
 
