@@ -68,6 +68,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool get _isMaiaEngine =>
       _selectedEngine == 'Maia3' || _selectedEngine == 'Maia3 Dart';
+  bool get _isStockfish => _selectedEngine == 'Stockfish';
+  bool get _isLc0 => _selectedEngine == 'Lc0';
 
   List<_EngineOption> get _availableEngines {
     final engines = <_EngineOption>[
@@ -259,6 +261,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() => _maia3Variant = value!),
                     title: Text(name, style: const TextStyle(fontSize: 14)),
                     subtitle: Text('$size — $elo',
+                        style: const TextStyle(fontSize: 12)),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+
+          // Stockfish version selector
+          if (_isStockfish && kIsWeb) ...[
+            const SizedBox(height: 16),
+            Text('Stockfish Version',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  ('sf10', 'Stockfish 10', '~1MB', '~2800 ELO'),
+                  ('sf18lite', 'Stockfish 18 Lite (NNUE)', '~7MB', '~3400 ELO'),
+                  ('sf18full', 'Stockfish 18 Full (NNUE)', '~113MB', '~3600 ELO'),
+                ].map((v) {
+                  final (id, name, size, elo) = v;
+                  return RadioListTile<String>(
+                    value: id,
+                    groupValue: _maia3Variant, // reuse variant field
+                    onChanged: (value) =>
+                        setState(() => _maia3Variant = value!),
+                    title: Text(name, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text('$size — $elo',
+                        style: const TextStyle(fontSize: 12)),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+
+          // Lc0 Maia weight selector
+          if (_isLc0) ...[
+            const SizedBox(height: 16),
+            Text('Maia Weight (ELO level)',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  ('1100', 'Maia 1100', '~3.5MB', 'Beginner'),
+                  ('1300', 'Maia 1300', '~3.5MB', 'Casual'),
+                  ('1500', 'Maia 1500', '~3.5MB', 'Intermediate'),
+                  ('1700', 'Maia 1700', '~3.5MB', 'Advanced'),
+                  ('1900', 'Maia 1900', '~3.5MB', 'Expert'),
+                ].map((v) {
+                  final (id, name, size, level) = v;
+                  return RadioListTile<String>(
+                    value: id,
+                    groupValue: _maia3Variant, // reuse variant field
+                    onChanged: (value) =>
+                        setState(() => _maia3Variant = value!),
+                    title: Text(name, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text('$size — $level',
                         style: const TextStyle(fontSize: 12)),
                     dense: true,
                   );

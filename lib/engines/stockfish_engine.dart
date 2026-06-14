@@ -11,6 +11,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'chess_engine.dart';
 
 class StockfishEngine implements ChessEngine {
+  // Accept sfVersion/variantId for API compat with web engine (ignored on native)
+  StockfishEngine({dynamic sfVersion, String? variantId});
+
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   Completer<String>? _moveCompleter;

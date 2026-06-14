@@ -4,15 +4,27 @@ import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 import 'chess_engine.dart';
 
+/// Available Stockfish versions for web (all GPL-3.0, downloaded at runtime).
+enum StockfishVersion {
+  sf10('Stockfish 10', 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', 2800, '~1MB'),
+  sf18lite('Stockfish 18 Lite (NNUE)', 'https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite-single.js', 3400, '~7MB'),
+  sf18full('Stockfish 18 (NNUE)', 'https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-single.js', 3600, '~113MB');
+
+  final String label;
+  final String url;
+  final int elo;
+  final String size;
+
+  const StockfishVersion(this.label, this.url, this.elo, this.size);
+}
+
 /// Stockfish engine running as a Web Worker via stockfish.js (WASM/JS).
 ///
-/// Uses the niklasf/stockfish.js compiled Stockfish which communicates
+/// Uses nmrugg/stockfish.js compiled Stockfish which communicates
 /// via postMessage (UCI protocol over Web Worker messages).
 /// GPL-3.0 licensed — downloaded at runtime, never bundled in app binary.
 class StockfishEngine implements ChessEngine {
-  // Stockfish.js downloaded from CDN at runtime (not bundled with app)
-  static const _stockfishCdnUrl =
-      'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
+  final StockfishVersion sfVersion;
   web.Worker? _worker;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   Completer<String>? _moveCompleter;
@@ -23,14 +35,25 @@ class StockfishEngine implements ChessEngine {
   static final _depthRegex = RegExp(r'depth (\d+)');
   static final _pvRegex = RegExp(r'pv (\S+)');
 
+  StockfishEngine({StockfishVersion? sfVersion, String? variantId})
+      : sfVersion = sfVersion ?? _versionFromId(variantId);
+
+  static StockfishVersion _versionFromId(String? id) {
+    return switch (id) {
+      'sf10' => StockfishVersion.sf10,
+      'sf18full' => StockfishVersion.sf18full,
+      _ => StockfishVersion.sf18lite,
+    };
+  }
+
   @override
   String get name => 'Stockfish';
   @override
-  String get version => '16 (WASM)';
+  String get version => sfVersion.label;
   @override
   String get license => 'GPL-3.0';
   @override
-  int get estimatedElo => 3200;
+  int get estimatedElo => sfVersion.elo;
   @override
   EngineState get state => _stateNotifier.value;
   @override
@@ -43,8 +66,8 @@ class StockfishEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
 
     try {
-      // Download Stockfish from CDN — never bundled with the app
-      _worker = web.Worker(_stockfishCdnUrl.toJS);
+      debugPrint('[StockfishWeb] Loading ${sfVersion.label} from CDN...');
+      _worker = web.Worker(sfVersion.url.toJS);
       debugPrint('[StockfishWeb] Worker created');
 
       final readyCompleter = Completer<void>();
@@ -63,15 +86,15 @@ class StockfishEngine implements ChessEngine {
       _send('uci');
 
       await readyCompleter.future.timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 30),
         onTimeout: () {
-          debugPrint('[StockfishWeb] UCI handshake timeout (15s)');
+          debugPrint('[StockfishWeb] UCI handshake timeout (30s)');
         },
       );
 
       _send('isready');
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[StockfishWeb] Initialized');
+      debugPrint('[StockfishWeb] ${sfVersion.label} ready');
     } catch (e) {
       debugPrint('[StockfishWeb] Init failed: $e');
       _stateNotifier.value = EngineState.error;

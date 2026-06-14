@@ -90,7 +90,8 @@ void _encodeHistorySlot(
   final theirColor = isBlackToMove ? chess.Color.WHITE : chess.Color.BLACK;
 
   // Piece type to plane offset within a color group
-  const pieceOrder = {
+  // chess.PieceType can't be a const map key (no primitive equality)
+  final pieceOrder = {
     chess.PieceType.PAWN: 0,
     chess.PieceType.KNIGHT: 1,
     chess.PieceType.BISHOP: 2,

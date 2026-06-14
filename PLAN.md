@@ -83,6 +83,22 @@
 - [ ] Store eval before/after each move (no re-analysis needed for review)
 - [ ] Undo/redo via snapshot stack (not replay from scratch)
 
+## Phase 7.5: Player Preferences Persistence
+
+- [ ] Save all settings to local storage (shared_preferences)
+  - Preferred engine + variant
+  - Playing strength level
+  - Piece theme
+  - Animation speed
+  - Time control
+  - Play as black preference
+  - Sound on/off + volume
+  - Board coordinates toggle
+  - Analysis panel state
+- [ ] Auto-load preferences on app start
+- [ ] Cross-platform: shared_preferences works on all Flutter platforms
+- [ ] Reset to defaults button in settings
+
 ## Phase 8: Training & Puzzles
 
 ### Puzzle System

@@ -26,7 +26,7 @@ ChessEngine createEngine(String name, {
 }) {
   switch (name) {
     case 'Stockfish':
-      return StockfishEngine(); // Downloaded, not linked
+      return StockfishEngine(variantId: maia3Variant); // Downloaded from CDN
     case 'Frozenight':
       return FrozenightEngine(); // MIT/Apache-2.0
     case 'Maia3':
