@@ -281,8 +281,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 children: [
                   ('sf10', 'Stockfish 10', '~1MB', '~2800 ELO'),
-                  // SF18 needs companion WASM — disabled until patching works
-                  // ('sf18lite', 'Stockfish 18 Lite (NNUE)', '~7MB', '~3400 ELO'),
+                  ('sf18lite', 'Stockfish 18 Lite (NNUE)', '~7MB', '~3400 ELO'),
                 ].map((v) {
                   final (id, name, size, elo) = v;
                   return RadioListTile<String>(

@@ -39,9 +39,11 @@ class StockfishEngine implements ChessEngine {
       : sfVersion = sfVersion ?? _versionFromId(variantId);
 
   static StockfishVersion _versionFromId(String? id) {
-    // SF18 needs companion WASM file — currently broken (WASM patching
-    // doesn't match minified code). Force SF10 for now.
-    return StockfishVersion.sf10;
+    return switch (id) {
+      'sf10' => StockfishVersion.sf10,
+      'sf18lite' => StockfishVersion.sf18lite,
+      _ => StockfishVersion.sf10,
+    };
   }
 
   @override
@@ -70,19 +72,29 @@ class StockfishEngine implements ChessEngine {
       final jsResponse = await web.window.fetch(sfVersion.url.toJS).toDart;
       var jsSource = (await (jsResponse as web.Response).text().toDart).toDart;
 
-      // If there's a companion WASM file, pre-fetch it and inject
+      // If there's a companion WASM file, fetch it and embed inline
       if (sfVersion.wasmUrl != null) {
         debugPrint('[StockfishWeb] Fetching WASM from ${sfVersion.wasmUrl}...');
         final wasmResponse = await web.window.fetch(sfVersion.wasmUrl!.toJS).toDart;
         final wasmBlob = await (wasmResponse as web.Response).blob().toDart;
+        debugPrint('[StockfishWeb] WASM fetched: ${wasmBlob.size} bytes');
+
+        // Strategy: create a self-extracting blob URL.
+        // We bundle the WASM as a second blob alongside the JS in a combined worker.
+        // The Emscripten loader uses locateFile or wasmBinary.
+        // We prepend JS that fetches the WASM from a known URL we control.
+
+        // Create a WASM blob URL accessible from the worker
         final wasmBlobUrl = web.URL.createObjectURL(wasmBlob);
-        // Patch: replace the hardcoded WASM filename with our blob URL
-        jsSource = 'var _wasmBlobUrl = "$wasmBlobUrl";\n$jsSource';
+
+        // The trick: blob URLs created in the main thread ARE accessible
+        // from workers on the same origin. The worker's fetch() can load them.
+        // Replace the relative path with the absolute blob URL.
         jsSource = jsSource.replaceAll(
           'w="stockfish.wasm"',
-          'w=_wasmBlobUrl',
+          'w="$wasmBlobUrl"',
         );
-        debugPrint('[StockfishWeb] WASM patched with blob URL');
+        debugPrint('[StockfishWeb] WASM blob URL injected');
       }
 
       final jsBlob = web.Blob(
