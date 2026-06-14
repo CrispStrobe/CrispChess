@@ -24,6 +24,7 @@ class ChessBoard extends StatefulWidget {
   final GlobalKey? repaintBoundaryKey; // key for screenshot capture
   final bool isCapture; // true if the last move was a capture (triggers effect)
   final bool isCheckmate; // true when game ended in checkmate (king glow)
+  final bool solidBlackPieces; // render black pieces as solid black instead of grey gradient
 
   const ChessBoard({
     Key? key,
@@ -45,6 +46,7 @@ class ChessBoard extends StatefulWidget {
     this.repaintBoundaryKey,
     this.isCapture = false,
     this.isCheckmate = false,
+    this.solidBlackPieces = false,
   }) : super(key: key);
 
   @override
@@ -255,6 +257,7 @@ class _ChessBoardState extends State<ChessBoard>
                               onSquareTap: widget.onSquareTap,
                               onMove: widget.onMove,
                               pieceTheme: widget.pieceTheme,
+                              solidBlackPieces: widget.solidBlackPieces,
                               squareSize: squareSize,
                             );
                           }),
@@ -312,6 +315,7 @@ class _ChessBoardState extends State<ChessBoard>
                                 piece: _animPiece!,
                                 size: pieceSize,
                                 theme: widget.pieceTheme,
+                                solidBlack: widget.solidBlackPieces,
                               ),
                             ),
                           ),
@@ -359,6 +363,7 @@ class _ChessSquare extends StatelessWidget {
   final Function(int row, int col)? onSquareTap;
   final Function(int fromRow, int fromCol, int toRow, int toCol)? onMove;
   final String pieceTheme;
+  final bool solidBlackPieces;
   final double squareSize;
 
   const _ChessSquare({
@@ -379,6 +384,7 @@ class _ChessSquare extends StatelessWidget {
     required this.onSquareTap,
     required this.onMove,
     required this.pieceTheme,
+    this.solidBlackPieces = false,
     required this.squareSize,
   });
 
@@ -472,12 +478,14 @@ class _ChessSquare extends StatelessWidget {
                         piece: piece!,
                         size: pieceSize * 1.15,
                         theme: pieceTheme,
+                        solidBlack: solidBlackPieces,
                       ),
                       childWhenDragging: Container(),
                       child: _PieceWidget(
                         piece: piece!,
                         size: pieceSize,
                         theme: pieceTheme,
+                        solidBlack: solidBlackPieces,
                       ),
                     ),
                 ],
@@ -494,20 +502,26 @@ class _PieceWidget extends StatelessWidget {
   final ChessPiece piece;
   final double? size;
   final String theme;
+  final bool solidBlack;
 
   const _PieceWidget({
     required this.piece,
     this.size,
     this.theme = 'chessnut',
+    this.solidBlack = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final applyFilter = solidBlack && piece.color == PieceColor.black;
     return Center(
       child: SvgPicture.asset(
         _getPieceAsset(piece),
         width: size,
         height: size,
+        colorFilter: applyFilter
+            ? const ColorFilter.mode(Colors.black, BlendMode.srcIn)
+            : null,
       ),
     );
   }

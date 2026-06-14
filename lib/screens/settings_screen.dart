@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import 'engine_manager_screen.dart';
 
@@ -43,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TimeControl _timeControl;
   String _themeMode = 'system';
   String _language = 'system';
+  bool _solidBlackPieces = false;
   bool _playAsBlack = false;
   String _pieceTheme = 'chessnut';
 
@@ -75,6 +77,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _pieceTheme = widget.pieceTheme;
     _hintEngine = widget.hintEngine;
     _timeControl = widget.timeControl;
+    _loadSavedPrefs();
+  }
+
+  Future<void> _loadSavedPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('locale') ?? 'system';
+    final solid = prefs.getBool('solidBlackPieces') ?? false;
+    if (mounted) setState(() {
+      _language = lang;
+      _solidBlackPieces = solid;
+    });
   }
 
   bool get _isMaiaEngine =>
@@ -515,6 +528,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _allowUndo = value),
                 ),
                 const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Solid Black Pieces'),
+                  subtitle: const Text('Render black pieces as solid black instead of grey gradient'),
+                  value: _solidBlackPieces,
+                  onChanged: (value) =>
+                      setState(() => _solidBlackPieces = value),
+                ),
+                const Divider(height: 1),
                 ListTile(
                   title: const Text('Animation Speed'),
                   subtitle: Slider(
@@ -677,6 +698,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'timeControl': _timeControl,
             'themeMode': _themeMode,
             'language': _language,
+            'solidBlackPieces': _solidBlackPieces,
           });
         },
         icon: const Icon(Icons.check),

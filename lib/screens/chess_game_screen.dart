@@ -90,6 +90,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   /// Track secondary (right-click) drag for arrow drawing.
   String? _arrowDragFrom;
 
+  /// Render black pieces as solid black instead of grey gradient.
+  bool _solidBlackPieces = false;
+
   /// Multi-engine analysis service (null when not active).
   MultiEngineService? _multiEngine;
   StreamSubscription<MultiEngineEvent>? _multiEngineSub;
@@ -106,6 +109,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     await _prefs.init();
     _maia3Variant = _prefs.variant;
     _sound.enabled = _prefs.soundEnabled;
+    // Load solid black pieces preference
+    final sp = await SharedPreferences.getInstance();
+    _solidBlackPieces = sp.getBool('solidBlackPieces') ?? false;
     setState(() {
       _state = _state.copyWith(
         strengthLevel: _prefs.strengthLevel,
@@ -850,6 +856,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           sp.setString('locale', language);
         });
         localeNotifier.value = language == 'system' ? null : Locale(language);
+      }
+
+      // Apply solid black pieces
+      final solidBlack = result['solidBlackPieces'] as bool?;
+      if (solidBlack != null) {
+        _solidBlackPieces = solidBlack;
+        SharedPreferences.getInstance().then((sp) {
+          sp.setBool('solidBlackPieces', solidBlack);
+        });
       }
 
       // Persist all preferences
@@ -2255,6 +2270,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             repaintBoundaryKey: _boardKey,
                             isCapture: _state.isLastMoveCapture,
                             isCheckmate: _game.isGameOver && _game.gameOverReason == 'Checkmate',
+                            solidBlackPieces: _solidBlackPieces,
                           ),
                         ),
                       );
