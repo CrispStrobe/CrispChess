@@ -189,6 +189,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   /// Is it the human player's turn?
   bool get _isPlayerTurn {
+    if (_state.twoPlayerMode) return true; // Both sides are human
     if (_state.playAsBlack) return !_game.whiteToMove;
     return _game.whiteToMove;
   }
@@ -319,11 +320,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           );
           _showGameOverDialog();
         } else {
-          _state = _state.copyWith(
-            statusMessage: '${_engineService.engineName} is thinking...',
-            isThinking: true,
-          );
-          _requestEngineMove();
+          if (_state.twoPlayerMode) {
+            final turn = _game.whiteToMove ? 'White' : 'Black';
+            _state = _state.copyWith(
+              statusMessage: '$turn to move',
+              isThinking: false,
+            );
+          } else {
+            _state = _state.copyWith(
+              statusMessage: '${_engineService.engineName} is thinking...',
+              isThinking: true,
+            );
+            _requestEngineMove();
+          }
         }
       });
     } else {
@@ -879,7 +888,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() => _state = _state.copyWith(playAsBlack: false));
+              setState(() => _state = _state.copyWith(
+                  playAsBlack: false, twoPlayerMode: false));
               _prefs.playAsBlack = false;
               _newGame();
             },
@@ -892,7 +902,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() => _state = _state.copyWith(playAsBlack: true));
+              setState(() => _state = _state.copyWith(
+                  playAsBlack: true, twoPlayerMode: false));
               _prefs.playAsBlack = true;
               _newGame();
             },
@@ -906,13 +917,29 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             onPressed: () {
               Navigator.pop(ctx);
               final random = DateTime.now().millisecond % 2 == 0;
-              setState(() => _state = _state.copyWith(playAsBlack: random));
+              setState(() => _state = _state.copyWith(
+                  playAsBlack: random, twoPlayerMode: false));
               _prefs.playAsBlack = random;
               _newGame();
             },
             child: const ListTile(
               leading: Icon(Icons.shuffle),
               title: Text('Random'),
+              dense: true, contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          const Divider(),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _state = _state.copyWith(
+                  twoPlayerMode: true, playAsBlack: false));
+              _newGame();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.people),
+              title: Text('Two Player (local)'),
+              subtitle: Text('Pass and play'),
               dense: true, contentPadding: EdgeInsets.zero,
             ),
           ),
