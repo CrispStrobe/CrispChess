@@ -102,7 +102,7 @@
 - [ ] Post-drill summary screen
 
 ### Mistakes Tracker
-- [ ] Persist blunders across games (FEN, your move, better move, explanation)
+- [x] Persist blunders tracker in shared_preferences
 - [ ] "My Mistakes" screen — list active and resolved mistakes
 - [ ] Resolving a mistake (re-solving it correctly) marks it done
 - [ ] Spaced repetition — re-present failed puzzles at increasing intervals
@@ -118,8 +118,8 @@
 ### XP & Progression
 - [x] XP system: game win/draw/loss, puzzle solve
 - [x] Player level tiers (Pawn → Grandmaster, 6 levels)
-- [ ] Level-up celebration dialog (TODO)
-- [ ] Daily login streak (TODO)
+- [ ] Level-up celebration dialog (lower priority)
+- [x] Daily login streak with bonus XP
 
 ### Achievements
 - [x] Achievement system with progress tracking (12 badges)
