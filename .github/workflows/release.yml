@@ -123,7 +123,9 @@ jobs:
       - run: flutter build macos --release
       - run: |
           cd build/macos/Build/Products/Release
-          tar czf $GITHUB_WORKSPACE/CrispChess-macos.tar.gz CrispChess.app
+          APP=$(ls -d *.app | head -1)
+          echo "Found app: $APP"
+          tar czf $GITHUB_WORKSPACE/CrispChess-macos.tar.gz "$APP"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-app
