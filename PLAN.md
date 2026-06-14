@@ -51,7 +51,7 @@
 - [x] Resignation option with confirmation
 - [x] Precise game-end reason (checkmate/stalemate/repetition/50-move/insufficient/resign/draw)
 - [x] SAN notation in move history (e4, Nf3 instead of e2e4, g1f3)
-- [ ] Pre-game side picker (White / Black / Random)
+- [x] Pre-game side picker (White / Black / Random / Two Player)
 - [x] Long-press move list to quick-copy PGN
 
 ### Settings Additions
@@ -73,7 +73,7 @@
 ### Live Move Annotation
 - [x] Classify each player move in real-time (compare to engine's best)
 - [x] Show annotation in analysis panel with color/icon per category
-- [ ] Display alternative move suggestion ("Better: Nf3")
+- [x] Display alternative move suggestion ("Better: Nf3")
 
 ### History Snapshots
 - [x] Store eval per move for chart (no re-analysis needed)
@@ -88,11 +88,11 @@
 ## Phase 8: Training & Puzzles
 
 ### Puzzle System
-- [ ] Bundle 1000+ tactical puzzles (FEN + solution moves, CC0 source)
-- [ ] Categories: fork, pin, skewer, discovery, mate-in-1/2/3, endgame
-- [ ] Puzzle UI: show position, validate player's move sequence
-- [ ] Puzzle difficulty rating (Glicko-2 or similar)
-- [ ] Daily puzzle — random puzzle shown on app open
+- [x] 200 tactical puzzles from Lichess CC0 database
+- [x] Categories: fork, pin, skewer, mate, endgame, etc.
+- [x] Puzzle UI: interactive board, validate moves, 3 attempts
+- [x] Puzzle difficulty rating (Lichess Glicko-2)
+- [x] Daily puzzle (deterministic by date)
 
 ### Drill Mode
 - [ ] Structured drills by topic (opening/middlegame/endgame)
@@ -129,9 +129,9 @@
 ## Phase 10: Game Modes
 
 ### Two-Player Local
-- [ ] Pass-and-play mode on same device
-- [ ] Auto-flip board between turns
-- [ ] Optional chess clock for local games
+- [x] Pass-and-play mode on same device
+- [ ] Auto-flip board between turns (TODO)
+- [x] Chess clock available for local games
 
 ### Variants (future)
 - [ ] Chess960 / Fischer Random
@@ -141,7 +141,7 @@
 ## Phase 11: Advanced Features
 
 ### Opening Explorer
-- [ ] Show opening name for current position (ECO codes)
+- [x] Show opening name for current position (~35 openings)
 - [ ] Opening statistics (win/draw/loss % from master games)
 - [ ] Suggested book moves with popularity bars
 
