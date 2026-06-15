@@ -1668,7 +1668,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (data?.text == null || data!.text!.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('No PGN found in clipboard'),
             backgroundColor: Colors.orange,
           ),
@@ -1694,7 +1694,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Invalid PGN'),
             backgroundColor: Colors.red,
           ),
@@ -1764,7 +1764,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 });
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(AppLocalizations.of(context)?.invalidFen ?? 'Invalid FEN string'),
                     backgroundColor: Colors.red,
                   ),
@@ -2333,7 +2333,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: mainLine.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(AppLocalizations.of(context)?.noMovesYet ?? 'No moves yet',
                   style: TextStyle(color: Colors.grey, fontSize: 12)))
           : ListView.builder(
