@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import 'engine_manager_screen.dart';
@@ -223,12 +224,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)?.settings ?? 'Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Engine selector
-          Text('Chess Engine', style: Theme.of(context).textTheme.titleLarge),
+          Text(AppLocalizations.of(context)?.chessEngine ?? 'Chess Engine', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -482,7 +483,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Game settings
-          Text('Game', style: Theme.of(context).textTheme.titleLarge),
+          Text(AppLocalizations.of(context)?.game ?? 'Game', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -512,7 +513,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: const Text('Show Valid Moves'),
+                  title: Text(AppLocalizations.of(context)?.showValidMoves ?? 'Show Valid Moves'),
                   subtitle:
                       const Text('Highlight legal moves when selecting a piece'),
                   value: _showValidMoves,
@@ -521,7 +522,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: const Text('Allow Undo'),
+                  title: Text(AppLocalizations.of(context)?.allowUndo ?? 'Allow Undo'),
                   subtitle: const Text('Disable for discipline mode'),
                   value: _allowUndo,
                   onChanged: (value) =>
@@ -562,7 +563,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Piece theme
-          Text('Piece Style', style: Theme.of(context).textTheme.titleLarge),
+          Text(AppLocalizations.of(context)?.pieceStyle ?? 'Piece Style', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -614,7 +615,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           // Theme
-          Text('Theme', style: Theme.of(context).textTheme.titleLarge),
+          Text(AppLocalizations.of(context)?.theme ?? 'Theme', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -663,7 +664,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: TextButton.icon(
               icon: const Icon(Icons.restore, size: 18),
-              label: const Text('Reset to defaults'),
+              label: Text(AppLocalizations.of(context)?.resetToDefaults ?? 'Reset to defaults'),
               onPressed: () {
                 setState(() {
                   _strengthLevel = 10;
@@ -702,7 +703,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           });
         },
         icon: const Icon(Icons.check),
-        label: const Text('Save'),
+        label: Text(AppLocalizations.of(context)?.save ?? 'Save'),
       ),
     );
   }

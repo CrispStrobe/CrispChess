@@ -30,6 +30,7 @@ import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'ai_coach_sheet.dart';
 import 'drill_screen.dart';
 import 'engine_match_screen.dart';
@@ -1490,31 +1491,36 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New Game?'),
-        content: const Text('Current game will be lost.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showSidePicker();
-            },
-            child: const Text('New Game'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        return AlertDialog(
+          title: Text('${l?.newGame ?? "New Game"}?'),
+          content: Text(l?.newGameConfirm ?? 'Current game will be lost.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l?.cancel ?? 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _showSidePicker();
+              },
+              child: Text(l?.newGame ?? 'New Game'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showSidePicker() {
     showDialog(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('Play as'),
+      builder: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        return SimpleDialog(
+        title: Text(l?.playAs ?? 'Play as'),
         children: [
           SimpleDialogOption(
             onPressed: () {
@@ -1524,9 +1530,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _prefs.playAsBlack = false;
               _newGame();
             },
-            child: const ListTile(
-              leading: Icon(Icons.circle, color: Colors.white),
-              title: Text('White'),
+            child: ListTile(
+              leading: const Icon(Icons.circle, color: Colors.white),
+              title: Text(l?.playAsWhite ?? 'White'),
               dense: true, contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -1538,9 +1544,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _prefs.playAsBlack = true;
               _newGame();
             },
-            child: const ListTile(
-              leading: Icon(Icons.circle, color: Colors.black),
-              title: Text('Black'),
+            child: ListTile(
+              leading: const Icon(Icons.circle, color: Colors.black),
+              title: Text(l?.playAsBlack ?? 'Black'),
               dense: true, contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -1553,9 +1559,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _prefs.playAsBlack = random;
               _newGame();
             },
-            child: const ListTile(
-              leading: Icon(Icons.shuffle),
-              title: Text('Random'),
+            child: ListTile(
+              leading: const Icon(Icons.shuffle),
+              title: Text(l?.playAsRandom ?? 'Random'),
               dense: true, contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -1567,15 +1573,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   twoPlayerMode: true, playAsBlack: false));
               _newGame();
             },
-            child: const ListTile(
-              leading: Icon(Icons.people),
-              title: Text('Two Player (local)'),
-              subtitle: Text('Pass and play'),
+            child: ListTile(
+              leading: const Icon(Icons.people),
+              title: Text(l?.twoPlayer ?? 'Two Player (local)'),
+              subtitle: Text(l?.passAndPlay ?? 'Pass and play'),
               dense: true, contentPadding: EdgeInsets.zero,
             ),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
@@ -1992,7 +1999,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           if (_state.isThinking)
             IconButton(
               icon: Icon(Icons.cancel, size: 20, color: Colors.red.shade300),
-              tooltip: 'Abort',
+              tooltip: AppLocalizations.of(context)?.abort ?? 'Abort',
               onPressed: () {
                 _engineService.stop();
                 setState(() {
@@ -2006,7 +2013,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           if (_state.allowUndo)
             IconButton(
               icon: const Icon(Icons.undo, size: 20),
-              tooltip: 'Undo',
+              tooltip: AppLocalizations.of(context)?.undo ?? 'Undo',
               onPressed: (_state.isThinking || !_game.canUndo) ? null : _undoMove,
             ),
           if (_state.allowUndo)
@@ -2027,7 +2034,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.lightbulb_outline, size: 20),
-            tooltip: 'Hint',
+            tooltip: AppLocalizations.of(context)?.hint ?? 'Hint',
             onPressed: (!_isPlayerTurn || _state.isThinking) ? null : _getHint,
           ),
           IconButton(
@@ -2036,7 +2043,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               size: 20,
               color: _state.analysisExpanded ? Colors.blue : null,
             ),
-            tooltip: 'Analyze',
+            tooltip: AppLocalizations.of(context)?.analyze ?? 'Analyze',
             onPressed: _toggleAnalysis,
           ),
           PopupMenuButton<String>(
@@ -2108,68 +2115,35 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       MaterialPageRoute(builder: (_) => const AboutScreen()));
               }
             },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'new', child: ListTile(
-                leading: Icon(Icons.refresh), title: Text('New Game'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'export_pgn', child: ListTile(
-                leading: Icon(Icons.copy), title: Text('Copy PGN'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'import_pgn', child: ListTile(
-                leading: Icon(Icons.paste), title: Text('Paste PGN'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'load_fen', child: ListTile(
-                leading: Icon(Icons.input), title: Text('Load FEN'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'setup_position', child: ListTile(
-                leading: Icon(Icons.grid_on), title: Text('Setup Position'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'pgn_database', child: ListTile(
-                leading: Icon(Icons.storage), title: Text('PGN Database'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'flip', child: ListTile(
-                leading: Icon(Icons.swap_vert), title: Text('Flip Board'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'draw', child: ListTile(
-                leading: Icon(Icons.handshake), title: Text('Offer Draw'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'resign', child: ListTile(
-                leading: Icon(Icons.flag), title: Text('Resign'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'screenshot', child: ListTile(
-                leading: Icon(Icons.photo_camera), title: Text('Board Screenshot'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'clear_arrows', child: ListTile(
-                leading: Icon(Icons.layers_clear), title: Text('Clear Annotations'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'bookmark', child: ListTile(
-                leading: Icon(Icons.bookmark_add), title: Text('Bookmark Position'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'ask_coach', child: ListTile(
-                leading: Icon(Icons.psychology), title: Text('Ask Coach'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'drills', child: ListTile(
-                leading: Icon(Icons.school), title: Text('Drills'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'engine_match', child: ListTile(
-                leading: Icon(Icons.sports_esports), title: Text('Engine vs Engine'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'puzzles', child: ListTile(
-                leading: Icon(Icons.extension), title: Text('Puzzles'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'settings', child: ListTile(
-                leading: Icon(Icons.settings), title: Text('Settings'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'mistakes', child: ListTile(
-                leading: Icon(Icons.warning_amber), title: Text('My Mistakes'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'stats', child: ListTile(
-                leading: Icon(Icons.bar_chart), title: Text('Stats'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-              const PopupMenuItem(value: 'about', child: ListTile(
-                leading: Icon(Icons.info_outline), title: Text('About'),
-                contentPadding: EdgeInsets.zero, dense: true)),
-            ],
+            itemBuilder: (ctx) {
+              final l = AppLocalizations.of(ctx);
+              PopupMenuItem<String> item(String value, IconData icon, String label) =>
+                PopupMenuItem(value: value, child: ListTile(
+                  leading: Icon(icon), title: Text(label),
+                  contentPadding: EdgeInsets.zero, dense: true));
+              return [
+                item('new', Icons.refresh, l?.newGame ?? 'New Game'),
+                item('export_pgn', Icons.copy, l?.copyPgn ?? 'Copy PGN'),
+                item('import_pgn', Icons.paste, l?.pastePgn ?? 'Paste PGN'),
+                item('load_fen', Icons.input, 'Load FEN'),
+                item('setup_position', Icons.grid_on, 'Setup Position'),
+                item('pgn_database', Icons.storage, 'PGN Database'),
+                item('flip', Icons.swap_vert, l?.flipBoard ?? 'Flip Board'),
+                item('draw', Icons.handshake, l?.offerDraw ?? 'Offer Draw'),
+                item('resign', Icons.flag, l?.resign ?? 'Resign'),
+                item('screenshot', Icons.photo_camera, 'Board Screenshot'),
+                item('clear_arrows', Icons.layers_clear, 'Clear Annotations'),
+                item('bookmark', Icons.bookmark_add, 'Bookmark Position'),
+                item('ask_coach', Icons.psychology, 'Ask Coach'),
+                item('drills', Icons.school, 'Drills'),
+                item('engine_match', Icons.sports_esports, 'Engine vs Engine'),
+                item('puzzles', Icons.extension, l?.puzzles ?? 'Puzzles'),
+                item('settings', Icons.settings, l?.settings ?? 'Settings'),
+                item('mistakes', Icons.warning_amber, l?.mistakes ?? 'My Mistakes'),
+                item('stats', Icons.bar_chart, 'Stats'),
+                item('about', Icons.info_outline, l?.about ?? 'About'),
+              ];
+            },
           ),
         ],
       ),
@@ -2353,7 +2327,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       ),
       child: mainLine.isEmpty
           ? const Center(
-              child: Text('No moves yet',
+              child: Text(AppLocalizations.of(context)?.noMovesYet ?? 'No moves yet',
                   style: TextStyle(color: Colors.grey, fontSize: 12)))
           : ListView.builder(
               scrollDirection: Axis.horizontal,
