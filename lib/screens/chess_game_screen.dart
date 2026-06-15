@@ -815,6 +815,22 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   String _maia3Variant = '5m';
 
+  Future<void> _openGameHistory() async {
+    final pgn = await Navigator.push<String>(context,
+        MaterialPageRoute(builder: (_) => const GameHistoryScreen()));
+    if (pgn != null && pgn.isNotEmpty && mounted) {
+      if (_game.loadPgn(pgn)) {
+        setState(() {
+          _state = _state.copyWith(
+            statusMessage: 'Game loaded from history',
+            hintMove: null,
+            currentBestMove: null,
+          );
+        });
+      }
+    }
+  }
+
   Future<void> _openSettings() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -2176,19 +2192,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 case 'settings':
                   _openSettings();
                 case 'game_history':
-                  final pgn = await Navigator.push<String>(context,
-                      MaterialPageRoute(builder: (_) => const GameHistoryScreen()));
-                  if (pgn != null && pgn.isNotEmpty && mounted) {
-                    if (_game.loadPgn(pgn)) {
-                      setState(() {
-                        _state = _state.copyWith(
-                          statusMessage: 'Game loaded from history',
-                          hintMove: null,
-                          currentBestMove: null,
-                        );
-                      });
-                    }
-                  }
+                  _openGameHistory();
                 case 'mistakes':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const MistakesScreen()));
