@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
-    "theme_color": "#2196F3",
+    "theme_color": "#3E2723",
     "description": "Cross-platform chess with pluggable AI engines",
     "orientation": "any",
     "prefer_related_applications": false,
