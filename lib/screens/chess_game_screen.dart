@@ -1658,7 +1658,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     Clipboard.setData(ClipboardData(text: pgn));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PGN copied to clipboard')),
+        SnackBar(content: Text(AppLocalizations.of(context)?.pgnCopied ?? 'PGN copied to clipboard')),
       );
     }
   }
@@ -1688,7 +1688,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PGN loaded')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.pgnLoaded ?? 'PGN loaded')),
         );
       }
     } else {
@@ -1714,7 +1714,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           children: [
             TextField(
               controller: controller,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)?.pasteFenHint ?? 'Paste FEN string...',
                 border: OutlineInputBorder(),
               ),
@@ -1784,7 +1784,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (boundary == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(AppLocalizations.of(context)?.couldNotCaptureBoard ?? 'Could not capture board')),
+            SnackBar(content: Text(AppLocalizations.of(context)?.couldNotCaptureBoard ?? 'Could not capture board')),
           );
         }
         return;
