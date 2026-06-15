@@ -37,14 +37,15 @@ class _MistakesScreenState extends State<MistakesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Mistakes (${_mistakes.length})'),
+        title: Text('${l?.myMistakes ?? 'My Mistakes'} (${_mistakes.length})'),
         actions: [
           if (_mistakes.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Clear all',
+              tooltip: l?.clearAll ?? 'Clear all',
               onPressed: () {
                 _prefs.clearMistakes();
                 setState(() => _mistakes.clear());
@@ -55,16 +56,16 @@ class _MistakesScreenState extends State<MistakesScreen> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _mistakes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, size: 48, color: Colors.green),
-                      SizedBox(height: 8),
-                      Text('No mistakes tracked yet!'),
-                      SizedBox(height: 4),
-                      Text('Play games with analysis enabled to track blunders.',
-                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Icon(Icons.check_circle, size: 48, color: Colors.green),
+                      const SizedBox(height: 8),
+                      Text(l?.noMistakesYet ?? 'No mistakes tracked yet!'),
+                      const SizedBox(height: 4),
+                      Text(l?.noMistakesSubtitle ?? 'Play games with analysis enabled to track blunders.',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                 )
@@ -79,7 +80,7 @@ class _MistakesScreenState extends State<MistakesScreen> {
                         leading: Icon(Icons.warning,
                             color: Colors.orange.shade700),
                         title: Text(
-                          m['move'] as String? ?? 'Unknown move',
+                          m['move'] as String? ?? (l?.unknownMove ?? 'Unknown move'),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(

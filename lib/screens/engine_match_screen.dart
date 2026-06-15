@@ -49,8 +49,9 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
 
   Future<void> _startMatch() async {
     if (_engine1Name == _engine2Name) {
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select two different engines'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(l?.selectTwoDifferent ?? 'Select two different engines'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -107,8 +108,9 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
 
   Future<void> _startTournament() async {
     if (_tournamentEngines.length < 3) {
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least 3 engines'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(l?.selectAtLeast3 ?? 'Select at least 3 engines'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -158,17 +160,18 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
     _tournament?.stop();
     setState(() {
       _running = false;
-      _status = 'Stopped';
+      _status = AppLocalizations.of(context)?.stopped ?? 'Stopped';
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scores = EngineMatchService.scores(_results);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Engine vs Engine'),
+        title: Text(l?.engineVsEngine ?? 'Engine vs Engine'),
         actions: [
           if (_running)
             IconButton(
@@ -206,9 +209,9 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('Match'), icon: Icon(Icons.sports_esports, size: 16)),
-                  ButtonSegment(value: true, label: Text('Tournament'), icon: Icon(Icons.emoji_events, size: 16)),
+                segments: [
+                  ButtonSegment(value: false, label: Text(l?.match ?? 'Match'), icon: const Icon(Icons.sports_esports, size: 16)),
+                  ButtonSegment(value: true, label: Text(l?.tournament ?? 'Tournament'), icon: const Icon(Icons.emoji_events, size: 16)),
                 ],
                 selected: {_tournamentMode},
                 onSelectionChanged: (s) => setState(() => _tournamentMode = s.first),
@@ -222,7 +225,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                 child: Row(
                   children: [
                     Expanded(child: _engineDropdown('White', _engine1Name, (v) => setState(() => _engine1Name = v))),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('vs')),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(l?.vs ?? 'vs')),
                     Expanded(child: _engineDropdown('Black', _engine2Name, (v) => setState(() => _engine2Name = v))),
                   ],
                 ),
@@ -231,7 +234,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
-                    const Text('Games: ', style: TextStyle(fontSize: 13)),
+                    Text('${l?.games ?? 'Games'}: ', style: const TextStyle(fontSize: 13)),
                     DropdownButton<int>(
                       value: _numGames,
                       underline: const SizedBox.shrink(),
@@ -240,7 +243,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                       onChanged: (v) => setState(() => _numGames = v!),
                     ),
                     const SizedBox(width: 16),
-                    const Text('Depth: ', style: TextStyle(fontSize: 13)),
+                    Text('${l?.depth ?? 'Depth'}: ', style: const TextStyle(fontSize: 13)),
                     DropdownButton<int>(
                       value: _depth,
                       underline: const SizedBox.shrink(),
@@ -258,7 +261,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Select engines (${_tournamentEngines.length} selected, min 3):',
+                    Text(l?.selectEngines('${_tournamentEngines.length}') ?? 'Select engines (${_tournamentEngines.length} selected, min 3):',
                       style: const TextStyle(fontSize: 12)),
                     Wrap(
                       spacing: 6,
@@ -274,7 +277,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Text('Depth: ', style: TextStyle(fontSize: 13)),
+                        Text('${l?.depth ?? 'Depth'}: ', style: const TextStyle(fontSize: 13)),
                         DropdownButton<int>(
                           value: _depth,
                           underline: const SizedBox.shrink(),
@@ -342,7 +345,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
           : FloatingActionButton.extended(
               onPressed: _tournamentMode ? _startTournament : _startMatch,
               icon: const Icon(Icons.play_arrow),
-              label: Text(_tournamentMode ? 'Start Tournament' : 'Start Match'),
+              label: Text(_tournamentMode ? (l?.startTournament ?? 'Start Tournament') : (l?.startMatch ?? 'Start Match')),
             ),
     );
   }

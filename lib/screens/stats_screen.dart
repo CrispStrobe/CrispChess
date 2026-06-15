@@ -23,9 +23,10 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (!_loaded) {
       return Scaffold(
-        appBar: AppBar(title: Text(AppLocalizations.of(context)?.stats ?? 'Stats')),
+        appBar: AppBar(title: Text(l?.stats ?? 'Stats')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -44,7 +45,7 @@ class _StatsScreenState extends State<StatsScreen> {
     final unlocked = achievements.where((a) => a.$2).length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stats & Achievements')),
+      appBar: AppBar(title: Text(l?.statsAndAchievements ?? 'Stats & Achievements')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -79,17 +80,17 @@ class _StatsScreenState extends State<StatsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _stat('${_prefs.gamesPlayed}', 'Games'),
-                  _stat('${_prefs.gamesWon}', 'Wins'),
-                  _stat('${_prefs.puzzlesSolved}', 'Puzzles'),
-                  _stat('$unlocked/${allAchievements.length}', 'Badges'),
+                  _stat('${_prefs.gamesPlayed}', l?.games ?? 'Games'),
+                  _stat('${_prefs.gamesWon}', l?.wins ?? 'Wins'),
+                  _stat('${_prefs.puzzlesSolved}', l?.puzzles ?? 'Puzzles'),
+                  _stat('$unlocked/${allAchievements.length}', l?.badges ?? 'Badges'),
                 ],
               ),
             ),
           ),
 
           const SizedBox(height: 16),
-          Text('Achievements', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.achievements ?? 'Achievements', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
 
           // Achievement list

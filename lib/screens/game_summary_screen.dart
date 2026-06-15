@@ -79,6 +79,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     // Calculate accuracy
     final playerAnnotations = widget.annotations.where((a) {
       final idx = widget.annotations.indexOf(a);
@@ -120,7 +121,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
         : 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)?.gameSummary ?? 'Game Summary')),
+      appBar: AppBar(title: Text(l?.gameSummary ?? 'Game Summary')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -141,7 +142,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                         style: Theme.of(context).textTheme.bodyLarge),
                   ],
                   const SizedBox(height: 4),
-                  Text('vs ${widget.engineName} · ${widget.movesSan.length} moves',
+                  Text('vs ${widget.engineName} · ${widget.movesSan.length} ${l?.moves ?? 'moves'}',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
@@ -162,19 +163,19 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                       children: [
                         Icon(Icons.analytics, size: 20, color: Colors.blue.shade700),
                         const SizedBox(width: 8),
-                        Text(AppLocalizations.of(context)?.yourAccuracy ?? 'Your Accuracy',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(l?.yourAccuracy ?? 'Your Accuracy',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _statBadge('$accuracy%', 'Accuracy',
+                        _statBadge('$accuracy%', l?.accuracy ?? 'Accuracy',
                             accuracy >= 80 ? Colors.green : accuracy >= 50 ? Colors.orange : Colors.red),
-                        _statBadge('$goodMoves', 'Good', Colors.green),
-                        _statBadge('$mistakes', 'Mistakes', Colors.orange),
-                        _statBadge('$blunders', 'Blunders', Colors.red),
+                        _statBadge('$goodMoves', l?.good ?? 'Good', Colors.green),
+                        _statBadge('$mistakes', l?.mistakes ?? 'Mistakes', Colors.orange),
+                        _statBadge('$blunders', l?.blunders ?? 'Blunders', Colors.red),
                       ],
                     ),
                   ],
@@ -196,8 +197,8 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                       children: [
                         Icon(Icons.show_chart, size: 20, color: Colors.blue.shade700),
                         const SizedBox(width: 8),
-                        Text(AppLocalizations.of(context)?.evaluation ?? 'Evaluation',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(l?.evaluation ?? 'Evaluation',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -215,7 +216,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
               color: Colors.green.shade50,
               child: ListTile(
                 leading: Icon(Icons.star, color: Colors.green.shade700),
-                title: Text(AppLocalizations.of(context)?.yourBestMove ?? 'Your Best Move'),
+                title: Text(l?.yourBestMove ?? 'Your Best Move'),
                 subtitle: Text(bestMoveStr,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Text('+${bestGain.toStringAsFixed(1)}',
@@ -230,7 +231,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
               color: Colors.red.shade50,
               child: ListTile(
                 leading: Icon(Icons.warning, color: Colors.red.shade700),
-                title: Text(AppLocalizations.of(context)?.biggestMistake ?? 'Biggest Mistake'),
+                title: Text(l?.biggestMistake ?? 'Biggest Mistake'),
                 subtitle: Text(worstMoveStr,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Text('-${worstLoss.toStringAsFixed(1)}',
@@ -261,7 +262,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                               ? () => _showPosition(_selectedMoveIndex - 1)
                               : null,
                         ),
-                        Text('Move ${_selectedMoveIndex + 1}',
+                        Text(l?.moveN('${_selectedMoveIndex + 1}') ?? 'Move ${_selectedMoveIndex + 1}',
                             style: const TextStyle(fontSize: 12)),
                         IconButton(
                           icon: const Icon(Icons.chevron_right, size: 20),
@@ -299,11 +300,11 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(AppLocalizations.of(context)?.moves ?? 'Moves',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(l?.moves ?? 'Moves',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       if (widget.tree != null) ...[
                         const Spacer(),
-                        Text('Tap to view position',
+                        Text(l?.tapToViewPosition ?? 'Tap to view position',
                             style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                       ],
                     ],

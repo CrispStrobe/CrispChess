@@ -230,13 +230,13 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
                       const SizedBox(width: 8),
                       DropdownButton<String?>(
                         value: _resultFilter,
-                        hint: const Text('Result', style: TextStyle(fontSize: 12)),
+                        hint: Text(l?.result ?? 'Result', style: const TextStyle(fontSize: 12)),
                         underline: const SizedBox.shrink(),
-                        items: const [
-                          DropdownMenuItem(value: null, child: Text('All')),
-                          DropdownMenuItem(value: '1-0', child: Text('1-0')),
-                          DropdownMenuItem(value: '0-1', child: Text('0-1')),
-                          DropdownMenuItem(value: '1/2-1/2', child: Text('Draw')),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text(l?.all ?? 'All')),
+                          const DropdownMenuItem(value: '1-0', child: Text('1-0')),
+                          const DropdownMenuItem(value: '0-1', child: Text('0-1')),
+                          DropdownMenuItem(value: '1/2-1/2', child: Text(l?.draw ?? 'Draw')),
                         ],
                         onChanged: (v) {
                           _resultFilter = v;

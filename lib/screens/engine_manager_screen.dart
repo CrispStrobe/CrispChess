@@ -36,32 +36,33 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
   }
 
   Future<void> _addEngine() async {
+    final l = AppLocalizations.of(context);
     final controller = TextEditingController();
     final nameController = TextEditingController();
 
     final result = await showDialog<EngineProfile>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.addUciEngine ?? 'Add UCI Engine'),
+        title: Text(l?.addUciEngine ?? 'Add UCI Engine'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Engine binary path',
+              decoration: InputDecoration(
+                labelText: l?.engineBinaryPath ?? 'Engine binary path',
                 hintText: '/usr/local/bin/stockfish',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Display name (optional)',
-                hintText: 'Leave blank to auto-detect',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l?.displayName ?? 'Display name (optional)',
+                hintText: l?.leaveBlankAutoDetect ?? 'Leave blank to auto-detect',
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -69,7 +70,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l?.cancel ?? 'Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -80,7 +81,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
                 path: path,
               ));
             },
-            child: const Text('Add'),
+            child: Text(l?.add ?? 'Add'),
           ),
         ],
       ),
@@ -91,7 +92,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
     // Probe the engine to detect its name and options
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Probing engine...')),
+        SnackBar(content: Text(l?.probingEngine ?? 'Probing engine...')),
       );
     }
 
@@ -109,7 +110,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added: ${result.name}')),
+          SnackBar(content: Text(l?.engineAdded(result.name) ?? 'Added: ${result.name}')),
         );
       }
     } catch (e) {
@@ -117,7 +118,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Engine failed to initialize: $e'),
+            content: Text(l?.engineInitFailed('$e') ?? 'Engine failed to initialize: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -131,8 +132,9 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
 
     // Show loading
     if (mounted) {
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Loading engine options...'), duration: Duration(seconds: 1)),
+        SnackBar(content: Text(l?.loadingEngineOptions ?? 'Loading engine options...'), duration: const Duration(seconds: 1)),
       );
     }
 
@@ -171,15 +173,16 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
   }
 
   Future<void> _removeEngine(int index) async {
+    final l = AppLocalizations.of(context);
     final profile = _profiles[index];
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Engine?'),
-        content: Text('Remove "${profile.name}" from your engine list?'),
+        title: Text(l?.removeEngine ?? 'Remove Engine?'),
+        content: Text(l?.removeEngineConfirm(profile.name) ?? 'Remove "${profile.name}" from your engine list?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l?.cancel ?? 'Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l?.remove ?? 'Remove')),
         ],
       ),
     );
@@ -192,8 +195,9 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)?.engineManager ?? 'Engine Manager')),
+      appBar: AppBar(title: Text(l?.engineManager ?? 'Engine Manager')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _profiles.isEmpty
@@ -203,10 +207,10 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
                     children: [
                       Icon(Icons.memory, size: 64, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
-                      Text(AppLocalizations.of(context)?.noCustomEngines ?? 'No custom engines added'),
+                      Text(l?.noCustomEngines ?? 'No custom engines added'),
                       const SizedBox(height: 8),
                       Text(
-                        'Add any UCI-compatible chess engine\nby providing the path to its binary.',
+                        l?.noCustomEnginesSubtitle ?? 'Add any UCI-compatible chess engine\nby providing the path to its binary.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                       ),
@@ -232,12 +236,12 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.settings, size: 20),
-                              tooltip: 'Configure',
+                              tooltip: l?.configure ?? 'Configure',
                               onPressed: () => _configureEngine(index),
                             ),
                             IconButton(
                               icon: Icon(Icons.delete, size: 20, color: Colors.red.shade300),
-                              tooltip: 'Remove',
+                              tooltip: l?.remove ?? 'Remove',
                               onPressed: () => _removeEngine(index),
                             ),
                           ],
@@ -249,7 +253,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addEngine,
         icon: const Icon(Icons.add),
-        label: Text(AppLocalizations.of(context)?.addEngine ?? 'Add Engine'),
+        label: Text(l?.addEngine ?? 'Add Engine'),
       ),
     );
   }
@@ -282,6 +286,7 @@ class _UciOptionsScreenState extends State<_UciOptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final options = widget.engine.options;
     // Filter out internal/debug options that most users don't need
     final userOptions = options.where((o) =>
@@ -298,12 +303,12 @@ class _UciOptionsScreenState extends State<_UciOptionsScreen> {
             onPressed: () {
               setState(() => _overrides.clear());
             },
-            child: const Text('Reset'),
+            child: Text(l?.reset ?? 'Reset'),
           ),
         ],
       ),
       body: userOptions.isEmpty
-          ? const Center(child: Text('No configurable options'))
+          ? Center(child: Text(l?.noConfigurableOptions ?? 'No configurable options'))
           : ListView.builder(
               itemCount: userOptions.length,
               padding: const EdgeInsets.all(16),
@@ -318,7 +323,7 @@ class _UciOptionsScreenState extends State<_UciOptionsScreen> {
           if (mounted) Navigator.pop(context);
         },
         icon: const Icon(Icons.save),
-        label: const Text('Save'),
+        label: Text(l?.save ?? 'Save'),
       ),
     );
   }
@@ -359,7 +364,7 @@ class _UciOptionsScreenState extends State<_UciOptionsScreen> {
         // Large range — show text field
         return ListTile(
           title: Text(opt.name),
-          subtitle: Text('Range: $min – $max', style: const TextStyle(fontSize: 11)),
+          subtitle: Text(AppLocalizations.of(context)?.rangeMinMax('$min', '$max') ?? 'Range: $min – $max', style: const TextStyle(fontSize: 11)),
           trailing: SizedBox(
             width: 80,
             child: TextField(
@@ -418,7 +423,7 @@ class _UciOptionsScreenState extends State<_UciOptionsScreen> {
           title: Text(opt.name),
           trailing: OutlinedButton(
             onPressed: () => widget.engine.pressButton(opt.name),
-            child: const Text('Run'),
+            child: Text(AppLocalizations.of(context)?.run ?? 'Run'),
           ),
         );
     }

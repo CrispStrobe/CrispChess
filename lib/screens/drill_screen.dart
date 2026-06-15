@@ -134,6 +134,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
   }
 
   void _showSummary() {
+    final l = AppLocalizations.of(context);
     final total = widget.drill.steps.length;
     final pct = total > 0 ? (_totalCorrectFirst / total * 100).round() : 0;
 
@@ -147,15 +148,15 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.drillComplete ?? 'Drill Complete!'),
+        title: Text(l?.drillComplete ?? 'Drill Complete!'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(pct >= 80 ? Icons.star : Icons.check_circle,
                 size: 48, color: pct >= 80 ? Colors.amber : Colors.green),
             const SizedBox(height: 12),
-            Text('$_totalCorrectFirst / $total correct on first try'),
-            Text('Accuracy: $pct%', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(l?.correctOnFirstTry('$_totalCorrectFirst', '$total') ?? '$_totalCorrectFirst / $total correct on first try'),
+            Text('${l?.accuracy ?? 'Accuracy'}: $pct%', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -164,7 +165,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: Text(AppLocalizations.of(context)?.done ?? 'Done'),
+            child: Text(l?.done ?? 'Done'),
           ),
         ],
       ),
@@ -173,6 +174,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final progress = ((_currentStep + 1) / widget.drill.steps.length);
 
     return Scaffold(
@@ -188,7 +190,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
           // Step counter
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Text('Step ${_currentStep + 1} of ${widget.drill.steps.length}',
+            child: Text(l?.stepOf('${_currentStep + 1}', '${widget.drill.steps.length}') ?? 'Step ${_currentStep + 1} of ${widget.drill.steps.length}',
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
 
@@ -230,7 +232,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(_coachMessage, style: const TextStyle(fontSize: 13)),
+                  child: Text(_localizeCoachMessage(_coachMessage, l), style: const TextStyle(fontSize: 13)),
                 ),
               ],
             ),
@@ -245,14 +247,21 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
                     ? Icons.arrow_forward
                     : Icons.check),
                 label: Text(_currentStep < widget.drill.steps.length - 1
-                    ? 'Next'
-                    : 'Finish'),
+                    ? (l?.next ?? 'Next')
+                    : (l?.finish ?? 'Finish')),
                 onPressed: _nextStep,
               ),
             ),
         ],
       ),
     );
+  }
+
+  String _localizeCoachMessage(String msg, AppLocalizations? l) {
+    if (msg == 'Find the best move.') return l?.findBestMove ?? msg;
+    if (msg == 'Correct!') return l?.correct ?? msg;
+    if (msg == 'Not quite — try again!') return l?.notQuiteTryAgain ?? msg;
+    return msg;
   }
 
   List<List<ChessPiece?>> _parseBoardFromFen(String fen) {

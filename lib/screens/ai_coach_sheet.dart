@@ -119,6 +119,7 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return DraggableScrollableSheet(
       initialChildSize: 0.5,
       minChildSize: 0.3,
@@ -150,11 +151,11 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                 children: [
                   Icon(Icons.psychology, color: Colors.purple.shade400),
                   const SizedBox(width: 8),
-                  Text(AppLocalizations.of(context)?.aiCoach ?? 'AI Coach', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(l?.aiCoach ?? 'AI Coach', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const Spacer(),
                   TextButton(
                     onPressed: () => setState(() => _showPrivacy = !_showPrivacy),
-                    child: Text(AppLocalizations.of(context)?.privacy ?? 'Privacy', style: TextStyle(fontSize: 11)),
+                    child: Text(l?.privacy ?? 'Privacy', style: const TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
@@ -169,19 +170,19 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                   ),
-                  child: const Text(
-                    'Your API key is stored locally on your device only. '
+                  child: Text(
+                    l?.privacyNotice ?? 'Your API key is stored locally on your device only. '
                     'Game data (FEN/PGN) is sent directly to your chosen AI provider. '
                     'CrispChess does not store, log, or transmit any data to its own servers. '
                     'You can delete your API key at any time.',
-                    style: TextStyle(fontSize: 11),
+                    style: const TextStyle(fontSize: 11),
                   ),
                 ),
 
               // API key setup
               if (_apiKey == null || _apiKey!.isEmpty) ...[
-                const Text('Enter your API key to get started:',
-                    style: TextStyle(fontSize: 13)),
+                Text(l?.enterApiKey ?? 'Enter your API key to get started:',
+                    style: const TextStyle(fontSize: 13)),
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const [
@@ -210,14 +211,14 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                 Row(
                   children: [
                     Chip(
-                      label: Text('$_provider key configured',
+                      label: Text(l?.keyConfigured(_provider) ?? '$_provider key configured',
                           style: const TextStyle(fontSize: 11)),
                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
                     ),
                     const Spacer(),
                     TextButton(
                       onPressed: _clearApiKey,
-                      child: const Text('Remove key', style: TextStyle(fontSize: 11)),
+                      child: Text(l?.removeKey ?? 'Remove key', style: const TextStyle(fontSize: 11)),
                     ),
                   ],
                 ),
@@ -227,7 +228,7 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                       ? const SizedBox(width: 16, height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.auto_awesome),
-                  label: Text(AppLocalizations.of(context)?.askCoach ?? 'Ask Coach'),
+                  label: Text(l?.askCoach ?? 'Ask Coach'),
                   onPressed: _loading ? null : _askCoach,
                 ),
               ],
