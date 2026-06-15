@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import 'engine_manager_screen.dart';
@@ -223,13 +223,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)?.settings ?? 'Settings')),
+      appBar: AppBar(title: Text(l?.settings ?? 'Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Engine selector
-          Text(AppLocalizations.of(context)?.chessEngine ?? 'Chess Engine', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.chessEngine ?? 'Chess Engine', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -290,7 +291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.memory, size: 18),
-                label: const Text('Engine Manager — Add Custom UCI Engines'),
+                label: Text(l?.engineManagerSubtitle ?? 'Engine Manager — Add Custom UCI Engines'),
                 onPressed: () {
                   Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const EngineManagerScreen()));
@@ -301,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Maia3 variant selector (shown when a Maia engine is selected)
           if (_isMaiaEngine) ...[
             const SizedBox(height: 16),
-            Text('Maia3 Model',
+            Text(l?.maia3Model ?? 'Maia3 Model',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Card(
@@ -326,7 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Stockfish version selector
           if (_isStockfish && kIsWeb) ...[
             const SizedBox(height: 16),
-            Text('Stockfish Version',
+            Text(l?.stockfishVersion ?? 'Stockfish Version',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Card(
@@ -354,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Lc0 Maia weight selector
           if (_isLc0) ...[
             const SizedBox(height: 16),
-            Text('Maia Weight (ELO level)',
+            Text(l?.maiaWeight ?? 'Maia Weight (ELO level)',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Card(
@@ -385,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Strength slider
-          Text('Opponent Strength',
+          Text(l?.opponentStrength ?? 'Opponent Strength',
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
@@ -432,7 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Hints & Analysis
-          Text('Hints & Analysis', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.hintsAndAnalysis ?? 'Hints & Analysis', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Padding(
@@ -440,7 +441,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Analysis Depth: $_hintDepth',
+                  Text(l?.analysisDepth('$_hintDepth') ?? 'Analysis Depth: $_hintDepth',
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold)),
                   Slider(
@@ -454,9 +455,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const Divider(),
                   ListTile(
-                    title: const Text('Hint Engine'),
+                    title: Text(l?.hintEngine ?? 'Hint Engine'),
                     subtitle: Text(_hintEngine == 'same'
-                        ? 'Same as opponent'
+                        ? (l?.sameAsOpponent ?? 'Same as opponent')
                         : _hintEngine,
                         style: const TextStyle(fontSize: 12)),
                     contentPadding: EdgeInsets.zero,
@@ -464,8 +465,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _hintEngine,
                       underline: const SizedBox.shrink(),
                       onChanged: (v) => setState(() => _hintEngine = v!),
-                      items: const [
-                        DropdownMenuItem(value: 'same', child: Text('Same as opponent', style: TextStyle(fontSize: 13))),
+                      items: [
+                        DropdownMenuItem(value: 'same', child: Text(l?.sameAsOpponent ?? 'Same as opponent', style: const TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Built-in', child: Text('Built-in', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Maia3', child: Text('Maia3', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Maia3 Dart', child: Text('Maia3 Dart', style: TextStyle(fontSize: 13))),
@@ -483,21 +484,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Game settings
-          Text(AppLocalizations.of(context)?.game ?? 'Game', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.game ?? 'Game', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Play as Black'),
-                  subtitle: const Text('Engine makes the first move'),
+                  title: Text(l?.playAsBlackSetting ?? 'Play as Black'),
+                  subtitle: Text(l?.playAsBlackSubtitle ?? 'Engine makes the first move'),
                   value: _playAsBlack,
                   onChanged: (value) =>
                       setState(() => _playAsBlack = value),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  title: const Text('Time Control'),
+                  title: Text(l?.timeControl ?? 'Time Control'),
                   trailing: DropdownButton<TimeControl>(
                     value: _timeControl,
                     underline: const SizedBox.shrink(),
@@ -513,32 +514,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: Text(AppLocalizations.of(context)?.showValidMoves ?? 'Show Valid Moves'),
+                  title: Text(l?.showValidMoves ?? 'Show Valid Moves'),
                   subtitle:
-                      const Text('Highlight legal moves when selecting a piece'),
+                      Text(l?.showValidMovesSubtitle ?? 'Highlight legal moves when selecting a piece'),
                   value: _showValidMoves,
                   onChanged: (value) =>
                       setState(() => _showValidMoves = value),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: Text(AppLocalizations.of(context)?.allowUndo ?? 'Allow Undo'),
-                  subtitle: const Text('Disable for discipline mode'),
+                  title: Text(l?.allowUndo ?? 'Allow Undo'),
+                  subtitle: Text(l?.allowUndoSubtitle ?? 'Disable for discipline mode'),
                   value: _allowUndo,
                   onChanged: (value) =>
                       setState(() => _allowUndo = value),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: const Text('Solid Black Pieces'),
-                  subtitle: const Text('Render black pieces as solid black instead of grey gradient'),
+                  title: Text(l?.solidBlackPieces ?? 'Solid Black Pieces'),
+                  subtitle: Text(l?.solidBlackPiecesSubtitle ?? 'Render black pieces as solid black instead of grey gradient'),
                   value: _solidBlackPieces,
                   onChanged: (value) =>
                       setState(() => _solidBlackPieces = value),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  title: const Text('Animation Speed'),
+                  title: Text(l?.animationSpeed ?? 'Animation Speed'),
                   subtitle: Slider(
                     value: _animationSpeed.toDouble(),
                     min: 0,
@@ -563,7 +564,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Piece theme
-          Text(AppLocalizations.of(context)?.pieceStyle ?? 'Piece Style', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.pieceStyle ?? 'Piece Style', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -595,8 +596,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Icon(Icons.info_outline,
                           size: 20, color: Theme.of(context).colorScheme.onSurface),
                       const SizedBox(width: 8),
-                      const Text('About CrispChess',
-                          style: TextStyle(
+                      Text(l?.aboutCrispChess ?? 'About CrispChess',
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
                     ],
                   ),
@@ -615,7 +616,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           // Theme
-          Text(AppLocalizations.of(context)?.theme ?? 'Theme', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.theme ?? 'Theme', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -639,13 +640,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // Language
           const SizedBox(height: 24),
-          Text('Language', style: Theme.of(context).textTheme.titleLarge),
+          Text(l?.language ?? 'Language', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Card(
             child: Column(
               children: [
                 for (final (value, label) in [
-                  ('system', 'System Default'),
+                  ('system', l?.systemDefault ?? 'System Default'),
                   ('en', 'English'),
                   ('de', 'Deutsch'),
                 ])
@@ -664,7 +665,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: TextButton.icon(
               icon: const Icon(Icons.restore, size: 18),
-              label: Text(AppLocalizations.of(context)?.resetToDefaults ?? 'Reset to defaults'),
+              label: Text(l?.resetToDefaults ?? 'Reset to defaults'),
               onPressed: () {
                 setState(() {
                   _strengthLevel = 10;
@@ -703,7 +704,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           });
         },
         icon: const Icon(Icons.check),
-        label: Text(AppLocalizations.of(context)?.save ?? 'Save'),
+        label: Text(l?.save ?? 'Save'),
       ),
     );
   }

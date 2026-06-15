@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
 

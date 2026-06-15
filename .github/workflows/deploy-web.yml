@@ -51,6 +51,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate localizations
+        run: dart run intl_utils:generate || flutter gen-l10n || true
+
       - name: Try WASM build
         id: wasm
         run: |

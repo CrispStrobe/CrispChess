@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../engines/generic_uci_engine.dart'
     if (dart.library.js_interop) '../engines/generic_uci_engine_web.dart';
 import '../engines/uci_option.dart';
@@ -41,7 +42,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
     final result = await showDialog<EngineProfile>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add UCI Engine'),
+        title: Text(AppLocalizations.of(context)?.addUciEngine ?? 'Add UCI Engine'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -192,7 +193,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Engine Manager')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)?.engineManager ?? 'Engine Manager')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _profiles.isEmpty
@@ -202,7 +203,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
                     children: [
                       Icon(Icons.memory, size: 64, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
-                      const Text('No custom engines added'),
+                      Text(AppLocalizations.of(context)?.noCustomEngines ?? 'No custom engines added'),
                       const SizedBox(height: 8),
                       Text(
                         'Add any UCI-compatible chess engine\nby providing the path to its binary.',
@@ -248,7 +249,7 @@ class _EngineManagerScreenState extends State<EngineManagerScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addEngine,
         icon: const Icon(Icons.add),
-        label: const Text('Add Engine'),
+        label: Text(AppLocalizations.of(context)?.addEngine ?? 'Add Engine'),
       ),
     );
   }

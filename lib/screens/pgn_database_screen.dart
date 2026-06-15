@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../chess/pgn_database.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Screen for browsing a PGN database (multiple games in one file).
 class PgnDatabaseScreen extends StatefulWidget {
@@ -23,8 +24,9 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
     if (data?.text == null || data!.text!.isEmpty) {
       setState(() => _loading = false);
       if (mounted) {
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No PGN data in clipboard'), backgroundColor: Colors.orange),
+          SnackBar(content: Text(l?.noPgnData ?? 'No PGN data in clipboard'), backgroundColor: Colors.orange),
         );
       }
       return;
@@ -38,8 +40,9 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
     });
 
     if (mounted && games.isEmpty) {
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No games found in PGN'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(l?.noGamesFound ?? 'No games found in PGN'), backgroundColor: Colors.orange),
       );
     }
   }
@@ -86,25 +89,26 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
     final topPlayers = playerCount.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Database Statistics'),
+        title: Text(l?.databaseStatistics ?? 'Database Statistics'),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${games.length} games', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(l?.nGames('${games.length}') ?? '${games.length} games', style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              const Text('Results', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(l?.results ?? 'Results', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 4),
-              _statBar('White wins', white, games.length, Colors.green),
-              _statBar('Black wins', black, games.length, Colors.red),
-              _statBar('Draws', draw, games.length, Colors.grey),
+              _statBar(l?.whiteWins ?? 'White wins', white, games.length, Colors.green),
+              _statBar(l?.blackWins ?? 'Black wins', black, games.length, Colors.red),
+              _statBar(l?.draws ?? 'Draws', draw, games.length, Colors.grey),
               const SizedBox(height: 12),
               if (topEcos.isNotEmpty) ...[
-                const Text('Top Openings (ECO)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(l?.topOpenings ?? 'Top Openings (ECO)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 4),
                 for (final eco in topEcos.take(8))
                   Padding(
@@ -125,7 +129,7 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
                 const SizedBox(height: 12),
               ],
               if (topPlayers.isNotEmpty) ...[
-                const Text('Most Active Players', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(l?.mostActivePlayers ?? 'Most Active Players', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 4),
                 for (final p in topPlayers.take(8))
                   Padding(
@@ -137,7 +141,7 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l?.close ?? 'Close')),
         ],
       ),
     );
@@ -165,16 +169,17 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(_allGames == null
-            ? 'PGN Database'
-            : '${_filtered.length} / ${_allGames!.length} games'),
+            ? (l?.pgnDatabase ?? 'PGN Database')
+            : '${_filtered.length} / ${_allGames!.length} ${l?.games ?? 'games'}'),
         actions: [
           if (_allGames != null && _allGames!.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.analytics),
-              tooltip: 'Database statistics',
+              tooltip: l?.databaseStatistics ?? 'Database statistics',
               onPressed: _showStats,
             ),
           IconButton(
@@ -193,10 +198,10 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
                       children: [
                         Icon(Icons.storage, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
-                        const Text('No database loaded'),
+                        Text(l?.noDatabaseLoaded ?? 'No database loaded'),
                         const SizedBox(height: 8),
                         Text(
-                          'Copy a PGN file with multiple games\nto your clipboard, then tap the paste icon.',
+                          l?.noDatabaseSubtitle ?? 'Copy a PGN file with multiple games\nto your clipboard, then tap the paste icon.',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                         ),
@@ -213,8 +218,8 @@ class _PgnDatabaseScreenState extends State<PgnDatabaseScreen> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: 'Search by player...',
+                          decoration: InputDecoration(
+                            hintText: l?.searchByPlayer ?? 'Search by player...',
                             prefixIcon: Icon(Icons.search, size: 20),
                             isDense: true,
                             border: OutlineInputBorder(),

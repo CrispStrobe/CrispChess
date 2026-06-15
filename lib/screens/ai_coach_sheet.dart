@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -149,11 +150,11 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                 children: [
                   Icon(Icons.psychology, color: Colors.purple.shade400),
                   const SizedBox(width: 8),
-                  const Text('AI Coach', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)?.aiCoach ?? 'AI Coach', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const Spacer(),
                   TextButton(
                     onPressed: () => setState(() => _showPrivacy = !_showPrivacy),
-                    child: const Text('Privacy', style: TextStyle(fontSize: 11)),
+                    child: Text(AppLocalizations.of(context)?.privacy ?? 'Privacy', style: TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
@@ -226,7 +227,7 @@ class _AiCoachSheetState extends State<AiCoachSheet> {
                       ? const SizedBox(width: 16, height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.auto_awesome),
-                  label: const Text('Ask Coach'),
+                  label: Text(AppLocalizations.of(context)?.askCoach ?? 'Ask Coach'),
                   onPressed: _loading ? null : _askCoach,
                 ),
               ],

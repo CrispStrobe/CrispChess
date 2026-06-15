@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_game.dart';
 import '../chess/drill.dart';
@@ -16,7 +17,7 @@ class DrillListScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Drills')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)?.drills ?? 'Drills')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -146,7 +147,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Drill Complete!'),
+        title: Text(AppLocalizations.of(context)?.drillComplete ?? 'Drill Complete!'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -163,7 +164,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Done'),
+            child: Text(AppLocalizations.of(context)?.done ?? 'Done'),
           ),
         ],
       ),

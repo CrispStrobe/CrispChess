@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_tree.dart';
 import '../chess/move_analyzer.dart';
@@ -119,7 +120,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
         : 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Game Summary')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)?.gameSummary ?? 'Game Summary')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -161,7 +162,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                       children: [
                         Icon(Icons.analytics, size: 20, color: Colors.blue.shade700),
                         const SizedBox(width: 8),
-                        const Text('Your Accuracy',
+                        Text(AppLocalizations.of(context)?.yourAccuracy ?? 'Your Accuracy',
                             style: TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -195,7 +196,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                       children: [
                         Icon(Icons.show_chart, size: 20, color: Colors.blue.shade700),
                         const SizedBox(width: 8),
-                        const Text('Evaluation',
+                        Text(AppLocalizations.of(context)?.evaluation ?? 'Evaluation',
                             style: TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -214,7 +215,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
               color: Colors.green.shade50,
               child: ListTile(
                 leading: Icon(Icons.star, color: Colors.green.shade700),
-                title: const Text('Your Best Move'),
+                title: Text(AppLocalizations.of(context)?.yourBestMove ?? 'Your Best Move'),
                 subtitle: Text(bestMoveStr,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Text('+${bestGain.toStringAsFixed(1)}',
@@ -229,7 +230,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
               color: Colors.red.shade50,
               child: ListTile(
                 leading: Icon(Icons.warning, color: Colors.red.shade700),
-                title: const Text('Biggest Mistake'),
+                title: Text(AppLocalizations.of(context)?.biggestMistake ?? 'Biggest Mistake'),
                 subtitle: Text(worstMoveStr,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Text('-${worstLoss.toStringAsFixed(1)}',
@@ -298,7 +299,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text('Moves',
+                      Text(AppLocalizations.of(context)?.moves ?? 'Moves',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       if (widget.tree != null) ...[
                         const Spacer(),

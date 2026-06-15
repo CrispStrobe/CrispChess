@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../engines/chess_engine.dart';
 import '../engines/engine_factory.dart';

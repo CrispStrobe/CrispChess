@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../chess/achievements.dart';
 import '../chess/xp_system.dart';
 import '../services/preferences_service.dart';
@@ -24,7 +25,7 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     if (!_loaded) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Stats')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context)?.stats ?? 'Stats')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../chess/chess_game.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Board setup / position editor screen.
 ///
@@ -121,7 +122,7 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
     return sb.toString();
   }
 
-  String? _validatePosition() {
+  String? _validatePosition(AppLocalizations? l) {
     int whiteKings = 0, blackKings = 0;
     for (int r = 0; r < 8; r++) {
       for (int c = 0; c < 8; c++) {
@@ -132,27 +133,28 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
         }
         // Pawns on rank 1 or 8
         if (p != null && p.type == PieceType.pawn && (r == 0 || r == 7)) {
-          return 'Pawns cannot be on the first or last rank';
+          return l?.pawnsOnEdgeRank ?? 'Pawns cannot be on the first or last rank';
         }
       }
     }
-    if (whiteKings != 1) return 'White must have exactly one king';
-    if (blackKings != 1) return 'Black must have exactly one king';
+    if (whiteKings != 1) return l?.needOneWhiteKing ?? 'White must have exactly one king';
+    if (blackKings != 1) return l?.needOneBlackKing ?? 'Black must have exactly one king';
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final fen = _generateFen();
-    final error = _validatePosition();
+    final error = _validatePosition(l);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Position Editor'),
+        title: Text(l?.positionEditor ?? 'Position Editor'),
         actions: [
           IconButton(
             icon: const Icon(Icons.restart_alt),
-            tooltip: 'Starting position',
+            tooltip: l?.startingPosition ?? 'Starting position',
             onPressed: () {
               setState(() {
                 _parseFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -162,7 +164,7 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.delete_sweep),
-            tooltip: 'Clear board',
+            tooltip: l?.clearBoard ?? 'Clear board',
             onPressed: () {
               setState(() {
                 _board = List.generate(8, (_) => List<ChessPiece?>.filled(8, null));
@@ -280,12 +282,12 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
                 // Side to move
                 Row(
                   children: [
-                    const Text('Side to move:', style: TextStyle(fontSize: 13)),
+                    Text(l?.sideToMove ?? 'Side to move:', style: const TextStyle(fontSize: 13)),
                     const Spacer(),
                     SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: true, label: Text('White')),
-                        ButtonSegment(value: false, label: Text('Black')),
+                      segments: [
+                        ButtonSegment(value: true, label: Text(l?.playAsWhite ?? 'White')),
+                        ButtonSegment(value: false, label: Text(l?.playAsBlack ?? 'Black')),
                       ],
                       selected: {_whiteToMove},
                       onSelectionChanged: (s) => setState(() => _whiteToMove = s.first),
@@ -296,7 +298,7 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
                 // Castling
                 Row(
                   children: [
-                    const Text('Castling:', style: TextStyle(fontSize: 13)),
+                    Text(l?.castling ?? 'Castling:', style: const TextStyle(fontSize: 13)),
                     const Spacer(),
                     _castlingChip('K', _whiteCastleKing, (v) => setState(() => _whiteCastleKing = v)),
                     _castlingChip('Q', _whiteCastleQueen, (v) => setState(() => _whiteCastleQueen = v)),
@@ -322,11 +324,11 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy, size: 18),
-                  tooltip: 'Copy FEN',
+                  tooltip: l?.copyFen ?? 'Copy FEN',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: fen));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('FEN copied')),
+                      SnackBar(content: Text(l?.fenCopied ?? 'FEN copied')),
                     );
                   },
                 ),
@@ -346,7 +348,7 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
           ? FloatingActionButton.extended(
               onPressed: () => Navigator.pop(context, fen),
               icon: const Icon(Icons.check),
-              label: const Text('Load Position'),
+              label: Text(l?.loadPosition ?? 'Load Position'),
             )
           : null,
     );

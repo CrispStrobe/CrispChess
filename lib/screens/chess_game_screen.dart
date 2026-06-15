@@ -30,7 +30,8 @@ import 'about_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
+
 import 'ai_coach_sheet.dart';
 import 'drill_screen.dart';
 import 'engine_match_screen.dart';
@@ -163,7 +164,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Resume game?'),
+            title: Text(AppLocalizations.of(context)?.resumeGame ?? 'Resume game?'),
             content: Text('You have a saved game (${moves.split(" ").length} moves).'),
             actions: [
               TextButton(
@@ -171,14 +172,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   Navigator.pop(ctx);
                   _prefs.clearSavedGame();
                 },
-                child: const Text('Discard'),
+                child: Text(AppLocalizations.of(context)?.discard ?? 'Discard'),
               ),
               FilledButton(
                 onPressed: () {
                   Navigator.pop(ctx);
                   _resumeSavedGame();
                 },
-                child: const Text('Resume'),
+                child: Text(AppLocalizations.of(context)?.resume ?? 'Resume'),
               ),
             ],
           ),
@@ -533,7 +534,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _sound.play(ChessSound.illegal);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Illegal Move!'),
+          content: Text(AppLocalizations.of(context)?.illegalMove ?? 'Illegal Move!'),
           backgroundColor: Colors.red.shade700,
           duration: const Duration(milliseconds: 700),
         ),
@@ -563,7 +564,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
     if (_engineService.state != EngineState.ready) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Engine not ready')),
+        SnackBar(content: Text(AppLocalizations.of(context)?.engineNotReady ?? 'Engine not ready')),
       );
       return;
     }
@@ -663,7 +664,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Continue'),
+            child: Text(AppLocalizations.of(context)?.continueButton ?? 'Continue'),
           ),
         ],
       ),
@@ -743,14 +744,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 Navigator.of(context).pop();
                 _showGameSummary();
               },
-              child: const Text('Review'),
+              child: Text(AppLocalizations.of(context)?.review ?? 'Review'),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _confirmNewGame();
               },
-              child: const Text('New Game'),
+              child: Text(AppLocalizations.of(context)?.newGame ?? 'New Game'),
             ),
           ],
         );
@@ -1313,11 +1314,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         final chosen = <String>{};
         return StatefulBuilder(
           builder: (ctx, setDialogState) => AlertDialog(
-            title: const Text('Multi-Engine Analysis'),
+            title: Text(AppLocalizations.of(context)?.multiEngineAnalysis ?? 'Multi-Engine Analysis'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Select engines to compare:', style: TextStyle(fontSize: 13)),
+                Text(AppLocalizations.of(context)?.selectEnginesToCompare ?? 'Select engines to compare:', style: const TextStyle(fontSize: 13)),
                 const SizedBox(height: 8),
                 for (final name in engines)
                   CheckboxListTile(
@@ -1336,10 +1337,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel')),
               FilledButton(
                 onPressed: chosen.length >= 2 ? () => Navigator.pop(ctx, chosen.toList()) : null,
-                child: const Text('Start'),
+                child: Text(AppLocalizations.of(context)?.start ?? 'Start'),
               ),
             ],
           ),
@@ -1425,12 +1426,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Resign?'),
+        title: Text(AppLocalizations.of(context)?.resignQuestion ?? 'Resign?'),
         content: Text('${_engineService.engineName} wins by resignation.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -1447,7 +1448,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _showGameOverDialog();
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Resign'),
+            child: Text(AppLocalizations.of(context)?.resign ?? 'Resign'),
           ),
         ],
       ),
@@ -1701,14 +1702,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Load FEN'),
+        title: Text(AppLocalizations.of(context)?.loadFen ?? 'Load FEN'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                hintText: 'Paste FEN string...',
+                hintText: AppLocalizations.of(context)?.pasteFenHint ?? 'Paste FEN string...',
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
@@ -1719,7 +1720,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 icon: const Icon(Icons.paste, size: 16),
-                label: const Text('Paste from clipboard'),
+                label: Text(AppLocalizations.of(context)?.pasteFromClipboard ?? 'Paste from clipboard'),
                 onPressed: () async {
                   final data = await Clipboard.getData(Clipboard.kTextPlain);
                   if (data?.text != null) {
@@ -1733,7 +1734,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -1758,13 +1759,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Invalid FEN string'),
+                    content: Text(AppLocalizations.of(context)?.invalidFen ?? 'Invalid FEN string'),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
-            child: const Text('Load'),
+            child: Text(AppLocalizations.of(context)?.load ?? 'Load'),
           ),
         ],
       ),
@@ -1777,7 +1778,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (boundary == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not capture board')),
+            const SnackBar(content: Text(AppLocalizations.of(context)?.couldNotCaptureBoard ?? 'Could not capture board')),
           );
         }
         return;
@@ -2078,7 +2079,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _prefs.addBookmark(_game.currentFEN);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Position bookmarked')),
+                      SnackBar(content: Text(AppLocalizations.of(context)?.positionBookmarked ?? 'Position bookmarked')),
                     );
                   }
                 case 'ask_coach':
