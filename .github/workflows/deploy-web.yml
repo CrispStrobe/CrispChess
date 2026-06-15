@@ -54,16 +54,19 @@ jobs:
       - name: Generate localizations
         run: dart run intl_utils:generate || flutter gen-l10n || true
 
-      - name: Try WASM build
-        id: wasm
+      - name: Build Flutter web
         run: |
-          flutter build web --release --wasm \
+          # Try WASM first, fall back to JS
+          if flutter build web --release --wasm \
             --dart-define=GIT_HASH=$(git rev-parse --short HEAD) \
-            --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d) || true
-
-      - name: Fallback to JS build
-        if: ${{ hashFiles('build/web/main.dart.wasm') == '' }}
-        run: flutter build web --release --dart-define=GIT_HASH=$(git rev-parse --short HEAD) --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d)
+            --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d); then
+            echo "WASM build succeeded"
+          else
+            echo "WASM failed, trying JS build..."
+            flutter build web --release \
+              --dart-define=GIT_HASH=$(git rev-parse --short HEAD) \
+              --dart-define=BUILD_DATE=$(date -u +%Y-%m-%d)
+          fi
 
       - name: Log build type
         run: |

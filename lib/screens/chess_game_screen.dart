@@ -569,6 +569,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       return;
     }
 
+    // Stop any running pondering/analysis before requesting hint
+    _engineService.stop();
+
     setState(() {
       _state = _state.copyWith(
         waitingForHint: true,
@@ -1605,7 +1608,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final move = await _hintEngineInstance!.bestMove(
         _game.positionCommand,
         depth: _state.hintDepth,
-      );
+      ).timeout(const Duration(seconds: 15), onTimeout: () {
+        _hintEngineInstance?.stop();
+        throw TimeoutException('Hint timed out');
+      });
 
       if (mounted) {
         _handleHintResponse(move);
