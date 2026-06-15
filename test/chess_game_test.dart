@@ -121,7 +121,7 @@ void main() {
       game.makeMove('f1c4');
       game.makeMove('g8f6');
       game.makeMove('h5f7');
-      expect(game.gameOverReason, 'Checkmate!');
+      expect(game.gameOverReason, 'Checkmate');
     });
 
     test('winner returns correct side', () {

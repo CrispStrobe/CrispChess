@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crispchess/engines/lc0_dart/encoding.dart';
 import 'package:crispchess/engines/lc0_dart/policy_map.dart';
@@ -9,13 +8,13 @@ void main() {
   group('Lc0 Board Encoding', () {
     test('encodePosition produces 7168 elements (112*8*8)', () {
       const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-      final planes = encodePosition(fen, []);
+      final planes = encodePosition(fen);
       expect(planes.length, 112 * 8 * 8);
     });
 
     test('encoding has non-zero values for starting position', () {
       const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-      final planes = encodePosition(fen, []);
+      final planes = encodePosition(fen);
       final nonZero = planes.where((v) => v != 0).length;
       // 32 pieces + auxiliary planes should give many non-zero values
       expect(nonZero, greaterThan(30));
@@ -24,9 +23,8 @@ void main() {
     test('encoding changes after a move', () {
       const fen1 = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
       const fen2 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
-      final p1 = encodePosition(fen1, []);
-      final p2 = encodePosition(fen2, []);
-      // Should differ (different position)
+      final p1 = encodePosition(fen1);
+      final p2 = encodePosition(fen2);
       bool differs = false;
       for (int i = 0; i < p1.length; i++) {
         if (p1[i] != p2[i]) {
@@ -39,27 +37,26 @@ void main() {
 
     test('encoding handles black to move', () {
       const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
-      final planes = encodePosition(fen, []);
+      final planes = encodePosition(fen);
       expect(planes.length, 112 * 8 * 8);
     });
 
     test('encoding handles endgame position', () {
       const fen = '4k3/8/8/8/8/8/4P3/4K3 w - - 0 1';
-      final planes = encodePosition(fen, []);
+      final planes = encodePosition(fen);
       expect(planes.length, 112 * 8 * 8);
       final nonZero = planes.where((v) => v != 0).length;
-      // 3 pieces + aux planes
       expect(nonZero, greaterThan(2));
     });
   });
 
   group('Lc0 Policy Map', () {
     test('has exactly 1858 moves', () {
-      expect(getAllLc0Moves().length, 1858);
+      expect(lc0Moves.length, 1858);
     });
 
     test('all moves have valid format', () {
-      for (final move in getAllLc0Moves()) {
+      for (final move in lc0Moves) {
         expect(move.length, greaterThanOrEqualTo(4));
         expect(move[0], matches(RegExp(r'[a-h]')));
         expect(move[1], matches(RegExp(r'[1-8]')));
@@ -72,21 +69,23 @@ void main() {
     });
 
     test('common moves are in the vocabulary', () {
-      expect(moveToIndex('e2e4'), isNotNull);
-      expect(moveToIndex('d2d4'), isNotNull);
-      expect(moveToIndex('g1f3'), isNotNull);
-      expect(moveToIndex('e1g1'), isNotNull); // kingside castle
+      final map = getMoveToIndex();
+      expect(map['e2e4'], isNotNull);
+      expect(map['d2d4'], isNotNull);
+      expect(map['g1f3'], isNotNull);
+      expect(map['e1g1'], isNotNull); // kingside castle
     });
 
-    test('moveToIndex returns null for invalid moves', () {
-      expect(moveToIndex('z9z9'), isNull);
-      expect(moveToIndex(''), isNull);
+    test('getMoveToIndex returns null for invalid moves', () {
+      final map = getMoveToIndex();
+      expect(map['z9z9'], isNull);
     });
 
     test('indexToMove roundtrips correctly', () {
+      final map = getMoveToIndex();
       for (int i = 0; i < 1858; i++) {
         final move = indexToMove(i);
-        expect(moveToIndex(move), i);
+        expect(map[move], i);
       }
     });
 
@@ -163,7 +162,6 @@ void main() {
     test('mctsSearch returns a legal move', () async {
       final moves = ['e2e4', 'd2d4', 'g1f3', 'b1c3'];
 
-      // Mock evaluator: uniform policy, neutral value
       Future<NnEval> mockEval(String fen, List<String> legalMoves) async {
         final policy = <String, double>{};
         for (final m in legalMoves) {

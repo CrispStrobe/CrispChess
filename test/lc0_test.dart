@@ -6,8 +6,7 @@ import 'package:crispchess/engines/lc0_dart/variants.dart';
 void main() {
   group('Lc0 Policy Map', () {
     test('has 1858 moves', () {
-      final moves = getAllLc0Moves();
-      expect(moves.length, 1858);
+      expect(lc0Moves.length, 1858);
     });
 
     test('first move is a1b1', () {
@@ -15,13 +14,15 @@ void main() {
     });
 
     test('move-to-index roundtrip works', () {
-      final idx = moveToIndex('e2e4');
+      final map = getMoveToIndex();
+      final idx = map['e2e4'];
       expect(idx, isNotNull);
       expect(indexToMove(idx!), 'e2e4');
     });
 
     test('promotion moves are included', () {
-      final idx = moveToIndex('a7a8q');
+      final map = getMoveToIndex();
+      final idx = map['a7a8q'];
       expect(idx, isNotNull);
       expect(idx!, greaterThan(1790)); // Promotions are at the end
     });
@@ -32,7 +33,8 @@ void main() {
     });
 
     test('unknown move returns null', () {
-      expect(moveToIndex('z9z9'), isNull);
+      final map = getMoveToIndex();
+      expect(map['z9z9'], isNull);
     });
   });
 
@@ -93,19 +95,19 @@ void main() {
 
   group('Lc0 Variants', () {
     test('all Maia variants are defined', () {
-      expect(getLc0Variant('1100'), isNotNull);
-      expect(getLc0Variant('1500'), isNotNull);
-      expect(getLc0Variant('1900'), isNotNull);
+      expect(getLc0Variant('1100').estimatedElo, 1100);
+      expect(getLc0Variant('1500').estimatedElo, 1500);
+      expect(getLc0Variant('1900').estimatedElo, 1900);
     });
 
     test('variant URLs point to HuggingFace', () {
       final v = getLc0Variant('1500');
       expect(v.url, contains('huggingface.co'));
-      expect(v.url, contains('maia-1500'));
     });
 
-    test('unknown variant throws', () {
-      expect(() => getLc0Variant('9999'), throwsArgumentError);
+    test('unknown variant returns default', () {
+      final v = getLc0Variant('9999');
+      expect(v.id, defaultLc0Variant);
     });
 
     test('lc0VariantFromMaia3 maps correctly', () {

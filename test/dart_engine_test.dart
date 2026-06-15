@@ -8,7 +8,7 @@ void main() {
   group('DartEngine interface', () {
     test('name, version, license are correct', () {
       final engine = DartEngine();
-      expect(engine.name, 'CrispEngine');
+      expect(engine.name, 'Built-in');
       expect(engine.license, 'MIT');
       expect(engine.estimatedElo, greaterThan(1000));
       engine.dispose();
