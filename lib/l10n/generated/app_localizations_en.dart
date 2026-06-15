@@ -826,4 +826,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notationStyleLabel => 'Notation';
+
+  @override
+  String get blindfoldMode => 'Blindfold Mode';
+
+  @override
+  String get blindfoldModeSubtitle => 'Hide pieces — play by memory';
 }

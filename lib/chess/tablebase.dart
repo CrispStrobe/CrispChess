@@ -7,8 +7,8 @@
 /// License: Lichess API is free to use.
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../services/http_service.dart';
 
 class TablebaseResult {
   final String category; // "win", "draw", "loss", "unknown"
@@ -55,19 +55,9 @@ Future<TablebaseResult?> queryTablebase(String fen) async {
     final encodedFen = Uri.encodeComponent(fen);
     final url = 'https://tablebase.lichess.ovh/standard?fen=$encodedFen';
 
-    if (kIsWeb) {
-      // On web, can't use dart:io HttpClient. Return null for now.
-      // Could use package:http or dart:html fetch.
-      return null;
-    }
+    final body = await httpGet(url);
+    if (body == null) return null;
 
-    final client = HttpClient();
-    final request = await client.getUrl(Uri.parse(url));
-    final response = await request.close();
-
-    if (response.statusCode != 200) return null;
-
-    final body = await response.transform(utf8.decoder).join();
     final json = jsonDecode(body) as Map<String, dynamic>;
 
     final moves = <TablebaseMove>[];

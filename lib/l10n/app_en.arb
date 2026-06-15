@@ -281,5 +281,7 @@
   "threeCheck": "Three-Check",
   "customTimeControl": "Custom...",
   "boardColorThemeLabel": "Board Color",
-  "notationStyleLabel": "Notation"
+  "notationStyleLabel": "Notation",
+  "blindfoldMode": "Blindfold Mode",
+  "blindfoldModeSubtitle": "Hide pieces — play by memory"
 }

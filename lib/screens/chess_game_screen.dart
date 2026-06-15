@@ -34,6 +34,7 @@ import 'about_screen.dart';
 import 'coordinate_trainer_screen.dart';
 import 'game_history_screen.dart';
 import 'game_summary_screen.dart';
+import 'opening_explorer_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -942,11 +943,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (customBase != null) _prefs.customBaseMinutes = customBase;
       if (customInc != null) _prefs.customIncrementSeconds = customInc;
 
-      // Persist board theme and notation style
+      // Persist board theme, notation, blindfold
       final boardTheme = result['boardTheme'] as String?;
       if (boardTheme != null) _prefs.boardTheme = boardTheme;
       final notation = result['notationStyle'] as String?;
       if (notation != null) _prefs.notationStyle = notation;
+      final blindfold = result['blindfold'] as bool?;
+      if (blindfold != null) _prefs.blindfold = blindfold;
 
       // Persist engine resource settings
       final hashMb = result['engineHashMb'] as int?;
@@ -2179,6 +2182,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 case 'drills':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const DrillListScreen()));
+                case 'opening_explorer':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const OpeningExplorerScreen()));
                 case 'coordinates':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()));
@@ -2225,6 +2231,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 item('bookmark', Icons.bookmark_add, 'Bookmark Position'),
                 item('ask_coach', Icons.psychology, 'Ask Coach'),
                 item('drills', Icons.school, 'Drills'),
+                item('opening_explorer', Icons.explore, 'Opening Explorer'),
                 item('coordinates', Icons.grid_3x3, 'Coordinate Trainer'),
                 item('engine_match', Icons.sports_esports, 'Engine vs Engine'),
                 item('puzzles', Icons.extension, l?.puzzles ?? 'Puzzles'),
@@ -2337,6 +2344,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             isCheckmate: _game.isGameOver && _game.gameOverReason == 'Checkmate',
                             solidBlackPieces: _solidBlackPieces,
                             boardColorTheme: getBoardTheme(_prefs.boardTheme),
+                            blindfold: _prefs.blindfold,
                           ),
                         ),
                       );

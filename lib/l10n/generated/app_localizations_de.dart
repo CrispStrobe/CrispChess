@@ -826,4 +826,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notationStyleLabel => 'Notation';
+
+  @override
+  String get blindfoldMode => 'Blindfold-Modus';
+
+  @override
+  String get blindfoldModeSubtitle => 'Figuren ausblenden — aus dem Gedächtnis spielen';
 }

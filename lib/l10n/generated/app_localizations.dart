@@ -1626,6 +1626,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notation'**
   String get notationStyleLabel;
+
+  /// No description provided for @blindfoldMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Blindfold Mode'**
+  String get blindfoldMode;
+
+  /// No description provided for @blindfoldModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide pieces — play by memory'**
+  String get blindfoldModeSubtitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

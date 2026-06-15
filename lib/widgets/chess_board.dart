@@ -27,6 +27,7 @@ class ChessBoard extends StatefulWidget {
   final bool isCheckmate; // true when game ended in checkmate (king glow)
   final bool solidBlackPieces; // render black pieces as solid black instead of grey gradient
   final BoardColorTheme? boardColorTheme; // null = default brown
+  final bool blindfold; // hide pieces (blindfold mode)
 
   const ChessBoard({
     Key? key,
@@ -50,6 +51,7 @@ class ChessBoard extends StatefulWidget {
     this.isCheckmate = false,
     this.solidBlackPieces = false,
     this.boardColorTheme,
+    this.blindfold = false,
   }) : super(key: key);
 
   @override
@@ -263,6 +265,7 @@ class _ChessBoardState extends State<ChessBoard>
                               solidBlackPieces: widget.solidBlackPieces,
                               squareSize: squareSize,
                               boardColorTheme: widget.boardColorTheme,
+                              blindfold: widget.blindfold,
                             );
                           }),
                         ),
@@ -391,9 +394,11 @@ class _ChessSquare extends StatelessWidget {
     this.solidBlackPieces = false,
     required this.squareSize,
     this.boardColorTheme,
+    this.blindfold = false,
   });
 
   final BoardColorTheme? boardColorTheme;
+  final bool blindfold;
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +487,7 @@ class _ChessSquare extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (piece != null)
+                  if (piece != null && !blindfold)
                     Draggable<Map<String, int>>(
                       data: {'row': row, 'col': col},
                       feedback: _PieceWidget(

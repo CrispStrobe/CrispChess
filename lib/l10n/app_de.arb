@@ -256,5 +256,7 @@
   "threeCheck": "Drei-Schach",
   "customTimeControl": "Benutzerdefiniert...",
   "boardColorThemeLabel": "Brettfarbe",
-  "notationStyleLabel": "Notation"
+  "notationStyleLabel": "Notation",
+  "blindfoldMode": "Blindfold-Modus",
+  "blindfoldModeSubtitle": "Figuren ausblenden — aus dem Gedächtnis spielen"
 }

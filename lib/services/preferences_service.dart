@@ -23,6 +23,7 @@ class PreferencesService {
   static const _keyEngineThreads = 'engineThreads';
   static const _keyBoardTheme = 'boardTheme';
   static const _keyNotationStyle = 'notationStyle';
+  static const _keyBlindfold = 'blindfold';
 
   SharedPreferences? _prefs;
 
@@ -109,6 +110,10 @@ class PreferencesService {
   // Notation style
   String get notationStyle => _prefs?.getString(_keyNotationStyle) ?? 'algebraic';
   set notationStyle(String v) => _prefs?.setString(_keyNotationStyle, v);
+
+  // Blindfold mode
+  bool get blindfold => _prefs?.getBool(_keyBlindfold) ?? false;
+  set blindfold(bool v) => _prefs?.setBool(_keyBlindfold, v);
 
   // Game state persistence
   static const _keyGameFen = 'gameFen';

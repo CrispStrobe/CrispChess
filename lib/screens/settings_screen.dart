@@ -54,6 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _engineThreads = 1;
   String _boardTheme = 'brown';
   String _notationStyle = 'algebraic';
+  bool _blindfold = false;
   String _themeMode = 'system';
   String _language = 'system';
   bool _solidBlackPieces = false;
@@ -110,6 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _engineThreads = threads;
       _boardTheme = prefs.getString('boardTheme') ?? 'brown';
       _notationStyle = prefs.getString('notationStyle') ?? 'algebraic';
+      _blindfold = prefs.getBool('blindfold') ?? false;
     });
   }
 
@@ -687,6 +689,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
+                  title: Text(l?.blindfoldMode ?? 'Blindfold Mode'),
+                  subtitle: Text(l?.blindfoldModeSubtitle ?? 'Hide pieces — play by memory'),
+                  value: _blindfold,
+                  onChanged: (value) =>
+                      setState(() => _blindfold = value),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
                   title: Text(l?.solidBlackPieces ?? 'Solid Black Pieces'),
                   subtitle: Text(l?.solidBlackPiecesSubtitle ?? 'Render black pieces as solid black instead of grey gradient'),
                   value: _solidBlackPieces,
@@ -934,6 +944,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'engineThreads': _engineThreads,
             'boardTheme': _boardTheme,
             'notationStyle': _notationStyle,
+            'blindfold': _blindfold,
             'themeMode': _themeMode,
             'language': _language,
             'solidBlackPieces': _solidBlackPieces,

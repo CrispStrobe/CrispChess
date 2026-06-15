@@ -253,8 +253,9 @@ _License: CC0 puzzle databases. Open puzzle APIs (no auth required)._
 - [ ] Attribution label for externally sourced puzzles
 
 ### Endgame-Specific Training
-- [ ] Dedicated endgame drill sets: K+Q vs K, K+R vs K, K+P vs K, K+2B vs K, K+B+N vs K
-- [ ] Progressive difficulty (easy → hard positions per endgame type)
+- [x] Dedicated endgame drill sets: K+Q vs K, K+R vs K, K+P vs K, K+2B vs K
+- [x] Progressive difficulty (3 steps per endgame type)
+- [ ] K+B+N vs K drill (complex, needs more positions)
 - [ ] Checkmate-in-N counter (must find mate within N moves)
 - [ ] Tablebase validation of each move (correct if DTZ improves or stays optimal)
 
@@ -272,15 +273,15 @@ _Goal: standalone Opening Explorer screen on par with the best in class._
 _License: open explorer APIs (free, no auth). All code is MIT._
 
 ### Opening Explorer Screen
-- [ ] New screen accessible from main menu: "Opening Explorer"
-- [ ] Interactive board at top, move table below
-- [ ] For each candidate move: show games played, win% / draw% / loss% bar
-- [ ] Click a move to play it on the board and load next position's stats
-- [ ] Navigate back through move history
+- [x] New screen accessible from main menu: "Opening Explorer"
+- [x] Interactive board at top, move table below
+- [x] For each candidate move: show games played, win% / draw% / loss% bar
+- [x] Click a move to play it on the board and load next position's stats
+- [x] Navigate back through move history
 
 ### Data Sources
-- [ ] Masters game database (via open explorer API — free, no auth)
-- [ ] Online player database (filter by rating range)
+- [x] Masters game database (via open explorer API — free, no auth)
+- [x] Online player database (toggle between Masters / Online)
 - [ ] Local/offline fallback: expanded built-in opening book (200+ positions)
 - [ ] Cache API responses locally for offline re-use
 
@@ -307,8 +308,8 @@ endpoints). All code MIT._
 - [ ] Persist imported games in local database
 
 ### Tablebase on Web
-- [ ] Enable Syzygy API calls on web platform (currently native only)
-- [ ] Same UX: show tablebase result in analysis panel when ≤7 pieces
+- [x] Enable Syzygy API calls on web platform (cross-platform HTTP service)
+- [x] Same UX: show tablebase result in analysis panel when ≤7 pieces
 
 ### Live Tournament Broadcasts
 - [ ] Fetch active broadcasts from open Broadcast API
@@ -325,9 +326,9 @@ _Goal: deepen the training offering to best-in-class level._
 _License: all content must be original or CC0. Code is MIT._
 
 ### Blindfold Mode
-- [ ] Setting or toggle: hide pieces on board, show only move list
-- [ ] Optionally show last-move highlight as the only board hint
-- [ ] Works in play-vs-AI and puzzle modes
+- [x] Setting toggle: hide pieces on board (blindfold property on ChessBoard)
+- [x] Last-move highlight still visible as the only board hint
+- [x] Works in play-vs-AI mode (persisted in preferences)
 
 ### More Drills
 - [ ] Expand from 4 to 20+ drills across categories:
