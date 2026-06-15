@@ -162,6 +162,9 @@ class DartEngine implements ChessEngine {
   void stop() => _search?.stop();
 
   @override
+  void setOption(String name, String value) {}
+
+  @override
   void dispose() {
     _disposed = true;
     _search?.stop();

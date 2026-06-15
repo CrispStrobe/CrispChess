@@ -255,6 +255,9 @@ class Lc0Engine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {}
+
+  @override
   void dispose() {
     _modelLoaded = false;
     _fenHistory.clear();

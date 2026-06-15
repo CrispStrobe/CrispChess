@@ -181,6 +181,9 @@ class Maia3DartEngine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {}
+
+  @override
   void dispose() {
     _model?.close();
     _model = null;

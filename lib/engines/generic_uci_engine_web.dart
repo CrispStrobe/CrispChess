@@ -27,7 +27,7 @@ class GenericUciEngine implements ChessEngine {
   @override Stream<EvalInfo> analyze(String p, {int? depth, bool infinite = false}) =>
       const Stream.empty();
   @override void stop() {}
+  @override void setOption(String name, String value) {}
   @override void dispose() {}
-  void setOption(String name, String value) {}
   void pressButton(String name) {}
 }

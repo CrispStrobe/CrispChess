@@ -165,6 +165,9 @@ class Maia3Engine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {}
+
+  @override
   void dispose() {
     _moveHistory.clear();
     _fenHistory.clear();

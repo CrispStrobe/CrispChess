@@ -130,6 +130,9 @@ class Lc0Engine implements ChessEngine {
   void stop() {}
 
   @override
+  void setOption(String name, String value) {}
+
+  @override
   void dispose() {
     _stateNotifier.value = EngineState.disposed;
   }

@@ -203,6 +203,7 @@ class GenericUciEngine implements ChessEngine {
   }
 
   /// Set a UCI option at runtime.
+  @override
   void setOption(String name, String value) {
     _send('setoption name $name value $value');
     for (final opt in options) {
