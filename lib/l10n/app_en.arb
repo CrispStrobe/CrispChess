@@ -274,5 +274,12 @@
   "hintsAndAnalysis": "Hints & Analysis",
   "maia3Model": "Maia3 Model",
   "stockfishVersion": "Stockfish Version",
-  "maiaWeight": "Maia Weight (ELO level)"
+  "maiaWeight": "Maia Weight (ELO level)",
+  "gameMode": "Game Mode",
+  "standard": "Standard",
+  "kingOfTheHill": "King of the Hill",
+  "threeCheck": "Three-Check",
+  "customTimeControl": "Custom...",
+  "boardColorThemeLabel": "Board Color",
+  "notationStyleLabel": "Notation"
 }

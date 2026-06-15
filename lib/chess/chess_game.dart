@@ -447,6 +447,8 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _lastDepth = null;
     _resigned = false;
     _drawAgreed = false;
+    whiteChecks = 0;
+    blackChecks = 0;
     _tree = GameTree(startFen: fen);
     notifyListeners();
     return true;

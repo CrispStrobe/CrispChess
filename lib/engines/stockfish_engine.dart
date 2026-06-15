@@ -142,6 +142,11 @@ class StockfishEngine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {
+    _process?.stdin.writeln('setoption name $name value $value');
+  }
+
+  @override
   void dispose() {
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();

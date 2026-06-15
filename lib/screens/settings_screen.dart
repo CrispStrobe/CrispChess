@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
+import '../chess/board_theme.dart';
+import '../chess/game_state.dart' show ChessVariant;
 import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
   final String pieceTheme;
   final String hintEngine;
   final TimeControl timeControl;
+  final ChessVariant chessVariant;
 
   const SettingsScreen({
     Key? key,
@@ -27,6 +30,7 @@ class SettingsScreen extends StatefulWidget {
     this.pieceTheme = 'chessnut',
     this.hintEngine = 'same',
     this.timeControl = TimeControl.unlimited,
+    this.chessVariant = ChessVariant.standard,
   }) : super(key: key);
 
   @override
@@ -43,6 +47,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _hintEngine = 'same';
   int _animationSpeed = 2;
   late TimeControl _timeControl;
+  late ChessVariant _chessVariant;
+  int _customBaseMinutes = 10;
+  int _customIncrementSeconds = 0;
+  int _engineHashMb = 64;
+  int _engineThreads = 1;
+  String _boardTheme = 'brown';
+  String _notationStyle = 'algebraic';
   String _themeMode = 'system';
   String _language = 'system';
   bool _solidBlackPieces = false;
@@ -78,6 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _pieceTheme = widget.pieceTheme;
     _hintEngine = widget.hintEngine;
     _timeControl = widget.timeControl;
+    _chessVariant = widget.chessVariant;
     _loadSavedPrefs();
   }
 
@@ -85,10 +97,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     final lang = prefs.getString('locale') ?? 'system';
     final solid = prefs.getBool('solidBlackPieces') ?? false;
+    final customBase = prefs.getInt('customBaseMinutes') ?? 10;
+    final customInc = prefs.getInt('customIncrementSeconds') ?? 0;
+    final hashMb = prefs.getInt('engineHashMb') ?? 64;
+    final threads = prefs.getInt('engineThreads') ?? 1;
     if (mounted) setState(() {
       _language = lang;
       _solidBlackPieces = solid;
+      _customBaseMinutes = customBase;
+      _customIncrementSeconds = customInc;
+      _engineHashMb = hashMb;
+      _engineThreads = threads;
+      _boardTheme = prefs.getString('boardTheme') ?? 'brown';
+      _notationStyle = prefs.getString('notationStyle') ?? 'algebraic';
     });
+  }
+
+  /// Snap hash slider to powers of 2: 16, 32, 64, 128, 256, 512, 1024, 2048.
+  static int _snapHashValue(double v) {
+    const snaps = [16, 32, 64, 128, 256, 512, 1024, 2048];
+    var closest = snaps[0];
+    for (final s in snaps) {
+      if ((s - v).abs() < (closest - v).abs()) closest = s;
+    }
+    return closest;
+  }
+
+  void _showCustomTimeDialog() {
+    var baseMin = _customBaseMinutes;
+    var incSec = _customIncrementSeconds;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: const Text('Custom Time Control'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Text('Base: '),
+                    Expanded(
+                      child: Slider(
+                        value: baseMin.toDouble(),
+                        min: 1,
+                        max: 180,
+                        divisions: 179,
+                        label: '$baseMin min',
+                        onChanged: (v) => setDialogState(() => baseMin = v.round()),
+                      ),
+                    ),
+                    SizedBox(width: 40, child: Text('$baseMin m', textAlign: TextAlign.right)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text('Inc: '),
+                    Expanded(
+                      child: Slider(
+                        value: incSec.toDouble(),
+                        min: 0,
+                        max: 60,
+                        divisions: 60,
+                        label: '$incSec sec',
+                        onChanged: (v) => setDialogState(() => incSec = v.round()),
+                      ),
+                    ),
+                    SizedBox(width: 40, child: Text('${incSec}s', textAlign: TextAlign.right)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text('$baseMin+$incSec', style: Theme.of(ctx).textTheme.titleMedium),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    _customBaseMinutes = baseMin;
+                    _customIncrementSeconds = incSec;
+                    _timeControl = TimeControl.custom;
+                  });
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        });
+      },
+    );
   }
 
   bool get _isMaiaEngine =>
@@ -476,6 +579,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                  const Divider(),
+                  Text('Hash: $_engineHashMb MB',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  Slider(
+                    value: _engineHashMb.toDouble(),
+                    min: 16,
+                    max: 2048,
+                    divisions: 7,
+                    label: '$_engineHashMb MB',
+                    onChanged: (v) => setState(() => _engineHashMb = _snapHashValue(v)),
+                  ),
+                  Text('Threads: $_engineThreads',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  Slider(
+                    value: _engineThreads.toDouble(),
+                    min: 1,
+                    max: 16,
+                    divisions: 15,
+                    label: '$_engineThreads',
+                    onChanged: (v) => setState(() => _engineThreads = v.round()),
+                  ),
                 ],
               ),
             ),
@@ -502,12 +626,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: DropdownButton<TimeControl>(
                     value: _timeControl,
                     underline: const SizedBox.shrink(),
-                    onChanged: (value) =>
-                        setState(() => _timeControl = value!),
+                    onChanged: (value) {
+                      if (value == TimeControl.custom) {
+                        _showCustomTimeDialog();
+                      } else {
+                        setState(() => _timeControl = value!);
+                      }
+                    },
                     items: TimeControl.values.map((tc) {
+                      final label = tc == TimeControl.custom
+                          ? (_timeControl == TimeControl.custom
+                              ? 'Custom ${_customBaseMinutes}+$_customIncrementSeconds'
+                              : l?.customTimeControl ?? 'Custom...')
+                          : tc.label;
                       return DropdownMenuItem(
                         value: tc,
-                        child: Text(tc.label, style: const TextStyle(fontSize: 13)),
+                        child: Text(label, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  title: Text(l?.gameMode ?? 'Game Mode'),
+                  trailing: DropdownButton<ChessVariant>(
+                    value: _chessVariant,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (value) =>
+                        setState(() => _chessVariant = value!),
+                    items: ChessVariant.values.map((v) {
+                      final label = switch (v) {
+                        ChessVariant.standard => l?.standard ?? 'Standard',
+                        ChessVariant.chess960 => 'Chess960',
+                        ChessVariant.kingOfTheHill => l?.kingOfTheHill ?? 'King of the Hill',
+                        ChessVariant.threeCheck => l?.threeCheck ?? 'Three-Check',
+                      };
+                      return DropdownMenuItem(
+                        value: v,
+                        child: Text(label, style: const TextStyle(fontSize: 13)),
                       );
                     }).toList(),
                   ),
@@ -557,7 +713,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  title: Text(l?.notationStyleLabel ?? 'Notation'),
+                  trailing: DropdownButton<String>(
+                    value: _notationStyle,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (v) => setState(() => _notationStyle = v!),
+                    items: const [
+                      DropdownMenuItem(value: 'algebraic', child: Text('Nf3 (Algebraic)', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 'figurine', child: Text('\u2658f3 (Figurine)', style: TextStyle(fontSize: 13))),
+                    ],
+                  ),
+                ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Board color theme
+          Text(l?.boardColorThemeLabel ?? 'Board Color', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: boardColorThemes.map((t) {
+                  final isSelected = t.id == _boardTheme;
+                  return GestureDetector(
+                    onTap: () => setState(() => _boardTheme = t.id),
+                    child: Container(
+                      width: 64,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(child: Container(color: t.lightSquare)),
+                                  Expanded(child: Container(color: t.darkSquare)),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(child: Container(color: t.darkSquare)),
+                                  Expanded(child: Container(color: t.lightSquare)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
 
@@ -674,6 +898,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _maia3Variant = '5m';
                   _animationSpeed = 2;
                   _timeControl = TimeControl.unlimited;
+                  _chessVariant = ChessVariant.standard;
+                  _engineHashMb = 64;
+                  _engineThreads = 1;
+                  _boardTheme = 'brown';
+                  _notationStyle = 'algebraic';
                   _showValidMoves = true;
                   _playAsBlack = false;
                   _pieceTheme = 'chessnut';
@@ -698,6 +927,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'engine': _selectedEngine,
             'maia3Variant': _maia3Variant,
             'timeControl': _timeControl,
+            'chessVariant': _chessVariant,
+            'customBaseMinutes': _customBaseMinutes,
+            'customIncrementSeconds': _customIncrementSeconds,
+            'engineHashMb': _engineHashMb,
+            'engineThreads': _engineThreads,
+            'boardTheme': _boardTheme,
+            'notationStyle': _notationStyle,
             'themeMode': _themeMode,
             'language': _language,
             'solidBlackPieces': _solidBlackPieces,

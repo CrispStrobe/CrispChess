@@ -3,6 +3,7 @@
 /// Uses shared_preferences (works on all Flutter platforms including web).
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
+import '../chess/game_state.dart' show ChessVariant;
 
 class PreferencesService {
   static const _keyEngine = 'engine';
@@ -15,6 +16,13 @@ class PreferencesService {
   static const _keyTimeControl = 'timeControl';
   static const _keySoundEnabled = 'soundEnabled';
   static const _keyShowValidMoves = 'showValidMoves';
+  static const _keyChessVariant = 'chessVariant';
+  static const _keyCustomBaseMinutes = 'customBaseMinutes';
+  static const _keyCustomIncrementSeconds = 'customIncrementSeconds';
+  static const _keyEngineHashMb = 'engineHashMb';
+  static const _keyEngineThreads = 'engineThreads';
+  static const _keyBoardTheme = 'boardTheme';
+  static const _keyNotationStyle = 'notationStyle';
 
   SharedPreferences? _prefs;
 
@@ -69,6 +77,39 @@ class PreferencesService {
   bool get showValidMoves => _prefs?.getBool(_keyShowValidMoves) ?? true;
   set showValidMoves(bool v) => _prefs?.setBool(_keyShowValidMoves, v);
 
+  // Chess variant (game mode)
+  ChessVariant get chessVariant {
+    final name = _prefs?.getString(_keyChessVariant);
+    if (name == null) return ChessVariant.standard;
+    return ChessVariant.values.firstWhere(
+      (v) => v.name == name,
+      orElse: () => ChessVariant.standard,
+    );
+  }
+  set chessVariant(ChessVariant v) => _prefs?.setString(_keyChessVariant, v.name);
+
+  // Custom time control
+  int get customBaseMinutes => _prefs?.getInt(_keyCustomBaseMinutes) ?? 10;
+  set customBaseMinutes(int v) => _prefs?.setInt(_keyCustomBaseMinutes, v);
+
+  int get customIncrementSeconds => _prefs?.getInt(_keyCustomIncrementSeconds) ?? 0;
+  set customIncrementSeconds(int v) => _prefs?.setInt(_keyCustomIncrementSeconds, v);
+
+  // Engine resource configuration
+  int get engineHashMb => _prefs?.getInt(_keyEngineHashMb) ?? 64;
+  set engineHashMb(int v) => _prefs?.setInt(_keyEngineHashMb, v);
+
+  int get engineThreads => _prefs?.getInt(_keyEngineThreads) ?? 1;
+  set engineThreads(int v) => _prefs?.setInt(_keyEngineThreads, v);
+
+  // Board color theme
+  String get boardTheme => _prefs?.getString(_keyBoardTheme) ?? 'brown';
+  set boardTheme(String v) => _prefs?.setString(_keyBoardTheme, v);
+
+  // Notation style
+  String get notationStyle => _prefs?.getString(_keyNotationStyle) ?? 'algebraic';
+  set notationStyle(String v) => _prefs?.setString(_keyNotationStyle, v);
+
   // Game state persistence
   static const _keyGameFen = 'gameFen';
   static const _keyGameMoves = 'gameMoves';
@@ -97,10 +138,28 @@ class PreferencesService {
   void addGameToHistory(String pgn) {
     final history = gameHistory;
     history.insert(0, pgn);
-    // Keep last 50 games
-    if (history.length > 50) history.removeRange(50, history.length);
+    // Keep last 500 games
+    if (history.length > 500) history.removeRange(500, history.length);
     _prefs?.setStringList(_keyGameHistory, history);
   }
+
+  // Favorite games (stored as PGN strings that are starred)
+  static const _keyFavoriteGames = 'favoriteGames';
+
+  List<String> get favoriteGames =>
+      _prefs?.getStringList(_keyFavoriteGames) ?? [];
+
+  void toggleFavorite(String pgn) {
+    final favs = favoriteGames;
+    if (favs.contains(pgn)) {
+      favs.remove(pgn);
+    } else {
+      favs.add(pgn);
+    }
+    _prefs?.setStringList(_keyFavoriteGames, favs);
+  }
+
+  bool isFavorite(String pgn) => favoriteGames.contains(pgn);
 
   // Bookmarks
   static const _keyBookmarks = 'bookmarks';

@@ -805,4 +805,25 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get maiaWeight => 'Maia-Gewicht (ELO-Stufe)';
+
+  @override
+  String get gameMode => 'Spielmodus';
+
+  @override
+  String get standard => 'Standard';
+
+  @override
+  String get kingOfTheHill => 'König des Hügels';
+
+  @override
+  String get threeCheck => 'Drei-Schach';
+
+  @override
+  String get customTimeControl => 'Benutzerdefiniert...';
+
+  @override
+  String get boardColorThemeLabel => 'Brettfarbe';
+
+  @override
+  String get notationStyleLabel => 'Notation';
 }

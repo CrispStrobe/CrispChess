@@ -147,6 +147,12 @@ class FrozenightEngine implements ChessEngine {
   void stop() {}
 
   @override
+  void setOption(String name, String value) {
+    // Frozenight FFI engine doesn't support runtime option changes
+    // Options would need to be implemented in the native library
+  }
+
+  @override
   void dispose() {
     _disposed = true;
     _disposeNative?.call();

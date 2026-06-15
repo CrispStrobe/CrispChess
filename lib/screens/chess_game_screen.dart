@@ -5,7 +5,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
+import '../chess/chess960.dart';
 import '../chess/board_annotations.dart';
+import '../chess/board_theme.dart';
+import '../chess/notation.dart';
 import '../chess/chess_game.dart';
 import '../chess/game_state.dart';
 import '../chess/game_tree.dart';
@@ -18,6 +21,7 @@ import '../services/multi_engine_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
+import '../services/sound_service_factory.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
@@ -27,6 +31,8 @@ import '../chess/puzzle.dart';
 import '../chess/xp_system.dart' show XpAwards, levelFromXp, PlayerLevel;
 import '../main.dart' show themeNotifier, localeNotifier;
 import 'about_screen.dart';
+import 'coordinate_trainer_screen.dart';
+import 'game_history_screen.dart';
 import 'game_summary_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
@@ -71,7 +77,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   GameState _state = const GameState();
   ChessClock? _clock;
-  final SoundService _sound = SoundService();
+  final SoundService _sound = createSoundService();
   final PreferencesService _prefs = PreferencesService();
   final PuzzleDatabase _puzzleDb = PuzzleDatabase();
 
@@ -209,7 +215,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     debugPrint('[CrispChess] Initializing engine...');
     _eventSubscription?.cancel();
     _eventSubscription = _engineService.events.listen(_onEngineEvent);
-    _engineService.initialize();
+    _engineService.initialize().then((_) {
+      _applyEngineOptions();
+    });
+  }
+
+  /// Apply user-configured Hash and Threads to the current engine.
+  void _applyEngineOptions() {
+    final engine = _engineService.engine;
+    engine.setOption('Hash', '${_prefs.engineHashMb}');
+    engine.setOption('Threads', '${_prefs.engineThreads}');
   }
 
   void _onEngineEvent(EngineEvent event) {
@@ -610,14 +625,31 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _awaitingEngineMove = false;
     _clock?.dispose();
     if (!_state.timeControl.isUnlimited) {
-      _clock = ChessClock(timeControl: _state.timeControl);
+      _clock = ChessClock(
+        timeControl: _state.timeControl,
+        customBaseTime: _state.timeControl == TimeControl.custom
+            ? Duration(minutes: _prefs.customBaseMinutes)
+            : null,
+        customIncrementSeconds: _state.timeControl == TimeControl.custom
+            ? _prefs.customIncrementSeconds
+            : null,
+      );
       _clock!.addListener(() { if (mounted) setState(() {}); });
       _clock!.start();
     } else {
       _clock = null;
     }
+
+    // Set the variant on the game object
+    _game.variant = _prefs.chessVariant;
+
     setState(() {
-      _game.reset();
+      if (_prefs.chessVariant == ChessVariant.chess960) {
+        final fen = generateChess960Fen();
+        _game.loadFen(fen);
+      } else {
+        _game.reset();
+      }
       _state = _state.copyWith(
         statusMessage: _state.playAsBlack
             ? '${_engineService.engineName} is thinking...'
@@ -797,6 +829,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           pieceTheme: _state.pieceTheme,
           hintEngine: _state.hintEngine,
           timeControl: _state.timeControl,
+          chessVariant: _prefs.chessVariant,
         ),
       ),
     );
@@ -804,6 +837,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final newPlayAsBlack = result['playAsBlack'] as bool? ?? false;
       final colorChanged = newPlayAsBlack != _state.playAsBlack;
       final newVariant = result['maia3Variant'] as String? ?? '5m';
+      final newChessVariant = result['chessVariant'] as ChessVariant? ?? ChessVariant.standard;
+      final variantModeChanged = newChessVariant != _prefs.chessVariant;
+      _prefs.chessVariant = newChessVariant;
 
       setState(() {
         _state = _state.copyWith(
@@ -819,8 +855,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         );
       });
 
-      // If color changed, start a new game
-      if (colorChanged) {
+      // If color or game variant changed, start a new game
+      if (colorChanged || variantModeChanged) {
         _newGame();
       }
 
@@ -839,6 +875,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           maia3Variant: _maia3Variant,
         );
         _engineService.switchEngine(newEngine);
+        _applyEngineOptions();
       }
 
       // Apply theme immediately
@@ -882,6 +919,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _prefs.pieceTheme = _state.pieceTheme;
       _prefs.timeControl = _state.timeControl;
       _prefs.showValidMoves = _state.showValidMoves;
+
+      // Persist custom time control if set
+      final customBase = result['customBaseMinutes'] as int?;
+      final customInc = result['customIncrementSeconds'] as int?;
+      if (customBase != null) _prefs.customBaseMinutes = customBase;
+      if (customInc != null) _prefs.customIncrementSeconds = customInc;
+
+      // Persist board theme and notation style
+      final boardTheme = result['boardTheme'] as String?;
+      if (boardTheme != null) _prefs.boardTheme = boardTheme;
+      final notation = result['notationStyle'] as String?;
+      if (notation != null) _prefs.notationStyle = notation;
+
+      // Persist engine resource settings
+      final hashMb = result['engineHashMb'] as int?;
+      final threads = result['engineThreads'] as int?;
+      if (hashMb != null) _prefs.engineHashMb = hashMb;
+      if (threads != null) _prefs.engineThreads = threads;
     }
   }
 
@@ -1960,12 +2015,18 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                         ? 'Downloading & initializing...'
                         : () {
                             final info = lookupOpeningInfo(_game.currentFEN);
+                            final variantLabel = switch (_game.variant) {
+                              ChessVariant.chess960 => ' · 960',
+                              ChessVariant.kingOfTheHill => ' · KotH',
+                              ChessVariant.threeCheck => ' · 3✓ ${_game.whiteChecks}–${_game.blackChecks}',
+                              _ => '',
+                            };
                             if (info != null) {
-                              return '${info.name}${info.statsText.isNotEmpty ? ' (${info.statsText})' : ''}';
+                              return '${info.name}${info.statsText.isNotEmpty ? ' (${info.statsText})' : ''}$variantLabel';
                             }
-                            return _state.twoPlayerMode
+                            return (_state.twoPlayerMode
                                 ? 'Two Player'
-                                : '${_engineService.engineName} · Lv ${_state.strengthLevel}';
+                                : '${_engineService.engineName} · Lv ${_state.strengthLevel}') + variantLabel;
                           }(),
                     style: TextStyle(
                       fontSize: 10,
@@ -2102,6 +2163,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 case 'drills':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const DrillListScreen()));
+                case 'coordinates':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()));
                 case 'engine_match':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
@@ -2111,6 +2175,20 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           PuzzleScreen(puzzleDb: _puzzleDb)));
                 case 'settings':
                   _openSettings();
+                case 'game_history':
+                  final pgn = await Navigator.push<String>(context,
+                      MaterialPageRoute(builder: (_) => const GameHistoryScreen()));
+                  if (pgn != null && pgn.isNotEmpty && mounted) {
+                    if (_game.loadPgn(pgn)) {
+                      setState(() {
+                        _state = _state.copyWith(
+                          statusMessage: 'Game loaded from history',
+                          hintMove: null,
+                          currentBestMove: null,
+                        );
+                      });
+                    }
+                  }
                 case 'mistakes':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const MistakesScreen()));
@@ -2143,9 +2221,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 item('bookmark', Icons.bookmark_add, 'Bookmark Position'),
                 item('ask_coach', Icons.psychology, 'Ask Coach'),
                 item('drills', Icons.school, 'Drills'),
+                item('coordinates', Icons.grid_3x3, 'Coordinate Trainer'),
                 item('engine_match', Icons.sports_esports, 'Engine vs Engine'),
                 item('puzzles', Icons.extension, l?.puzzles ?? 'Puzzles'),
                 item('settings', Icons.settings, l?.settings ?? 'Settings'),
+                item('game_history', Icons.history, 'Game History'),
                 item('mistakes', Icons.warning_amber, l?.mistakes ?? 'My Mistakes'),
                 item('stats', Icons.bar_chart, 'Stats'),
                 item('about', Icons.info_outline, l?.about ?? 'About'),
@@ -2252,6 +2332,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                             isCapture: _state.isLastMoveCapture,
                             isCheckmate: _game.isGameOver && _game.gameOverReason == 'Checkmate',
                             solidBlackPieces: _solidBlackPieces,
+                            boardColorTheme: getBoardTheme(_prefs.boardTheme),
                           ),
                         ),
                       );
@@ -2370,10 +2451,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  NotationStyle get _notationStyle =>
+      _prefs.notationStyle == 'figurine' ? NotationStyle.figurine : NotationStyle.algebraic;
+
   Widget _buildMoveChip(GameTreeNode node, GameTreeNode currentNode, {bool isBlack = false}) {
     final isCurrent = node == currentNode;
     final hasVariations = node.parent?.hasVariations ?? false;
-    final san = node.san ?? node.move ?? '?';
+    final rawSan = node.san ?? node.move ?? '?';
+    final san = formatNotation(rawSan, _notationStyle);
 
     return GestureDetector(
       onTap: () {

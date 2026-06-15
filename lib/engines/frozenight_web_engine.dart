@@ -126,6 +126,12 @@ class FrozenightEngine implements ChessEngine {
   void stop() => _stateNotifier.value = EngineState.ready;
 
   @override
+  void setOption(String name, String value) {
+    // Frozenight WASM engine doesn't support runtime option changes
+    // Options would need to be implemented in the WASM module
+  }
+
+  @override
   void dispose() {
     if (_loaded) _frozenightDispose();
     _loaded = false;

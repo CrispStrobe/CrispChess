@@ -214,6 +214,11 @@ class StockfishDownloadableEngine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {
+    _send('setoption name $name value $value');
+  }
+
+  @override
   void dispose() {
     _send('quit');
     _channel.invokeMethod('dispose');

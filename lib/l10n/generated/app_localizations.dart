@@ -1584,6 +1584,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Maia Weight (ELO level)'**
   String get maiaWeight;
+
+  /// No description provided for @gameMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Mode'**
+  String get gameMode;
+
+  /// No description provided for @standard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get standard;
+
+  /// No description provided for @kingOfTheHill.
+  ///
+  /// In en, this message translates to:
+  /// **'King of the Hill'**
+  String get kingOfTheHill;
+
+  /// No description provided for @threeCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-Check'**
+  String get threeCheck;
+
+  /// No description provided for @customTimeControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom...'**
+  String get customTimeControl;
+
+  /// No description provided for @boardColorThemeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Board Color'**
+  String get boardColorThemeLabel;
+
+  /// No description provided for @notationStyleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notation'**
+  String get notationStyleLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

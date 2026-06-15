@@ -27,6 +27,8 @@ import 'maia3_dart_engine.dart'
 ChessEngine createEngine(String name, {
   int? playerElo,
   String? maia3Variant,
+  int? hashMb,
+  int? threads,
 }) {
   switch (name) {
     case 'Stockfish':

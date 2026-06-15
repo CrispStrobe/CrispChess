@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../chess/board_annotations.dart';
+import '../chess/board_theme.dart';
 import '../chess/chess_game.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'board_annotation_overlay.dart';
@@ -25,6 +26,7 @@ class ChessBoard extends StatefulWidget {
   final bool isCapture; // true if the last move was a capture (triggers effect)
   final bool isCheckmate; // true when game ended in checkmate (king glow)
   final bool solidBlackPieces; // render black pieces as solid black instead of grey gradient
+  final BoardColorTheme? boardColorTheme; // null = default brown
 
   const ChessBoard({
     Key? key,
@@ -47,6 +49,7 @@ class ChessBoard extends StatefulWidget {
     this.isCapture = false,
     this.isCheckmate = false,
     this.solidBlackPieces = false,
+    this.boardColorTheme,
   }) : super(key: key);
 
   @override
@@ -259,6 +262,7 @@ class _ChessBoardState extends State<ChessBoard>
                               pieceTheme: widget.pieceTheme,
                               solidBlackPieces: widget.solidBlackPieces,
                               squareSize: squareSize,
+                              boardColorTheme: widget.boardColorTheme,
                             );
                           }),
                         ),
@@ -386,7 +390,10 @@ class _ChessSquare extends StatelessWidget {
     required this.pieceTheme,
     this.solidBlackPieces = false,
     required this.squareSize,
+    this.boardColorTheme,
   });
+
+  final BoardColorTheme? boardColorTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -417,11 +424,15 @@ class _ChessSquare extends StatelessWidget {
             } else if (isHintSquare) {
               bgColor = Colors.yellow.withValues(alpha: 0.5);
             } else if (isLastMove) {
+              final t = boardColorTheme;
               bgColor = isLight
-                  ? const Color(0xFFF0D9B5) // subtle warm tint on light
-                  : const Color(0xFFB58863); // subtle warm tint on dark
+                  ? (t?.lightLastMove ?? const Color(0xFFF0D9B5))
+                  : (t?.darkLastMove ?? const Color(0xFFB58863));
             } else {
-              bgColor = isLight ? Colors.brown[200] : Colors.brown[400];
+              final t = boardColorTheme;
+              bgColor = isLight
+                  ? (t?.lightSquare ?? Colors.brown[200]!)
+                  : (t?.darkSquare ?? Colors.brown[400]!);
             }
 
             return Container(
@@ -455,8 +466,8 @@ class _ChessSquare extends StatelessWidget {
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                           color: isLight
-                              ? Colors.brown[500]
-                              : Colors.brown[200],
+                              ? (boardColorTheme?.lightCoordinate ?? Colors.brown[500])
+                              : (boardColorTheme?.darkCoordinate ?? Colors.brown[200]),
                         ),
                       ),
                     ),

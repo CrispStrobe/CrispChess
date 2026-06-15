@@ -212,6 +212,11 @@ class StockfishEngine implements ChessEngine {
   }
 
   @override
+  void setOption(String name, String value) {
+    _send('setoption name $name value $value');
+  }
+
+  @override
   void dispose() {
     _worker?.terminate();
     _worker = null;

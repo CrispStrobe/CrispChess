@@ -1,5 +1,13 @@
 # CrispChess — Development Plan
 
+> **License rule**: Every task below MUST stay within MIT license.
+> GPL-licensed code (Stockfish, Lc0) is never bundled — only downloaded at
+> runtime by the user.  All new dependencies must be MIT, BSD, Apache-2.0,
+> or CC0.  Open chess APIs are free and require no license.  No proprietary
+> database formats will be implemented.
+
+---
+
 ## Completed
 
 ### Engine Architecture (6 engines)
@@ -33,11 +41,7 @@
 - [x] THIRD_PARTY_LICENSES.md
 - [x] Store release prep (bundle IDs, metadata)
 
----
-
-## Phase 6: In-Game Polish (quick wins)
-
-### Board Improvements
+### Board Improvements (Phase 6)
 - [x] Board coordinate labels (a-h, 1-8)
 - [x] Last move highlighting (warm brown tint on from/to squares)
 - [x] Captured pieces tray with material advantage badge (+N)
@@ -45,7 +49,7 @@
 - [x] Capture visual effect (particle burst on capture square)
 - [x] Checkmate flourish (glow + boxShadow on mated king square)
 
-### Game Flow
+### Game Flow (Phase 6)
 - [x] Confirmation dialog before New Game (prevent accidental loss)
 - [x] Draw offer — engine evaluates and accepts/declines based on eval
 - [x] Resignation option with confirmation
@@ -54,233 +58,403 @@
 - [x] Pre-game side picker (White / Black / Random / Two Player)
 - [x] Long-press move list to quick-copy PGN
 
-### Settings Additions
+### Settings (Phase 6)
 - [x] "Reset to defaults" button
 - [x] "Allow Undo" toggle (disable for discipline mode)
 - [x] AMOLED dark theme (pure black background, system/light/dark toggle)
 
-## Phase 7: Post-Game Analysis
-
-### Debrief Screen
+### Post-Game Analysis (Phase 7)
 - [x] Post-game summary with accuracy percentage
 - [x] Eval chart — plot evaluation across all moves (green/red fill areas)
 - [x] Interactive board — tap move to jump to position with preview board
 - [x] Per-move classification: brilliant / good / inaccuracy / mistake / blunder
 - [x] "Your best move" card with SAN + eval gain
 - [x] "Biggest mistake" card with SAN + eval loss
-- [ ] Staggered entry animations (lower priority — cosmetic)
-
-### Live Move Annotation
-- [x] Classify each player move in real-time (compare to engine's best)
+- [x] Live move annotation — classify each player move in real-time
 - [x] Show annotation in analysis panel with color/icon per category
 - [x] Display alternative move suggestion ("Better: Nf3")
-
-### History Snapshots
 - [x] Store eval per move for chart (no re-analysis needed)
 - [x] Undo/redo via game tree FEN snapshots (Y key / right arrow)
 
-## Phase 7.5: Player Preferences Persistence (DONE)
-
-- [x] Save all settings to shared_preferences (engine, variant, strength, theme, etc.)
+### Persistence (Phase 7.5)
+- [x] Save all settings to shared_preferences
 - [x] Auto-load on app start, auto-save on change
-- [x] Reset to defaults button
 
-## Phase 8: Training & Puzzles
-
-### Puzzle System
-- [x] 200 tactical puzzles from Lichess CC0 database
+### Training & Puzzles (Phase 8)
+- [x] ~1600 tactical puzzles (CC0 database)
 - [x] Categories: fork, pin, skewer, mate, endgame, etc.
 - [x] Puzzle UI: interactive board, validate moves, 3 attempts
-- [x] Puzzle difficulty rating (Lichess Glicko-2)
+- [x] Puzzle difficulty rating (Glicko-2)
 - [x] Daily puzzle (deterministic by date)
-
-### Drill Mode
-- [x] Structured drills by topic (opening/middlegame/endgame/tactics)
-- [x] Position grid with completion state (saved to shared_preferences)
+- [x] Structured drills by topic (4 built-in drills)
+- [x] Position grid with completion state
 - [x] Interactive lesson player with branching move trees
 - [x] Coach bubble messages at each step with wrong-move feedback
 - [x] Post-drill summary screen with accuracy
+- [x] Mistakes tracker with spaced repetition (1d/3d/7d/14d/30d intervals)
 
-### Mistakes Tracker
-- [x] Persist blunders tracker in shared_preferences
-- [x] "My Mistakes" screen — list tracked blunders
-- [x] Resolving a mistake (re-solving) — spaced repetition system
-- [x] Spaced repetition — re-present at 1d/3d/7d/14d/30d intervals
-
-## Phase 9: Gamification & Persistence
-
-### Game Persistence
-- [x] Save/restore game state to shared_preferences
-- [x] Resume saved game dialog on startup
-- [x] Game history (last 50 PGNs saved locally)
+### Gamification (Phase 9)
+- [x] Game persistence (save/restore, resume on startup)
+- [x] Game history (last 50 PGNs)
 - [x] Bookmarks — save positions to local storage
-
-### XP & Progression
 - [x] XP system: game win/draw/loss, puzzle solve
 - [x] Player level tiers (Pawn → Grandmaster, 6 levels)
-- [x] Level-up celebration dialog with tier icon
+- [x] Level-up celebration dialog
 - [x] Daily login streak with bonus XP
+- [x] Achievement system (12 badges)
+- [x] Stats screen with level, XP bar, achievement list
 
-### Achievements
-- [x] Achievement system with progress tracking (12 badges)
-- [x] Examples: first win, win streaks, puzzle milestones, XP levels
-- [x] Stats screen with level, XP bar, and achievement list
+### Game Modes (Phase 10)
+- [x] Two-player local (pass-and-play with auto-flip)
+- [x] Chess960 / Fischer Random position generator (code only)
+- [x] King of the Hill detection (code only)
+- [x] Three-check detection (code only)
 
-## Phase 10: Game Modes
+### Advanced Features (Phase 11)
+- [x] Opening name display (~50 openings)
+- [x] Syzygy tablebase probing via open API (≤7 pieces, native)
+- [x] Built-in engine optimizations (null move, PVS, LMR, etc.)
+- [x] Pondering
+- [x] Multi-PV analysis
+- [x] AI Coach (BYOK — Anthropic / OpenAI)
 
-### Two-Player Local
-- [x] Pass-and-play mode on same device
-- [x] Auto-flip board between turns in two-player mode
-- [x] Chess clock available for local games
+### UI Polish (Phase 12)
+- [x] Premove support
+- [x] Onboarding tips dialog
+- [x] Keyboard shortcuts (Z/H/N/F/A)
+- [x] Right-click draw arrows on board
+- [x] Rate app prompt
 
-### Variants (future)
-- [x] Chess960 / Fischer Random position generator
-- [x] King of the Hill (win by king on d4/d5/e4/e5)
-- [x] Three-check (win by giving check 3 times)
-
-## Phase 11: Advanced Features
-
-### Opening Explorer
-- [x] Show opening name for current position (~35 openings)
-- [x] Opening statistics (win/draw/loss % from master games)
-- [x] Opening stats with win/draw/loss percentages
-
-### Endgame Tablebases
-- [x] Syzygy tablebase probing via Lichess API (≤7 pieces)
-- [x] Tablebase queries via API (no download needed)
-- [x] Perfect endgame result indicator (win/draw/loss from tablebase)
-
-### Engine Improvements
-- [x] Built-in engine: reverse futility pruning, late move reductions
-- [x] Pondering (engine analyzes during opponent's turn)
-- [x] Multi-PV analysis (Stockfish MultiPV)
-
-### AI Coach (BYOK)
-- [x] LLM-powered game analysis — send FEN/PGN, get natural language feedback
-- [x] "Ask Coach" bottom sheet during game (scoped per game)
-- [x] Bring-your-own-key model (Anthropic / OpenAI)
-- [x] Privacy-first: data usage disclosure, local-only key storage
-
-## Phase 12: UI Polish
-
-### Visual
-- [x] Dark theme with AMOLED black (system/light/dark)
-- [x] Press-scale tap animation widget (PressScale reusable wrapper)
-- [x] Premove support (queue move while opponent thinks)
-- [ ] Decorative background watermark (subtle chess piece, low opacity)
-- [x] SAN notation in move list and status messages
-
-### UX
-- [x] Onboarding — tips dialog on first launch
-- [x] Keyboard shortcuts (Z=undo, H=hint, N=new, F=flip, A=analysis)
-- [x] Right-click draw arrows on board (analysis mode)
-- [x] Rate app prompt after 3rd win (non-intrusive snackbar)
-
-## Phase 13: Internationalization
-
-- [x] ARB files for English and German (90+ strings)
-- [x] English (en) as default locale
-- [x] German (de) translation
+### Internationalization (Phase 13)
+- [x] English (en) + German (de)
 - [x] Language auto-detected from system locale
-- [x] All UI labels, messages, settings translated
 
-## Phase 14: Distribution
+### Analysis Workbench (Phase 15)
+- [x] Generic UCI engine management (load any binary, UCI handshake, option dialog)
+- [x] Engine profile persistence
+- [x] Engine manager screen
+- [x] `go infinite` support
+- [x] Multi-PV display (1–5 lines)
+- [x] Multi-engine simultaneous analysis
+- [x] Game tree with variations (branch, promote, delete, navigate)
+- [x] PGN import/export with full RAV notation
+- [x] Position editor (piece palette, castling, EP, FEN I/O)
+- [x] Board annotations (arrows, square highlights, NAG, comments)
+- [x] PGN database browser (multi-game, search/filter, stats)
+- [x] Engine vs engine matches + round-robin tournaments
+
+### Built-in Engine Performance (Phase 16)
+- [x] Faster hashing, delta pruning, MVV-LVA, SEE pruning
+- [x] Null move pruning, PVS
+- [x] Web build optimization (lazy ONNX, cache headers)
+
+---
+
+## Phase 17: Quick Wins — Wire Up Existing Code
+
+_Goal: ship features where the code already exists but the UI doesn't._
+_License: all existing code, no new dependencies._
+
+### Chess960 & Variants UI
+- [x] Game mode selector: Standard / Chess960 / King of the Hill / Three-Check
+- [x] Chess960 — random starting position from `chess960.dart`, displayed before game start
+- [x] King of the Hill — win condition active, status message on center-square victory
+- [x] Three-Check — check counter UI, win condition active, status message on 3rd check
+- [x] Persist selected variant in preferences
+
+### Custom Time Controls
+- [x] "Custom" entry in time control picker
+- [x] Input fields: base minutes (0–180) + increment seconds (0–60)
+- [x] Persist last custom time control in preferences
+
+### Engine Hash & Thread Configuration
+- [x] Expose Hash (MB) slider in settings for engines that support it
+- [x] Expose Threads slider (1 – platform core count) in settings
+- [x] Pass UCI `setoption` commands on engine init
+- [x] Per-engine option overrides (already have infrastructure in GenericUciEngine)
+
+---
+
+## Phase 18: Board & Sound Polish
+
+_Goal: close the two most obvious visual/audio gaps._
+_License: all assets must be MIT/CC0/CC-BY. Use `just_audio` (MIT) or
+`audioplayers` (BSD) for native sound._
+
+### Board Color Themes
+- [x] Define 8 board color schemes: Classic Green, Classic Brown, Blue, Gray, Tournament (USCF green/cream), Walnut (wood tone), Ice (light blue/white), Midnight (dark blue/charcoal)
+- [x] Board theme picker in settings (grid of mini-previews)
+- [x] Apply light-square / dark-square colors to board painter
+- [x] Coordinate label color adapts to board theme contrast
+- [x] Persist selected board theme in preferences
+
+### Native Sound Effects
+- [x] Platform-conditional sound service: Web Audio on web, native SystemSound + HapticFeedback on others
+- [x] Conditional import factory for platform-appropriate sound service
+- [x] Sound toggle in settings applies to both paths
+- [ ] Add `audioplayers` (BSD) for proper audio sample playback (upgrade from SystemSound)
+- [ ] Source or synthesize short audio samples for: move, capture, check, castle, promote, game-start, game-end, illegal (MIT/CC0 licensed only)
+- [ ] Test audio on Android, iOS, macOS, Linux, Windows
+
+### GIF Export Completion
+- [ ] Add `image` package (MIT) for GIF encoding
+- [ ] Wire frame generator to actual GIF encoder
+- [ ] Share sheet / save-to-file for exported GIF
+- [ ] Progress indicator during encoding
+
+---
+
+## Phase 19: PGN & Database Improvements
+
+_Goal: move from clipboard-only to proper file I/O, and expand database capabilities._
+_License: `file_picker` (MIT), `share_plus` (BSD)._
+
+### File-Based PGN Import/Export
+- [ ] Add `file_picker` (MIT) dependency for native file dialogs
+- [ ] "Open PGN file" action — load .pgn from filesystem
+- [ ] "Save PGN file" action — write current game to .pgn file
+- [ ] Mobile share sheet integration via `share_plus` (BSD) for PGN export
+- [ ] Associate .pgn file type on Android/iOS (open in CrispChess)
+
+### Database Enhancements
+- [x] Game tagging / favorites — star icon on game history entries
+- [x] Filter game history by result (1-0 / 0-1 / ½-½) + favorites-only
+- [x] Increase game history limit (50 → 500)
+- [x] Bulk PGN export of game history (copy all filtered to clipboard)
+- [x] Game History screen with browsable list, load game on tap
+
+### Notation Style Options
+- [x] Setting: Algebraic (default) / Figurine Algebraic (piece symbols: ♞f3 instead of Nf3)
+- [x] Apply to move list via formatNotation() in move chip display
+- [x] Persist in preferences
+
+---
+
+## Phase 20: Puzzle Expansion
+
+_Goal: make the puzzle system world-class._
+_License: CC0 puzzle databases. Open puzzle APIs (no auth required)._
+
+### More Puzzles
+- [ ] Expand bundled puzzle set from ~1,600 to 10,000+ (CC0 puzzles)
+- [ ] Lazy-load puzzles from asset chunks (don't bloat initial download)
+- [x] Rating-range filter in puzzle picker (800-1200, 1200-1600, 1600-2000, 2000+)
+
+### Puzzle Rush / Storm Mode
+- [x] Timed puzzle sprint: solve as many as possible in 3 minutes
+- [x] Lives system: 3 wrong answers = game over
+- [x] Score display with personal best tracking
+- [ ] Leaderboard (local — personal history of past runs)
+
+### Online Puzzle API Integration
+- [ ] Fetch daily puzzle from open puzzle API (supplement local daily puzzle)
+- [ ] Fetch puzzle by theme + rating range from open API
+- [ ] Offline fallback to bundled puzzles when no network
+- [ ] Attribution label for externally sourced puzzles
+
+### Endgame-Specific Training
+- [ ] Dedicated endgame drill sets: K+Q vs K, K+R vs K, K+P vs K, K+2B vs K, K+B+N vs K
+- [ ] Progressive difficulty (easy → hard positions per endgame type)
+- [ ] Checkmate-in-N counter (must find mate within N moves)
+- [ ] Tablebase validation of each move (correct if DTZ improves or stays optimal)
+
+### Coordinate Training
+- [x] New screen: "Coordinate Trainer"
+- [x] Flash a square name (e.g., "f6"), player taps the correct square
+- [x] Timed mode: how many correct in 30 seconds
+- [x] Score tracking with personal best
+
+---
+
+## Phase 21: Opening Explorer
+
+_Goal: standalone Opening Explorer screen on par with the best in class._
+_License: open explorer APIs (free, no auth). All code is MIT._
+
+### Opening Explorer Screen
+- [ ] New screen accessible from main menu: "Opening Explorer"
+- [ ] Interactive board at top, move table below
+- [ ] For each candidate move: show games played, win% / draw% / loss% bar
+- [ ] Click a move to play it on the board and load next position's stats
+- [ ] Navigate back through move history
+
+### Data Sources
+- [ ] Masters game database (via open explorer API — free, no auth)
+- [ ] Online player database (filter by rating range)
+- [ ] Local/offline fallback: expanded built-in opening book (200+ positions)
+- [ ] Cache API responses locally for offline re-use
+
+### Opening Repertoire Trainer
+- [ ] User defines repertoire: record moves as White or Black through explorer
+- [ ] Save repertoire lines to local storage
+- [ ] Training mode: app plays opponent moves, user must recall their repertoire move
+- [ ] Spaced repetition for repertoire lines (reuse existing SRS infrastructure)
+- [ ] Import repertoire from PGN
+
+---
+
+## Phase 22: Open Chess API Integration
+
+_Goal: connect CrispChess to the open chess ecosystem._
+_License: open chess APIs are free and rate-limited (no auth needed for most
+endpoints). All code MIT._
+
+### Game Import
+- [ ] "Import Games" screen — enter username from supported open platform
+- [ ] Fetch recent games via open Games API (NDJSON)
+- [ ] Display game list with opponent, result, time control, date
+- [ ] Load any game onto the board for analysis
+- [ ] Persist imported games in local database
+
+### Tablebase on Web
+- [ ] Enable Syzygy API calls on web platform (currently native only)
+- [ ] Same UX: show tablebase result in analysis panel when ≤7 pieces
+
+### Live Tournament Broadcasts
+- [ ] Fetch active broadcasts from open Broadcast API
+- [ ] Tournament list screen with names, rounds, status
+- [ ] Click to watch: live board with moves streaming in
+- [ ] Engine eval overlay during broadcast
+- [ ] Multi-board view for rounds with multiple games
+
+---
+
+## Phase 23: Training & Learning Expansion
+
+_Goal: deepen the training offering to best-in-class level._
+_License: all content must be original or CC0. Code is MIT._
+
+### Blindfold Mode
+- [ ] Setting or toggle: hide pieces on board, show only move list
+- [ ] Optionally show last-move highlight as the only board hint
+- [ ] Works in play-vs-AI and puzzle modes
+
+### More Drills
+- [ ] Expand from 4 to 20+ drills across categories:
+  - Tactics: discovered attack, deflection, decoy, clearance, zwischenzug
+  - Endgames: rook endgames, queen vs pawn, opposite-color bishops
+  - Openings: Sicilian basics, Queen's Gambit Declined, Caro-Kann, French
+- [ ] Drill difficulty ratings (beginner / intermediate / advanced)
+- [ ] Drill completion contributes to XP
+
+### AI Coach Enhancements
+- [ ] Post-game verbal review: send full PGN to LLM, display narrative analysis
+- [ ] "Why is this move bad?" — tap any classified mistake, ask AI Coach to explain
+- [ ] Study recommendations: AI Coach suggests what to practice based on game history
+- [ ] Opening repertoire suggestions based on play style analysis
+
+### Personalized Improvement Insights
+- [ ] Analyze last N games for patterns: common mistake types, weak phases, blunder-prone positions
+- [ ] "Your Weaknesses" dashboard: tactics accuracy, endgame conversion rate, opening repertoire breadth
+- [ ] Suggested training plan based on weakness analysis
+- [ ] Track improvement over time (graphs of accuracy, puzzle rating, etc.)
+
+---
+
+## Phase 24: More Locales
+
+_Goal: broaden addressable market beyond EN/DE._
+_License: translations are original content under MIT._
+
+### Priority Languages
+- [ ] Spanish (es)
+- [ ] French (fr)
+- [ ] Portuguese (pt)
+- [ ] Russian (ru)
+- [ ] Chinese Simplified (zh)
+- [ ] Japanese (ja)
+- [ ] Korean (ko)
+- [ ] Hindi (hi)
+- [ ] Italian (it)
+- [ ] Dutch (nl)
+- [ ] Polish (pl)
+- [ ] Turkish (tr)
+
+### Translation Infrastructure
+- [ ] Verify all user-facing strings are in ARB files (no hardcoded strings)
+- [ ] Contribution guide for community translations
+- [ ] Locale-specific piece notation (e.g., German uses S for knight, not N)
+
+---
+
+## Phase 25: Distribution
+
+_Goal: get CrispChess into every major app store._
+_License: MIT app, GPL engines downloaded at runtime — compliant for all stores._
 
 ### App Stores
 - [ ] Google Play Store listing + screenshots
 - [ ] Apple App Store listing + screenshots
-- [ ] F-Droid (fully open source build)
-- [ ] Microsoft Store / Snap / Flatpak
+- [ ] F-Droid (fully open source build, no proprietary dependencies)
+- [ ] Flathub (Linux)
+- [ ] Snap Store (Linux)
+- [ ] Microsoft Store (Windows)
+- [ ] Homebrew Cask (macOS)
 
-### Sharing
-- [x] Share game as image (board screenshot via RepaintBoundary)
-- [x] Share game as animated GIF (frame generation infrastructure)
-- [ ] Online chess platform API integration (import games, puzzles)
+### PWA
+- [ ] Service worker for offline web support (if Flutter SW conflict resolved)
+- [ ] Web app manifest with CrispChess branding
+- [ ] "Install as app" prompt on supported browsers
 
 ---
 
-## Phase 15: Analysis Workbench
+## Phase 26: Online Multiplayer (Strategic)
 
-_Goal: transform CrispChess from "play the computer" into a proper analysis
-platform on par with Nibbler, En Croissant, BanksiaGUI, and Cutechess._
+_Goal: human vs human play without building full server infrastructure._
+_License: open Board API is free. All code MIT._
 
-### Generic UCI Engine Management
-- [x] Load any UCI engine binary from disk (GenericUciEngine class)
-- [x] UCI handshake: send `uci`, parse `id name`, `id author`, `option` lines
-- [x] UCI option configuration dialog — auto-generated from engine's `option` list
-- [x] Common options surfaced: Hash (MB), Threads, MultiPV, SyzygyPath
-- [x] Engine profile persistence — save name, path, and option overrides
-- [x] Engine manager screen — add / remove / configure
-- [x] `go infinite` support — engine runs until user stops (not just `go depth N`)
+### Open Platform Board API Integration
+- [ ] OAuth2 login with open chess platform (PKCE flow)
+- [ ] Seek / challenge creation via Board API
+- [ ] Real-time game stream (NDJSON events)
+- [ ] Move submission via Board API
+- [ ] Chat display (optional)
+- [ ] Game result handling (resign, draw offer, timeout)
+- [ ] Rating display from user profile
 
-### Multi-PV Display
-- [x] Send `setoption name MultiPV value N` (user-configurable, 1–5)
-- [x] Display top N engine lines as full move sequences with eval + depth
-- [x] Highlight principal variation on the board (blue arrow for best move)
+### Local Network Play
+- [ ] Discover opponents on same Wi-Fi (mDNS / UDP broadcast)
+- [ ] Direct WebSocket connection between devices
+- [ ] No server required — fully peer-to-peer
+- [ ] Time sync for clock accuracy
 
-### Multi-Engine Analysis
-- [x] Run 2+ engines simultaneously on the same position
-- [x] Split analysis panel — each engine gets its own eval / PV display
-- [x] Compare evaluations side-by-side (useful for engine testing)
+---
 
-### Game Tree & Variations
-- [x] Replace linear move history with a tree structure (nodes + children)
-- [x] Add variation on any move — branches shown inline or collapsible
-- [x] Navigate variations (click to enter, back to exit)
-- [x] Promote/delete variations
-- [x] PGN import/export with full variation support (RAV notation)
+## Phase 27: Advanced Database (Strategic)
 
-### Position Editor
-- [x] Board setup mode — tap piece type, then tap square to place
-- [x] Piece palette (all 12 pieces + eraser)
-- [x] Set side to move, castling rights, en passant square
-- [x] Validate position legality before starting analysis/game
-- [x] FEN input field — paste FEN string to load any position
-- [x] FEN output — copy current position as FEN
+_Goal: professional-grade database for power users._
+_License: `sqflite` (BSD) or `drift` (MIT) for SQLite. All code MIT._
 
-### Board Annotations
-- [x] Right-click tap to color squares
-- [x] Annotation overlay painter (arrows + highlights)
-- [x] Right-click drag to draw arrows (green/yellow/red)
-- [x] Text comments per move (stored in game tree)
-- [x] NAG support ($1 = !, $2 = ?, etc.) in game tree nodes
-- [x] Clear annotations button
+### SQLite Game Database
+- [ ] Migrate from shared_preferences JSON to SQLite for game storage
+- [ ] Store games, positions, tags, annotations efficiently
+- [ ] Full-text search on player names, events, annotations
+- [ ] Position search (find games reaching a given FEN)
+- [ ] Handle 100K+ games without performance degradation
 
-### PGN Database
-- [x] Open .pgn database (paste multi-game PGN)
-- [x] Game list view — players, result, date, ECO, event
-- [x] Search/filter by player name, result
-- [x] Click game to load onto board
-- [x] Database statistics (most common openings, win rates)
+### Polyglot Opening Book Support
+- [ ] Read .bin Polyglot opening books (format is public domain)
+- [ ] Display book moves with weights in Opening Explorer
+- [ ] Multiple books simultaneously (merge results)
+- [ ] User can load their own .bin files
 
-### Engine vs Engine
-- [x] Match mode — two engines play N games (alternating colors)
-- [x] Configurable depth per engine
-- [x] Live board display during match
-- [x] Results table (wins/draws/losses, score totals)
-- [x] Tournament mode — round-robin with 3+ engines, standings table
+### DGT Board Integration
+- [ ] Bluetooth LE connection to DGT boards
+- [ ] Read piece positions from board
+- [ ] Sync moves between physical board and app
+- [ ] Clock display sync
 
-### PGN Database
-- [x] Open .pgn database (paste multi-game PGN)
-- [x] Game list view — players, result, date, ECO, event
-- [x] Search/filter by player name, result
-- [x] Click game to load onto board
-- [x] Database statistics (result distribution, top ECOs, most active players)
+---
 
-## Phase 16: Built-in Engine Performance
+## Backlog (Not Prioritized)
 
-### Search Optimization
-- [x] Faster `_quickHash()` — hash only piece placement + turn (skip castling/EP)
-- [x] Delta pruning in quiescence — skip if queen capture can't raise alpha
-- [x] MVV-LVA scoring for captures in quiescence (pre-sorted)
-- [x] Reusable static Map in `_makeMove()` — reduce GC pressure
-- [x] Cache `_moveToUci()` — pre-compute in `_ScoredMove` (computed once per move)
-- [x] SEE-like pruning — skip losing captures in quiescence
-- [x] Null move pruning — skip turn, search at R=2 reduced depth
-- [x] Principal variation search (PVS) — zero-width window for non-first moves
+_Items that don't fit current strategy or have low ROI._
 
-### Web Build Optimization
-- [x] Exclude `ort.min.js.map` (1.3 MB source map) from production deploy
-- [x] Add `Cache-Control` headers for immutable assets (WASM, SVG, JS bundles)
-- [x] Lazy-load ONNX Runtime — only download when Maia3/Lc0 engine is selected
-- [ ] Service worker for PWA offline support (removed — conflicts with Flutter's built-in SW)
+- [ ] 3D board rendering (high effort, low usage)
+- [ ] Bughouse / 4-player chess (very high effort, niche demand)
+- [ ] WinBoard/XBoard engine protocol (legacy, near-zero demand)
+- [ ] Coaching marketplace (business infrastructure, not a code problem)
+- [ ] Social features — friends, chat, clubs (requires backend, not core identity)
+- [ ] Video lessons (content creation bottleneck, not code)
+- [ ] Decorative background watermark (cosmetic, low priority)
+- [ ] Staggered entry animations on game summary (cosmetic, low priority)

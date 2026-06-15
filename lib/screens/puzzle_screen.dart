@@ -3,6 +3,7 @@ import 'package:chess/chess.dart' as chess;
 import '../chess/puzzle.dart';
 import '../chess/chess_game.dart';
 import '../widgets/chess_board.dart';
+import 'puzzle_rush_screen.dart';
 
 class PuzzleScreen extends StatefulWidget {
   final PuzzleDatabase puzzleDb;
@@ -26,6 +27,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   int _solvedCount = 0;
   int _totalAttempted = 0;
   String _pieceTheme = 'chessnut';
+  String _ratingFilter = 'all'; // 'all', '800-1200', '1200-1600', '1600-2000', '2000+'
 
   @override
   void initState() {
@@ -33,8 +35,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _loadNextPuzzle();
   }
 
+  (int?, int?) get _ratingRange {
+    return switch (_ratingFilter) {
+      '800-1200' => (800, 1200),
+      '1200-1600' => (1200, 1600),
+      '1600-2000' => (1600, 2000),
+      '2000+' => (2000, null),
+      _ => (null, null),
+    };
+  }
+
   void _loadNextPuzzle() {
-    final puzzle = widget.puzzleDb.randomPuzzle();
+    final (minR, maxR) = _ratingRange;
+    final puzzle = widget.puzzleDb.randomPuzzle(minRating: minR, maxRating: maxR);
     if (puzzle == null) {
       setState(() => _message = 'No puzzles available');
       return;
@@ -238,9 +251,41 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
           ],
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => PuzzleRushScreen(puzzleDb: widget.puzzleDb))),
+            icon: const Icon(Icons.bolt, size: 18),
+            label: const Text('Rush', style: TextStyle(fontSize: 12)),
+          ),
+        ],
       ),
       body: Column(
         children: [
+          // Rating filter
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              children: ['all', '800-1200', '1200-1600', '1600-2000', '2000+'].map((r) {
+                final label = r == 'all' ? 'All' : r;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(label, style: const TextStyle(fontSize: 11)),
+                    selected: _ratingFilter == r,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (sel) {
+                      if (sel) setState(() {
+                        _ratingFilter = r;
+                        _loadNextPuzzle();
+                      });
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
           // Puzzle info
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

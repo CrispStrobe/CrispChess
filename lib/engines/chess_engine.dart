@@ -77,6 +77,9 @@ abstract class ChessEngine {
   /// Abort the current search.
   void stop();
 
+  /// Set a UCI option. No-op for engines that don't support UCI options.
+  void setOption(String name, String value) {}
+
   /// Release all engine resources.
   void dispose();
 }

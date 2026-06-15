@@ -19,7 +19,8 @@ enum TimeControl {
   rapid10inc('Rapid 10+5', Duration(minutes: 10), 5),
   rapid15('Rapid 15+10', Duration(minutes: 15), 10),
   rapid30('Rapid 30+0', Duration(minutes: 30), 0),
-  classical60('Classical 60+30', Duration(minutes: 60), 30);
+  classical60('Classical 60+30', Duration(minutes: 60), 30),
+  custom('Custom', Duration(minutes: 10), 0);
 
   final String label;
   final Duration? baseTime; // null = unlimited
@@ -56,17 +57,28 @@ class ClockSide {
 /// Chess clock managing both players' time.
 class ChessClock extends ChangeNotifier {
   final TimeControl timeControl;
+  /// Override base time (used for custom time controls).
+  final Duration? customBaseTime;
+  /// Override increment (used for custom time controls).
+  final int? customIncrementSeconds;
+
   late ClockSide white;
   late ClockSide black;
   Timer? _timer;
   bool _isWhiteTurn = true;
   bool _started = false;
 
-  ChessClock({this.timeControl = TimeControl.unlimited}) {
-    final base = timeControl.baseTime ?? const Duration(hours: 99);
+  ChessClock({
+    this.timeControl = TimeControl.unlimited,
+    this.customBaseTime,
+    this.customIncrementSeconds,
+  }) {
+    final base = customBaseTime ?? timeControl.baseTime ?? const Duration(hours: 99);
     white = ClockSide(remaining: base);
     black = ClockSide(remaining: base);
   }
+
+  int get _incrementSecs => customIncrementSeconds ?? timeControl.incrementSeconds;
 
   bool get isUnlimited => timeControl.isUnlimited;
   bool get isStarted => _started;
@@ -93,7 +105,7 @@ class ChessClock extends ChangeNotifier {
     _timer?.cancel();
 
     // Add increment to the player who just moved
-    final increment = Duration(seconds: timeControl.incrementSeconds);
+    final increment = Duration(seconds: _incrementSecs);
     if (_isWhiteTurn) {
       white.remaining += increment;
       white.isRunning = false;
@@ -131,7 +143,7 @@ class ChessClock extends ChangeNotifier {
   /// Reset the clock.
   void reset() {
     _timer?.cancel();
-    final base = timeControl.baseTime ?? const Duration(hours: 99);
+    final base = customBaseTime ?? timeControl.baseTime ?? const Duration(hours: 99);
     white = ClockSide(remaining: base);
     black = ClockSide(remaining: base);
     _isWhiteTurn = true;
