@@ -41,6 +41,9 @@
 - [x] GPL compliance (no GPL code bundled, Stockfish downloaded at runtime)
 - [x] THIRD_PARTY_LICENSES.md
 - [x] Store release prep (bundle IDs, metadata)
+- [x] CLI interface (`bin/crispchess.dart`) — analyze, play, match, perft, puzzle, fen, board
+- [x] REST API server (`bin/server.dart`) — /api/analyze, /api/puzzle, /api/board, /api/perft, /api/fen, /api/health
+- [x] Cross-platform HTTP service (dart:io native + web fetch API)
 
 ### Board Improvements (Phase 6)
 - [x] Board coordinate labels (a-h, 1-8)

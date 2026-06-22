@@ -1,6 +1,6 @@
 # CrispChess
 
-A cross-platform chess app and analysis workbench with pluggable engine backends. Play against AI opponents, analyze games with multiple engines, run engine tournaments, solve drills, and explore PGN databases — all under permissive licensing.
+A cross-platform chess app and analysis workbench with pluggable engine backends. Play against AI opponents, analyze games with multiple engines, run engine tournaments, solve puzzles, explore openings, and train — all under permissive licensing.
 
 Built with Flutter. Runs on Android, iOS, macOS, Linux, Windows, and Web (WASM).
 
@@ -15,7 +15,8 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | **Built-in** | MIT | ~1800 | All | Pure Dart, alpha-beta + NMP + PVS |
 | **Maia3 (JS)** | MIT | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
 | **Maia3 Dart** | MIT | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
-| **Frozenight** | MIT / Apache-2.0 | ~3226 | Web (WASM) | Rust NNUE engine |
+| **Frozenight** | MIT / Apache-2.0 | ~3226 | All (WASM + FFI) | Rust NNUE engine |
+| **Lynx** | MIT | ~3350 | Desktop | C# classical HCE, downloaded from GitHub |
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
 | **Lc0** | GPL-3.0 | ~1100–3300 | All | MCTS + neural net, downloaded separately |
 | **Custom UCI** | Any | Any | Desktop/Mobile | Load any engine binary from disk |
@@ -23,6 +24,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 - **Built-in** — pure Dart engine with alpha-beta pruning, null move pruning, principal variation search, transposition table, quiescence search with MVV-LVA + delta pruning, and piece-square table evaluation. Works everywhere including Web WASM.
 - **Maia3** — ELO-conditioned neural network trained on human games. Three model sizes: 5M (~25MB), 23M (~92MB), 79M (~313MB).
 - **Frozenight** — NNUE-based Rust engine compiled to WASM for web.
+- **Lynx** — strong classical engine (~3350 ELO) by Eduardo Caceres. MIT licensed, self-contained binary downloaded on first use. Supports Chess960, multithreading, pondering.
 - **Stockfish** — strongest traditional engine. Runs as Web Worker (web), process (desktop/Android), or JavaScriptCore (iOS). Downloaded at runtime.
 - **Lc0** — AlphaZero-style MCTS with Maia weights for human-like play.
 - **Custom UCI** — load any UCI engine via the Engine Manager (desktop/mobile only). Auto-detects engine identity and options.
@@ -32,14 +34,21 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 ## Features
 
 ### Play
-- Play as White or Black against 6+ engines with hot-swapping
+- Play as White or Black against 7+ engines with hot-swapping
 - Adjustable engine strength (0–20 skill levels, ~800–2400 ELO)
 - Move hints with arrow overlay, undo/redo, abort
-- Chess clock (12 presets: bullet to classical)
+- Chess clock (12 presets + custom time controls with base + increment)
 - Two-player local (pass and play)
 - Premove support (queue move while engine thinks)
 - Pondering (engine analyzes during your turn)
-- 8 piece themes, animated moves, sound effects
+- 8 piece themes, 8 board color themes, animated moves, sound effects
+- Blindfold mode (hide pieces, play by memory)
+- Engine Hash and Threads configuration
+
+### Chess Variants
+- Chess960 / Fischer Random (game mode selector in settings)
+- King of the Hill (win by king on center squares)
+- Three-check (win by giving check 3 times, live counter display)
 
 ### Analysis Workbench
 - **Load any UCI engine** from disk with auto-detected options
@@ -50,11 +59,20 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - **Board annotations** — right-click drag for arrows, tap for colored squares
 - **PV arrows** — best engine move shown as blue arrow on board
 - **Position editor** — drag pieces, set castling/EP, FEN I/O
-- **FEN input** — paste any position
+- **Syzygy tablebase** — 7-piece endgame lookup (all platforms including web)
+
+### Opening Explorer
+- Interactive board with move statistics from master games
+- Win/draw/loss percentage bars for each candidate move
+- Toggle between Masters and Online databases
+- Navigate forward/back through opening lines
+- Opening name and total games display
 
 ### Database & Export
 - **PGN database browser** — load multi-game PGN, search/filter, statistics
 - **PGN RAV export** — variations in parenthesized notation
+- **Game history** — 500 games with star/favorites, result filtering, bulk export
+- **Figurine algebraic notation** option (piece symbols instead of letters)
 - Board screenshot capture
 - PGN copy/paste with full variation support
 
@@ -64,8 +82,11 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - Live board display, configurable depth
 
 ### Training
-- **Puzzles** — 200 tactical puzzles from Lichess (CC0)
-- **Drills** — structured lessons (tactics, openings, endgames) with coach feedback
+- **Puzzles** — ~1600 tactical puzzles (CC0), rating-range filter
+- **Puzzle Rush** — timed sprint (3 min), 3 lives, personal best tracking
+- **Coordinate Trainer** — tap correct square, timed mode (30s), personal best
+- **Drills** — 8 structured lessons (tactics, openings, endgames) with coach feedback
+- **Endgame drills** — K+Q vs K, K+R vs K, K+P vs K, Two Bishops
 - **Spaced repetition** — re-present failed positions at increasing intervals
 - Post-game analysis with accuracy, eval chart, interactive board replay
 - Per-move classification (brilliant/good/inaccuracy/mistake/blunder)
@@ -77,15 +98,54 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - 12 achievement badges
 - Daily login streak
 
-### Chess Variants
-- Chess960 / Fischer Random
-- King of the Hill (win by king on center squares)
-- Three-check (win by giving check 3 times)
-
 ### AI Coach (BYOK)
 - Send position to Anthropic or OpenAI for natural language analysis
 - Bring-your-own-key — stored locally, never transmitted to CrispChess servers
 - Privacy-first design
+
+## CLI
+
+CrispChess includes a standalone command-line interface for engine analysis, puzzle solving, and engine matches — no Flutter or GUI required.
+
+```bash
+# Analyze a position
+dart run bin/crispchess.dart analyze --engine stockfish --fen "starting" --depth 20
+
+# Play interactively against an engine
+dart run bin/crispchess.dart play --engine ~/.crispchess/engines/lynx/Lynx.Cli --depth 12
+
+# Engine vs engine match
+dart run bin/crispchess.dart match --white stockfish --black frozenight --games 10 --depth 15
+
+# Performance test
+dart run bin/crispchess.dart perft --depth 6
+
+# Solve a puzzle
+dart run bin/crispchess.dart puzzle --rating 1500
+
+# Show board after moves
+dart run bin/crispchess.dart fen e2e4 e7e5 g1f3 b8c6 f1c4
+```
+
+## Server API
+
+A REST API server for programmatic access to chess analysis, puzzles, and board state.
+
+```bash
+dart run bin/server.dart --port 8080 --engine stockfish
+```
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/health` | Health check |
+| `GET /api/analyze?fen=...&depth=15` | Engine analysis (returns bestMove, eval, PV) |
+| `GET /api/puzzle?rating=1500` | Random puzzle filtered by rating |
+| `GET /api/puzzle/daily` | Deterministic daily puzzle |
+| `GET /api/perft?depth=4` | Perft with node count and timing |
+| `GET /api/board?fen=...` | Board state, legal moves, game status |
+| `GET /api/fen?moves=e2e4,e7e5` | FEN resulting from a move sequence |
+
+All endpoints return JSON with CORS enabled.
 
 ## Getting Started
 
@@ -129,58 +189,46 @@ lib/
     engine_factory.dart           # Engine creation with conditional imports
     generic_uci_engine.dart       # Load any UCI engine binary
     uci_option.dart               # UCI option model (spin/check/combo/etc.)
-    uci_position.dart             # UCI position command → FEN parser
     dart_engine.dart              # Built-in Dart engine (MIT)
-    dart_engine/
-      evaluation.dart             # Piece-square tables, material eval
-      search.dart                 # Alpha-beta, NMP, PVS, quiescence, TT
-      transposition.dart          # Transposition table
+    lynx_engine.dart              # Lynx engine — MIT, downloaded at runtime
+    frozenight_engine.dart        # Frozenight FFI (native) / WASM (web)
+    stockfish_engine.dart         # Stockfish process (native) / Web Worker
     maia3_dart_engine.dart        # Maia3 Dart — native ONNX
-    maia3_dart_web_engine.dart    # Maia3 Dart — web ONNX bridge
-    frozenight_web_engine.dart    # Frozenight WASM (web)
-    frozenight_engine.dart        # Frozenight FFI (native)
-    stockfish_web_engine.dart     # Stockfish Web Worker (web)
-    stockfish_engine.dart         # Stockfish process (native)
-    lc0_web_engine.dart           # Lc0 web (ONNX)
-    lc0_engine.dart               # Lc0 native
+    lc0_engine.dart               # Lc0 MCTS + neural net
   services/
     engine_service.dart           # Engine lifecycle + event stream
     multi_engine_service.dart     # Multi-engine simultaneous analysis
-    engine_match_service.dart     # Engine vs engine matches + tournaments
-    engine_profile_store.dart     # Custom engine profile persistence
+    http_service.dart             # Cross-platform HTTP (dart:io / web fetch)
     preferences_service.dart      # Settings persistence
-    sound_service.dart            # Web Audio API synthesis
+    sound_service.dart            # Sound effects (Web Audio / native)
   chess/
     chess_game.dart               # Game state + variant support
-    game_state.dart               # Immutable UI state with copyWith
     game_tree.dart                # Branching move tree with variations
-    board_annotations.dart        # Arrows and colored squares model
+    board_theme.dart              # 8 board color themes
+    notation.dart                 # Algebraic / figurine notation conversion
     variants.dart                 # KOTH and Three-check win conditions
-    drill.dart                    # Structured drill lesson system
-    spaced_repetition.dart        # SR queue for mistake re-presentation
-    pgn.dart                      # PGN export/import with RAV variations
-    pgn_database.dart             # Multi-game PGN parser + search
-    move_analyzer.dart            # Move quality classification
+    chess960.dart                 # Fischer Random position generator
+    drill.dart                    # 8 structured drill lessons
+    puzzle.dart                   # Puzzle database + rating filter
+    tablebase.dart                # Syzygy endgame lookup (all platforms)
     opening_book.dart             # Opening database
-    xp_system.dart                # XP and player levels
+    spaced_repetition.dart        # SR queue for mistake review
   screens/
     chess_game_screen.dart        # Main game UI
     settings_screen.dart          # Engine, strength, display settings
-    engine_manager_screen.dart    # Custom UCI engine management
+    opening_explorer_screen.dart  # Opening statistics explorer
+    puzzle_screen.dart            # Puzzle mode + Puzzle Rush
+    coordinate_trainer_screen.dart # Coordinate training
+    game_history_screen.dart      # Browsable game history with favorites
     engine_match_screen.dart      # Engine vs engine matches/tournaments
     position_editor_screen.dart   # Board setup / FEN editor
     pgn_database_screen.dart      # PGN database browser
     drill_screen.dart             # Interactive drill player
     ai_coach_sheet.dart           # LLM analysis bottom sheet (BYOK)
-    game_summary_screen.dart      # Post-game analysis with interactive board
-    puzzle_screen.dart            # Puzzle mode
-    stats_screen.dart             # Player statistics
-  widgets/
-    chess_board.dart              # Board with animation + annotations
-    board_annotation_overlay.dart # Arrow/highlight custom painter
-    capture_effect.dart           # Particle burst on captures
-    press_scale.dart              # Press-down scale animation wrapper
-    eval_chart.dart               # Evaluation history chart
+    game_summary_screen.dart      # Post-game analysis
+bin/
+  crispchess.dart                 # CLI — analyze, play, match, perft, puzzle
+  server.dart                     # REST API server
 ```
 
 ### Engine Interface
@@ -197,6 +245,7 @@ abstract class ChessEngine {
   Future<void> initialize();
   Future<String> bestMove(String positionCommand, {int? depth, int? skillLevel});
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite});
+  void setOption(String name, String value);
   void stop();
   void dispose();
 }
@@ -208,7 +257,7 @@ Engines are hot-swappable at runtime via `EngineService.switchEngine()`.
 
 GitHub Actions on every push to `main`:
 
-- **Analyze & Test** — Dart analyzer + unit tests
+- **Analyze & Test** — Dart analyzer + 274 unit tests
 - **Frozenight** — Compiles for WASM, Linux, macOS, iOS, Android arm64, Windows
 - **Build** — Android APK, iOS, macOS, Linux, Web (WASM)
 - **Deploy Web** — Builds Flutter WASM + Frozenight WASM, strips source maps, deploys to Vercel with caching headers
@@ -217,7 +266,7 @@ GitHub Actions on every push to `main`:
 
 **MIT** — see [LICENSE](LICENSE).
 
-The app code, built-in Dart engine, Maia3 Dart port, and all original code are MIT licensed.
+The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all original code are MIT licensed.
 
 ### Engine Licenses
 
@@ -227,6 +276,7 @@ The app code, built-in Dart engine, Maia3 Dart port, and all original code are M
 | Maia3 Dart (tokenization + sampling) | MIT | Yes |
 | ONNX model weights (maia3-onnx) | Research use | Downloaded at runtime |
 | Frozenight | MIT + Apache-2.0 | Yes (WASM) |
+| Lynx | MIT | No — downloaded at runtime |
 | ONNX Runtime Web | MIT | Yes (lazy-loaded JS) |
 | Stockfish | GPL-3.0 | No — downloaded separately |
 | Lc0 | GPL-3.0 | No — downloaded separately |

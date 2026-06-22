@@ -15,6 +15,23 @@ downloaded from CDN (cdn.jsdelivr.net) at runtime when the user
 selects it, and runs in a Web Worker (web) or separate process
 (desktop). No GPL code is bundled with or compiled into CrispChess.
 
+## Lynx Chess Engine (downloaded at runtime)
+
+- **License:** MIT
+- **Author:** Eduardo Caceres
+- **Source:** https://github.com/lynx-chess/Lynx
+
+Lynx is a C# chess engine (~3350 ELO). Self-contained binary
+downloaded from GitHub Releases on first use. MIT licensed.
+
+## Lc0 (downloaded at runtime, NOT bundled)
+
+- **License:** GPL-3.0
+- **Source:** https://github.com/LeelaChessZero/lc0
+
+Lc0 WASM is downloaded at runtime. No GPL code is bundled with
+or compiled into CrispChess.
+
 ## ONNX Runtime Web (web/ort.min.js)
 
 - **License:** MIT
