@@ -20,6 +20,9 @@ import 'maia3_engine.dart'
 import 'maia3_dart_engine.dart'
     if (dart.library.js_interop) 'maia3_dart_web_engine.dart';
 
+import 'lynx_engine.dart'
+    if (dart.library.js_interop) 'lynx_web_engine.dart';
+
 /// Create a [ChessEngine] by name.
 ///
 /// All engines are either MIT-licensed or downloaded separately
@@ -44,6 +47,8 @@ ChessEngine createEngine(String name, {
       ); // MIT (pure Dart)
     case 'Lc0':
       return Lc0Engine(variantId: maia3Variant); // GPL-3.0, downloaded separately
+    case 'Lynx':
+      return LynxEngine(); // MIT, downloaded from GitHub Releases
     default:
       return DartEngine(); // MIT, built-in
   }

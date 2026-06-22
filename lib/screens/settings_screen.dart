@@ -242,6 +242,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       available: true, // Web WASM + native FFI (if lib present)
     ));
 
+    // Lynx — MIT, downloaded from GitHub Releases (native only)
+    engines.add(_EngineOption(
+      name: 'Lynx',
+      description: 'Classical HCE, downloaded from GitHub',
+      elo: '~3350',
+      license: 'MIT',
+      available: !kIsWeb,
+    ));
+
     // Stockfish — downloaded at runtime, never linked into app
     if (kIsWeb) {
       engines.add(_EngineOption(
@@ -577,6 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         DropdownMenuItem(value: 'Maia3 Dart', child: Text('Maia3 Dart', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Lc0', child: Text('Lc0', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Frozenight', child: Text('Frozenight', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Lynx', child: Text('Lynx', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Stockfish', child: Text('Stockfish', style: TextStyle(fontSize: 13))),
                       ],
                     ),
@@ -841,6 +851,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Built-in: Pure Dart alpha-beta engine.\n'
                     'Maia3 Dart: Neural net, human-like play (MIT).\n'
                     'Frozenight: Rust NNUE engine (MIT/Apache-2.0).\n'
+                    'Lynx: C# classical HCE engine (MIT).\n'
                     'Stockfish/Lc0: GPL-3.0, downloaded separately.',
                     style: TextStyle(fontSize: 11, height: 1.5),
                   ),
