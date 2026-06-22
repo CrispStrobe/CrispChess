@@ -21,26 +21,25 @@ const _lynxBaseUrl =
 /// Platform → download URL + binary name mapping.
 ({String url, String binary}) _platformAsset() {
   if (Platform.isMacOS) {
-    // Universal: use ARM64 for Apple Silicon, x64 for Intel
     final arch = Platform.version.contains('arm64') ||
             Platform.operatingSystemVersion.contains('arm64')
         ? 'osx-arm64'
         : 'osx-x64';
     return (
       url: '$_lynxBaseUrl/Lynx-$_lynxVersion-$arch.zip',
-      binary: 'Lynx',
+      binary: 'Lynx.Cli',
     );
   }
   if (Platform.isLinux) {
     return (
       url: '$_lynxBaseUrl/Lynx-$_lynxVersion-linux-x64.zip',
-      binary: 'Lynx',
+      binary: 'Lynx.Cli',
     );
   }
   if (Platform.isWindows) {
     return (
       url: '$_lynxBaseUrl/Lynx-$_lynxVersion-win-x64.zip',
-      binary: 'Lynx.exe',
+      binary: 'Lynx.Cli.exe',
     );
   }
   throw UnsupportedError('Lynx not available on this platform');
