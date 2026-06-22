@@ -1,38 +1,238 @@
-/// Lynx engine stub for web — Lynx has no WASM build.
-///
-/// This stub exists so conditional imports compile on web.
-/// It always reports as unavailable.
+// Lynx WASM engine for web.
+// MIT licensed. ~3350 ELO (CCRL) HCE engine.
+// Compiled from C#/.NET to WebAssembly via .NET wasm-tools.
+// Communicates via [JSExport] methods on the .NET WASM module.
 
+import 'dart:async';
+import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
 
+@JS('lynxLoad')
+external JSPromise<JSAny?> _lynxLoad();
+
+@JS('lynxSendUci')
+external JSPromise<JSString> _lynxSendUci(JSString command);
+
+@JS('lynxSearch')
+external JSPromise<JSString> _lynxSearch(JSString goCommand);
+
+@JS('lynxDispose')
+external void _lynxDispose();
+
+// Pre-compiled regex for parsing UCI output
+final _cpRegex = RegExp(r'score cp (-?\d+)');
+final _mateRegex = RegExp(r'score mate (-?\d+)');
+final _depthRegex = RegExp(r'depth (\d+)');
+final _pvRegex = RegExp(r' pv (.+)');
+final _multipvRegex = RegExp(r'multipv (\d+)');
+
+/// Lynx HCE engine running as WASM in the browser.
+///
+/// ~3350 ELO (CCRL). MIT licensed.
+/// Uses .NET compiled to WebAssembly (Mono runtime).
+/// Async search — yields back to event loop during search.
 class LynxEngine implements ChessEngine {
-  @override String get name => 'Lynx';
-  @override String get version => 'N/A';
-  @override String get license => 'MIT';
-  @override int get estimatedElo => 3350;
-  @override EngineState get state => _stateNotifier.value;
-  @override ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
-
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
+  final _evalController = StreamController<EvalInfo>.broadcast();
+  bool _loaded = false;
+  bool _stopping = false;
 
-  static bool get isAvailable => false;
+  @override
+  String get name => 'Lynx';
+  @override
+  String get version => '1.11.0 (WASM)';
+  @override
+  String get license => 'MIT';
+  @override
+  int get estimatedElo => 3350;
+  @override
+  EngineState get state => _stateNotifier.value;
+  @override
+  ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  static bool get isAvailable => kIsWeb;
 
   @override
   Future<void> initialize() async {
-    _stateNotifier.value = EngineState.error;
+    _stateNotifier.value = EngineState.initializing;
+    try {
+      debugPrint('[LynxWASM] Loading .NET WASM runtime + Lynx engine...');
+      await _lynxLoad().toDart;
+
+      // Verify UCI handshake
+      final uciResponse = (await _lynxSendUci('uci'.toJS).toDart).toDart;
+      if (!uciResponse.contains('uciok')) {
+        throw StateError('UCI handshake failed: $uciResponse');
+      }
+
+      // Force single-threaded mode
+      await _lynxSendUci('setoption name Threads value 1'.toJS).toDart;
+      // Disable online tablebases
+      await _lynxSendUci(
+          'setoption name OnlineTablebaseInRootPositions value false'.toJS)
+          .toDart;
+      await _lynxSendUci(
+          'setoption name OnlineTablebaseInSearch value false'.toJS)
+          .toDart;
+
+      await _lynxSendUci('isready'.toJS).toDart;
+
+      _loaded = true;
+      _stateNotifier.value = EngineState.ready;
+      debugPrint('[LynxWASM] Ready (~3350 ELO)');
+    } catch (e) {
+      debugPrint('[LynxWASM] Init failed: $e');
+      _stateNotifier.value = EngineState.error;
+    }
   }
 
   @override
-  Future<String> bestMove(String positionCommand, {
-    int? depth, Duration? moveTime, int? skillLevel,
-  }) async => throw UnsupportedError('Lynx not available on web');
+  Future<String> bestMove(
+    String positionCommand, {
+    int? depth,
+    Duration? moveTime,
+    int? skillLevel,
+  }) async {
+    if (!_loaded) throw StateError('Not initialized');
+    _stateNotifier.value = EngineState.thinking;
+    _stopping = false;
+
+    // Lynx doesn't have a skill level option — map to depth
+    final searchDepth = depth ?? (skillLevel != null
+        ? (2 + skillLevel * 12 ~/ 20).clamp(2, 14)
+        : 12);
+    // Cap for web responsiveness
+    final webDepth = searchDepth.clamp(1, 16);
+
+    try {
+      // Send position
+      await _lynxSendUci(positionCommand.toJS).toDart;
+
+      // Send go command and wait for bestmove
+      final goCmd = 'go depth $webDepth';
+      final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
+
+      // Parse bestmove from output
+      final bestMove = _parseBestMove(result);
+      _stateNotifier.value = EngineState.ready;
+
+      if (bestMove == null) throw StateError('No bestmove in output');
+      debugPrint('[LynxWASM] bestmove=$bestMove depth=$webDepth');
+      return bestMove;
+    } catch (e) {
+      _stateNotifier.value = EngineState.ready;
+      rethrow;
+    }
+  }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) =>
-      const Stream.empty();
+  Stream<EvalInfo> analyze(
+    String positionCommand, {
+    int? depth,
+    bool infinite = false,
+  }) {
+    if (!_loaded) return const Stream.empty();
+    _stateNotifier.value = EngineState.thinking;
+    _stopping = false;
 
-  @override void stop() {}
-  @override void setOption(String name, String value) {}
-  @override void dispose() {}
+    // Run search async and emit eval info as it arrives
+    _runAnalysis(positionCommand, depth: depth, infinite: infinite);
+
+    return _evalController.stream;
+  }
+
+  Future<void> _runAnalysis(
+    String positionCommand, {
+    int? depth,
+    bool infinite = false,
+  }) async {
+    try {
+      await _lynxSendUci(positionCommand.toJS).toDart;
+
+      final goCmd = infinite ? 'go infinite' : 'go depth ${depth ?? 20}';
+      final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
+
+      // Parse all info lines from the result
+      for (final line in result.split('\n')) {
+        if (_stopping) break;
+        _parseInfoLine(line.trim());
+      }
+    } catch (e) {
+      debugPrint('[LynxWASM] Analysis error: $e');
+    } finally {
+      if (!_stopping) {
+        _stateNotifier.value = EngineState.ready;
+      }
+    }
+  }
+
+  void _parseInfoLine(String line) {
+    if (!line.startsWith('info') || !line.contains('depth')) return;
+
+    final depthMatch = _depthRegex.firstMatch(line);
+    if (depthMatch == null) return;
+
+    double? score;
+    final cpMatch = _cpRegex.firstMatch(line);
+    final mateMatch = _mateRegex.firstMatch(line);
+    if (cpMatch != null) {
+      score = int.parse(cpMatch.group(1)!) / 100.0;
+    } else if (mateMatch != null) {
+      final mateIn = int.parse(mateMatch.group(1)!);
+      score = mateIn > 0 ? 100.0 : -100.0;
+    }
+    if (score == null) return;
+
+    final pvMatch = _pvRegex.firstMatch(line);
+    final mpvMatch = _multipvRegex.firstMatch(line);
+    final pv = pvMatch?.group(1);
+
+    _evalController.add(EvalInfo(
+      score: score,
+      depth: int.parse(depthMatch.group(1)!),
+      bestMove: pv?.split(' ').first,
+      pv: pv,
+      pvIndex: mpvMatch != null ? int.parse(mpvMatch.group(1)!) : 1,
+    ));
+  }
+
+  String? _parseBestMove(String output) {
+    for (final line in output.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('bestmove')) {
+        final parts = trimmed.split(' ');
+        if (parts.length >= 2 && parts[1] != '(none)') {
+          return parts[1];
+        }
+      }
+    }
+    return null;
+  }
+
+  @override
+  void stop() {
+    _stopping = true;
+    if (_loaded) {
+      // Send stop command (fire-and-forget)
+      _lynxSendUci('stop'.toJS).toDart.catchError((_) => ''.toJS);
+    }
+    _stateNotifier.value = EngineState.ready;
+  }
+
+  @override
+  void setOption(String name, String value) {
+    if (!_loaded) return;
+    _lynxSendUci('setoption name $name value $value'.toJS).toDart
+        .catchError((_) => ''.toJS);
+  }
+
+  @override
+  void dispose() {
+    _stopping = true;
+    if (_loaded) _lynxDispose();
+    _loaded = false;
+    _evalController.close();
+    _stateNotifier.value = EngineState.disposed;
+  }
 }
