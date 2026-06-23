@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "Lynx.Wasm.dll",
   "resources": {
-    "hash": "sha256-Yf82b3aSovi0MXfNmlGQ8Q4xvjJb3PJvRNQxDbA5TqU=",
+    "hash": "sha256-3PY0lq4GDGOshJZZSJAhgR6KAH1OOFKIpknf4RhaQos=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -15,7 +15,7 @@ export const config = /*json-start*/{
     "wasmNative": [
       {
         "name": "dotnet.native.wasm",
-        "hash": "sha256-z+F+Oqo5zlePaRHW7z2X2IIdds5+WrceXFX8S5+QCcw="
+        "hash": "sha256-AX/ydOACm0hz3fgoyY94DEPE3ZaXiY2pWHcw4nxghiU="
       }
     ],
     "wasmSymbols": [
