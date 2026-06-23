@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "Lynx.Wasm.dll",
   "resources": {
-    "hash": "sha256-LwNnr/0ibQN4We+N+cXtal0yRsdOcBZwUDTjWE1smXI=",
+    "hash": "sha256-Ra57M6ELEdk3DCL+AAFylx5qSiJtY1gpAH8t9ZmgYx8=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -15,7 +15,7 @@ export const config = /*json-start*/{
     "wasmNative": [
       {
         "name": "dotnet.native.wasm",
-        "hash": "sha256-z+F+Oqo5zlePaRHW7z2X2IIdds5+WrceXFX8S5+QCcw="
+        "hash": "sha256-BHDiDkWzJQWLq60XUwR9A+DENxp14WPQDmSBPsatuNY="
       }
     ],
     "wasmSymbols": [
@@ -27,7 +27,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "System.Private.CoreLib.wasm",
         "name": "System.Private.CoreLib.wasm",
-        "hash": "sha256-NL10hbb+6YrjSo12SFXY0CfNuQ2z8kjbMhqsjbXj3S0="
+        "hash": "sha256-W+EJHouM32Jkg5izQp4wk487COxMEpAHMRybOMf/qp4="
       },
       {
         "virtualPath": "System.Runtime.InteropServices.JavaScript.wasm",
@@ -39,7 +39,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Lynx.wasm",
         "name": "Lynx.wasm",
-        "hash": "sha256-L1nm782+MyjFOYb7ql25+/1b8/1UfJQiuJpee/yiyxw="
+        "hash": "sha256-BOd6RtOtdy5u1VgX2AF1BXGmrK1vRTgK0AVYjMI5C4Y="
       },
       {
         "virtualPath": "Lynx.Wasm.wasm",
@@ -169,7 +169,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "System.Threading.Channels.wasm",
         "name": "System.Threading.Channels.wasm",
-        "hash": "sha256-dtfrJiZ6J81t95bNa9vqKt9RUXIcFAkGS9mMXc0SoAM="
+        "hash": "sha256-8x6awD7ssXL96enTNOVy+ekbdJRrEiPUBrM97YhtIKg="
       },
       {
         "virtualPath": "System.Threading.Tasks.Parallel.wasm",
