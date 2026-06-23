@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "Lynx.Wasm.dll",
   "resources": {
-    "hash": "sha256-XHhLB4V//3Un2ZLk0u/lpcq8b7gpNGJOhNb1hzmChJQ=",
+    "hash": "sha256-Yf82b3aSovi0MXfNmlGQ8Q4xvjJb3PJvRNQxDbA5TqU=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -15,7 +15,7 @@ export const config = /*json-start*/{
     "wasmNative": [
       {
         "name": "dotnet.native.wasm",
-        "hash": "sha256-BY4pKzvQA5eS/eP85adel/pmLrnpueDaFP+uzdB18vU="
+        "hash": "sha256-z+F+Oqo5zlePaRHW7z2X2IIdds5+WrceXFX8S5+QCcw="
       }
     ],
     "wasmSymbols": [
@@ -44,7 +44,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Lynx.Wasm.wasm",
         "name": "Lynx.Wasm.wasm",
-        "hash": "sha256-rKOO/gPWOqpDIyUptLG94P048BeVsdHUFIj7tArML9Y="
+        "hash": "sha256-otbFFHG/KgH1AbBPP9ocO+xyynrcDmAGgeUgbzNWl9M="
       },
       {
         "virtualPath": "Microsoft.Extensions.ObjectPool.wasm",
