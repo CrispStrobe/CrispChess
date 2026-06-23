@@ -98,14 +98,18 @@ class LynxEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
     _stopping = false;
 
-    // Lynx doesn't have a skill level option — map to depth
+    // Lynx doesn't have a skill level option — map to depth.
+    // Cap at 8 for web — the Mono interpreter blocks the main thread
+    // during search and deeper searches freeze the UI.
     final searchDepth = depth ?? (skillLevel != null
-        ? (2 + skillLevel * 12 ~/ 20).clamp(2, 14)
-        : 12);
-    // Cap for web responsiveness
-    final webDepth = searchDepth.clamp(1, 16);
+        ? (2 + skillLevel * 8 ~/ 20).clamp(2, 8)
+        : 8);
+    final webDepth = searchDepth.clamp(1, 8);
 
     try {
+      // Yield to let the UI update before blocking search
+      await Future.delayed(const Duration(milliseconds: 50));
+
       // Send position
       await _lynxSendUci(positionCommand.toJS).toDart;
 
