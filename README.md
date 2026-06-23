@@ -183,13 +183,13 @@ cp pkg/frozenight_wasm_bg.wasm ../../web/
 
 ### Rebuild Lynx WASM (optional)
 
-Pre-built WASM is committed in `web/lynx/`. To rebuild from source:
+Pre-built WASM is committed in `web/lynx/`. Pre-built bundles are also available from [CrispStrobe/lynx-chess releases](https://github.com/CrispStrobe/lynx-chess/releases). To rebuild from source:
 
 ```bash
 ./scripts/build_lynx_wasm.sh
 ```
 
-Requires .NET 10 SDK and `wasm-tools` workload. Clones Lynx v1.11.0, applies WASM patches (SocketsHttpHandler, Thread.Priority, warmup skip), compiles to WASM, and copies the bundle to `web/lynx/`.
+Requires .NET 10 SDK and `wasm-tools` workload. Clones from our [WASM-enabled Lynx fork](https://github.com/CrispStrobe/lynx-chess) (branch `wasm-browser`) which has all browser patches pre-applied, compiles to WASM, and copies the bundle to `web/lynx/`. See the fork's [WASM.md](https://github.com/CrispStrobe/lynx-chess/blob/wasm-browser/WASM.md) for details on the patches and JS interop API.
 
 ## Architecture
 
