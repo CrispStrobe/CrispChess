@@ -242,13 +242,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       available: true, // Web WASM + native FFI (if lib present)
     ));
 
-    // Lynx — MIT, downloaded from GitHub Releases (native only)
+    // Lynx — MIT, native binary or WASM on web
     engines.add(_EngineOption(
       name: 'Lynx',
-      description: 'Classical HCE, downloaded from GitHub',
+      description: kIsWeb ? 'Classical HCE (WASM)' : 'Classical HCE, downloaded from GitHub',
       elo: '~3350',
       license: 'MIT',
-      available: !kIsWeb,
+      available: true,
     ));
 
     // Stockfish — downloaded at runtime, never linked into app
