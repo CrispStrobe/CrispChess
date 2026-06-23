@@ -280,22 +280,34 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       case StateChangeEvent(:final state):
         debugPrint('[CrispChess] Engine state: $state');
         if (state == EngineState.ready) {
-          setState(() {
-            _state = _state.copyWith(
-              statusMessage: _state.isThinking
-                  ? 'Your turn ($_playerColorName)'
-                  : '${_engineService.engineName} ready',
-            );
-          });
-          // Brief "ready" message, then switch to "Your turn"
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted && _engineService.state == EngineState.ready) {
-              setState(() {
-                _state = _state.copyWith(
-                    statusMessage: 'Your turn ($_playerColorName)');
-              });
-            }
-          });
+          // If engine just became ready and it's the engine's turn, make a move
+          if (!_isPlayerTurn && !_state.twoPlayerMode && !_awaitingEngineMove && !_game.isGameOver) {
+            debugPrint('[CrispChess] Engine ready — requesting first move');
+            setState(() {
+              _state = _state.copyWith(
+                statusMessage: '${_engineService.engineName} is thinking...',
+                isThinking: true,
+              );
+            });
+            _requestEngineMove();
+          } else {
+            setState(() {
+              _state = _state.copyWith(
+                statusMessage: _state.isThinking
+                    ? 'Your turn ($_playerColorName)'
+                    : '${_engineService.engineName} ready',
+              );
+            });
+            // Brief "ready" message, then switch to "Your turn"
+            Future.delayed(const Duration(seconds: 1), () {
+              if (mounted && _engineService.state == EngineState.ready) {
+                setState(() {
+                  _state = _state.copyWith(
+                      statusMessage: 'Your turn ($_playerColorName)');
+                });
+              }
+            });
+          }
         } else if (state == EngineState.initializing) {
           setState(() {
             _state = _state.copyWith(
