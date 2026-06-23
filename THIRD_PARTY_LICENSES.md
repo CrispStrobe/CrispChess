@@ -15,14 +15,29 @@ downloaded from CDN (cdn.jsdelivr.net) at runtime when the user
 selects it, and runs in a Web Worker (web) or separate process
 (desktop). No GPL code is bundled with or compiled into CrispChess.
 
-## Lynx Chess Engine (downloaded at runtime)
+## Lynx Chess Engine
 
 - **License:** MIT
 - **Author:** Eduardo Caceres
 - **Source:** https://github.com/lynx-chess/Lynx
+- **WASM fork:** https://github.com/CrispStrobe/Lynx (with browser patches)
 
-Lynx is a C# chess engine (~3350 ELO). Self-contained binary
-downloaded from GitHub Releases on first use. MIT licensed.
+Lynx is a C# chess engine (~3350 ELO). On desktop, a self-contained
+binary is downloaded from GitHub Releases on first use. On web, Lynx
+is compiled to WebAssembly via .NET `wasm-tools` and bundled in
+`web/lynx/` (~6 MB). The WASM build includes patches for browser
+compatibility (SocketsHttpHandler stub, Thread.Priority guard, warmup
+skip, Convert.ToUInt64 overflow fix). MIT licensed.
+
+## .NET Runtime (bundled in web/lynx/)
+
+- **License:** MIT
+- **Source:** https://github.com/dotnet/runtime
+- **Component:** Mono WASM interpreter runtime
+
+The .NET Mono runtime (`dotnet.native.wasm`, `dotnet.js`) is bundled
+with the Lynx WASM build to execute the C# engine in the browser.
+MIT licensed.
 
 ## Lc0 (downloaded at runtime, NOT bundled)
 

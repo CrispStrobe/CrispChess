@@ -13,7 +13,7 @@
 ### Engine Architecture (7 engines)
 - [x] Built-in (pure Dart, alpha-beta + TT, ~1800 ELO)
 - [x] Frozenight (Rust NNUE, MIT/Apache-2.0, ~3226 ELO) — WASM + native FFI
-- [x] Lynx (C# classical HCE, MIT, ~3350 ELO) — downloaded from GitHub Releases
+- [x] Lynx (C# classical HCE, MIT, ~3350 ELO) — .NET WASM on web + native binary on desktop
 - [x] Stockfish (GPL-3.0, downloaded from CDN at runtime, never bundled)
 - [x] Maia3 JS (neural net via JS bridge, web only)
 - [x] Maia3 Dart (pure Dart + ONNX Runtime, all platforms, 5m/23m/79m variants)

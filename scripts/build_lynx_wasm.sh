@@ -13,7 +13,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-LYNX_VERSION="v1.11.0"
+LYNX_VERSION="wasm-browser"
+LYNX_REPO="https://github.com/CrispStrobe/Lynx.git"
 LYNX_DIR="$PROJECT_ROOT/third_party/lynx-chess"
 WASM_PROJECT="$LYNX_DIR/src/Lynx.Wasm"
 OUTPUT_DIR="$PROJECT_ROOT/web/lynx"
@@ -54,21 +55,8 @@ fi
 
 # 2. Clone Lynx source if needed
 if [[ ! -d "$LYNX_DIR/src/Lynx" ]]; then
-  echo -e "${YELLOW}Cloning Lynx ${LYNX_VERSION}...${NC}"
-  git clone --depth 1 --branch "$LYNX_VERSION" https://github.com/lynx-chess/Lynx.git "$LYNX_DIR"
-fi
-
-# 3. Ensure global.json allows our SDK
-if [[ -f "$LYNX_DIR/global.json" ]]; then
-  # Patch to allow .NET 10
-  python3 -c "
-import json
-with open('$LYNX_DIR/global.json', 'r+') as f:
-    d = json.load(f)
-    d['sdk']['rollForward'] = 'latestMajor'
-    d['sdk']['allowPrerelease'] = True
-    f.seek(0); json.dump(d, f, indent=2); f.truncate()
-" 2>/dev/null || true
+  echo -e "${YELLOW}Cloning Lynx (WASM fork) from ${LYNX_REPO}...${NC}"
+  git clone --depth 1 --branch "$LYNX_VERSION" "$LYNX_REPO" "$LYNX_DIR"
 fi
 
 # 4. Ensure Lynx.Wasm project exists

@@ -16,7 +16,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | **Maia3 (JS)** | MIT | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
 | **Maia3 Dart** | MIT | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
 | **Frozenight** | MIT / Apache-2.0 | ~3226 | All (WASM + FFI) | Rust NNUE engine |
-| **Lynx** | MIT | ~3350 | Desktop | C# classical HCE, downloaded from GitHub |
+| **Lynx** | MIT | ~3350 | All (WASM + native) | C# classical HCE, .NET WASM on web |
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
 | **Lc0** | GPL-3.0 | ~1100–3300 | All | MCTS + neural net, downloaded separately |
 | **Custom UCI** | Any | Any | Desktop/Mobile | Load any engine binary from disk |
@@ -24,7 +24,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 - **Built-in** — pure Dart engine with alpha-beta pruning, null move pruning, principal variation search, transposition table, quiescence search with MVV-LVA + delta pruning, and piece-square table evaluation. Works everywhere including Web WASM.
 - **Maia3** — ELO-conditioned neural network trained on human games. Three model sizes: 5M (~25MB), 23M (~92MB), 79M (~313MB).
 - **Frozenight** — NNUE-based Rust engine compiled to WASM for web.
-- **Lynx** — strong classical engine (~3350 ELO) by Eduardo Caceres. MIT licensed, self-contained binary downloaded on first use. Supports Chess960, multithreading, pondering.
+- **Lynx** — strong classical engine (~3350 ELO) by Eduardo Caceres. MIT licensed. Runs as native binary (desktop, downloaded on first use) or .NET WASM in the browser (compiled from C# via `wasm-tools`, ~6 MB). Supports Chess960.
 - **Stockfish** — strongest traditional engine. Runs as Web Worker (web), process (desktop/Android), or JavaScriptCore (iOS). Downloaded at runtime.
 - **Lc0** — AlphaZero-style MCTS with Maia weights for human-like play.
 - **Custom UCI** — load any UCI engine via the Engine Manager (desktop/mobile only). Auto-detects engine identity and options.
@@ -153,6 +153,7 @@ All endpoints return JSON with CORS enabled.
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel, Dart 3.5+)
 - For Frozenight WASM: [Rust toolchain](https://rustup.rs/) + `wasm-pack`
+- For Lynx WASM rebuild: [.NET 10 SDK](https://dotnet.microsoft.com/) + `wasm-tools` workload
 
 ### Build and Run
 
@@ -180,6 +181,16 @@ cp pkg/frozenight_wasm.js ../../web/
 cp pkg/frozenight_wasm_bg.wasm ../../web/
 ```
 
+### Rebuild Lynx WASM (optional)
+
+Pre-built WASM is committed in `web/lynx/`. To rebuild from source:
+
+```bash
+./scripts/build_lynx_wasm.sh
+```
+
+Requires .NET 10 SDK and `wasm-tools` workload. Clones Lynx v1.11.0, applies WASM patches (SocketsHttpHandler, Thread.Priority, warmup skip), compiles to WASM, and copies the bundle to `web/lynx/`.
+
 ## Architecture
 
 ```
@@ -190,7 +201,8 @@ lib/
     generic_uci_engine.dart       # Load any UCI engine binary
     uci_option.dart               # UCI option model (spin/check/combo/etc.)
     dart_engine.dart              # Built-in Dart engine (MIT)
-    lynx_engine.dart              # Lynx engine — MIT, downloaded at runtime
+    lynx_engine.dart              # Lynx engine — native binary (desktop)
+    lynx_web_engine.dart          # Lynx engine — .NET WASM (web)
     frozenight_engine.dart        # Frozenight FFI (native) / WASM (web)
     stockfish_engine.dart         # Stockfish process (native) / Web Worker
     maia3_dart_engine.dart        # Maia3 Dart — native ONNX
@@ -276,7 +288,7 @@ The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all o
 | Maia3 Dart (tokenization + sampling) | MIT | Yes |
 | ONNX model weights (maia3-onnx) | Research use | Downloaded at runtime |
 | Frozenight | MIT + Apache-2.0 | Yes (WASM) |
-| Lynx | MIT | No — downloaded at runtime |
+| Lynx | MIT | Yes (WASM on web), downloaded on desktop |
 | ONNX Runtime Web | MIT | Yes (lazy-loaded JS) |
 | Stockfish | GPL-3.0 | No — downloaded separately |
 | Lc0 | GPL-3.0 | No — downloaded separately |
