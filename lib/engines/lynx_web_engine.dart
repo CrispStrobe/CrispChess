@@ -215,7 +215,7 @@ class LynxEngine implements ChessEngine {
     _stopping = true;
     if (_loaded) {
       // Send stop command (fire-and-forget)
-      _lynxSendUci('stop'.toJS).toDart.catchError((_) => ''.toJS);
+      _lynxSendUci('stop'.toJS).toDart.ignore();
     }
     _stateNotifier.value = EngineState.ready;
   }
@@ -223,8 +223,7 @@ class LynxEngine implements ChessEngine {
   @override
   void setOption(String name, String value) {
     if (!_loaded) return;
-    _lynxSendUci('setoption name $name value $value'.toJS).toDart
-        .catchError((_) => ''.toJS);
+    _lynxSendUci('setoption name $name value $value'.toJS).toDart.ignore();
   }
 
   @override
