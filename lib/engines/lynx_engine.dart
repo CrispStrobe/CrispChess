@@ -52,17 +52,19 @@ class LynxEngine implements ChessEngine {
   Completer<String>? _moveCompleter;
   StreamSubscription? _stdoutSub;
   final _evalController = StreamController<EvalInfo>.broadcast();
+  String _detectedVersion = _lynxVersion;
 
   static final _cpRegex = RegExp(r'score cp (-?\d+)');
   static final _mateRegex = RegExp(r'score mate (-?\d+)');
   static final _depthRegex = RegExp(r'depth (\d+)');
   static final _pvRegex = RegExp(r' pv (.+)');
   static final _multipvRegex = RegExp(r'multipv (\d+)');
+  static final _idNameRegex = RegExp(r'id name Lynx\s+(.+)');
 
   @override
   String get name => 'Lynx';
   @override
-  String get version => _lynxVersion;
+  String get version => _detectedVersion;
   @override
   String get license => 'MIT';
   @override
@@ -113,6 +115,12 @@ class LynxEngine implements ChessEngine {
 
   void _handleLine(String line) {
     final t = line.trim();
+
+    // Parse "id name Lynx 1.11.0-dev-2e4b458f" → version with commit hash
+    if (t.startsWith('id name Lynx')) {
+      final m = _idNameRegex.firstMatch(t);
+      if (m != null) _detectedVersion = m.group(1)!.replaceAll('-dev', '');
+    }
 
     if (t.startsWith('info') && t.contains('depth')) {
       final cp = _cpRegex.firstMatch(t);

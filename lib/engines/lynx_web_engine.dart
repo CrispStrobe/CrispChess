@@ -37,11 +37,12 @@ class LynxEngine implements ChessEngine {
   final _evalController = StreamController<EvalInfo>.broadcast();
   bool _loaded = false;
   bool _stopping = false;
+  String _version = 'WASM';
 
   @override
   String get name => 'Lynx';
   @override
-  String get version => '1.11.0 (WASM)';
+  String get version => _version;
   @override
   String get license => 'MIT';
   @override
@@ -60,10 +61,15 @@ class LynxEngine implements ChessEngine {
       debugPrint('[LynxWASM] Loading .NET WASM runtime + Lynx engine...');
       await _lynxLoad().toDart;
 
-      // Verify UCI handshake
+      // Verify UCI handshake and parse version
       final uciResponse = (await _lynxSendUci('uci'.toJS).toDart).toDart;
       if (!uciResponse.contains('uciok')) {
         throw StateError('UCI handshake failed: $uciResponse');
+      }
+      // Parse "id name Lynx 1.11.0-dev-2e4b458f" → "1.11.0-2e4b458f (WASM)"
+      final idMatch = RegExp(r'id name Lynx\s+(.+)').firstMatch(uciResponse);
+      if (idMatch != null) {
+        _version = '${idMatch.group(1)!.replaceAll('-dev', '')} (WASM)';
       }
 
       // Force single-threaded mode

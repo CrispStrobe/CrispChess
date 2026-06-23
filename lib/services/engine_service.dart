@@ -52,6 +52,7 @@ class EngineService {
   EngineState get state => _engine.state;
   ChessEngine get engine => _engine;
   String get engineName => _engine.name;
+  String get engineVersion => _engine.version;
   String get engineLicense => _engine.license;
   int get estimatedElo => _engine.estimatedElo;
 

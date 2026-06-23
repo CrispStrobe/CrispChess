@@ -295,7 +295,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _state = _state.copyWith(
                 statusMessage: _state.isThinking
                     ? 'Your turn ($_playerColorName)'
-                    : '${_engineService.engineName} ready',
+                    : '${_engineService.engineName} ${_engineService.engineVersion} ready',
               );
             });
             // Brief "ready" message, then switch to "Your turn"
