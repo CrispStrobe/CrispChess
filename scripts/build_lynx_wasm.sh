@@ -14,7 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LYNX_VERSION="wasm-browser"
-LYNX_REPO="https://github.com/CrispStrobe/Lynx.git"
+LYNX_REPO="https://github.com/CrispStrobe/lynx-chess.git"
 LYNX_DIR="$PROJECT_ROOT/third_party/lynx-chess"
 WASM_PROJECT="$LYNX_DIR/src/Lynx.Wasm"
 OUTPUT_DIR="$PROJECT_ROOT/web/lynx"

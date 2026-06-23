@@ -20,7 +20,7 @@ selects it, and runs in a Web Worker (web) or separate process
 - **License:** MIT
 - **Author:** Eduardo Caceres
 - **Source:** https://github.com/lynx-chess/Lynx
-- **WASM fork:** https://github.com/CrispStrobe/Lynx (with browser patches)
+- **WASM fork:** https://github.com/CrispStrobe/lynx-chess (with browser patches)
 
 Lynx is a C# chess engine (~3350 ELO). On desktop, a self-contained
 binary is downloaded from GitHub Releases on first use. On web, Lynx
