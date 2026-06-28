@@ -20,8 +20,16 @@ keeps its own license:
 | Custom UCI | Varies | No | User-provided binary |
 
 **GPL-3.0 engines (Stockfish, Lc0) are never compiled into or bundled with the
-app binary.** They run as separate processes (native) or are downloaded via CDN
-(web) at runtime. This keeps the distributed app MIT-licensed.
+app binary.** They are obtained and run at runtime:
+
+- **Desktop/Android:** a separate Stockfish process (system binary / extracted).
+- **iOS:** `stockfish.js` is downloaded from a CDN and run inside **WebKit**
+  (`StockfishJSBridge.swift`). The app binary contains no GPL code; this is the
+  App Store-sanctioned path (Guideline 2.5.2 / DPLA §3.3.2 — code executed by
+  WebKit/JavaScriptCore that doesn't change the app's primary purpose).
+- **Web:** `stockfish.js` is downloaded from a CDN and run in a Web Worker.
+
+This keeps the distributed app MIT-licensed (the GPL engine is never linked in).
 
 Custom UCI engines loaded via the Engine Manager are user-provided binaries
 and their licensing is the user's responsibility.

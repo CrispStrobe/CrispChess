@@ -17,6 +17,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'chess_engine.dart';
 
 /// Download URL for stockfish.js WASM build (GPL-3.0, downloaded separately)
@@ -66,7 +67,13 @@ class StockfishDownloadableEngine implements ChessEngine {
 
   ValueNotifier<DownloadStatus> get downloadStatus => _downloadStatus;
 
-  static bool get isAvailable => !kIsWeb; // Web uses StockfishWebEngine
+  // iOS only: runs stockfish.js inside WebKit via the crispchess/stockfish
+  // bridge. Web uses StockfishWebEngine; desktop/Android use the native
+  // process-based StockfishEngine.
+  static bool get isAvailable => !kIsWeb && Platform.isIOS;
+
+  Completer<void>? _uciOkCompleter;
+  Completer<void>? _readyOkCompleter;
 
   /// Check if stockfish.js is already downloaded/available.
   Future<bool> isDownloaded() async {
@@ -109,39 +116,44 @@ class StockfishDownloadableEngine implements ChessEngine {
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
 
-    // Ensure engine is downloaded
-    if (!await isDownloaded()) {
-      await download();
-    }
-
-    if (_downloadStatus.value != DownloadStatus.ready) {
-      _stateNotifier.value = EngineState.error;
-      return;
-    }
-
     try {
-      // Initialize platform-specific JavaScript runtime
+      // Ensure engine is downloaded (CDN — never bundled with the app binary).
+      if (!await isDownloaded()) {
+        await download();
+        if (_downloadStatus.value != DownloadStatus.ready) {
+          _stateNotifier.value = EngineState.error;
+          return;
+        }
+      } else {
+        _downloadStatus.value = DownloadStatus.ready;
+      }
+
       final dir = await _getEngineDir();
       final jsPath = '${dir.path}/stockfish.js';
 
-      // Set up method channel for receiving UCI output
+      // Receive UCI output from the WebKit-hosted engine.
       _channel.setMethodCallHandler((call) async {
         if (call.method == 'onOutput') {
           _handleOutput(call.arguments as String);
         }
       });
 
-      // Initialize the JS runtime with stockfish.js
+      // Load stockfish.js into the WebView; completes once the harness is ready.
       await _channel.invokeMethod('initialize', {'path': jsPath});
       _initialized = true;
 
-      // UCI handshake
+      // UCI handshake — wait for the engine's actual replies rather than a
+      // fixed delay (the Web Worker may still be compiling stockfish.js).
+      _uciOkCompleter = Completer<void>();
       await _send('uci');
-      await Future.delayed(const Duration(seconds: 2));
+      await _uciOkCompleter!.future.timeout(const Duration(seconds: 20));
+
+      _readyOkCompleter = Completer<void>();
       await _send('isready');
+      await _readyOkCompleter!.future.timeout(const Duration(seconds: 10));
 
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[Stockfish] Initialized via JS runtime');
+      debugPrint('[Stockfish] Initialized via WebKit JS runtime');
     } catch (e) {
       debugPrint('[Stockfish] Init failed: $e');
       _stateNotifier.value = EngineState.error;
@@ -156,6 +168,17 @@ class StockfishDownloadableEngine implements ChessEngine {
   void _handleOutput(String line) {
     final t = line.trim();
     if (t.isEmpty) return;
+
+    if (t == 'uciok') {
+      _uciOkCompleter?.complete();
+      _uciOkCompleter = null;
+      return;
+    }
+    if (t == 'readyok') {
+      _readyOkCompleter?.complete();
+      _readyOkCompleter = null;
+      return;
+    }
 
     if (t.startsWith('info') && t.contains('depth')) {
       final cp = _cpRegex.firstMatch(t);
@@ -236,9 +259,8 @@ class StockfishDownloadableEngine implements ChessEngine {
   }
 
   static Future<Directory> _getEngineDir() async {
-    // Use app support directory
-    final home = Platform.environment['HOME'] ??
-        Platform.environment['APPDATA'] ?? '/tmp';
-    return Directory('$home/.crispchess/engines');
+    // App support dir — sandbox-correct on iOS (path_provider), unlike $HOME.
+    final base = await getApplicationSupportDirectory();
+    return Directory('${base.path}/engines');
   }
 }

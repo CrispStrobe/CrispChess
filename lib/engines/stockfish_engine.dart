@@ -1,7 +1,8 @@
 // Stockfish engine for native platforms.
 // Desktop: finds and runs system-installed stockfish binary.
 // Android: extracts bundled binary from assets, runs as process.
-// iOS: not available (no subprocess support — use Frozenight instead).
+// iOS: delegates to StockfishDownloadableEngine, which runs stockfish.js
+//      (downloaded at runtime) inside WebKit — no subprocess, no GPL in binary.
 
 import 'dart:async';
 import 'dart:convert';
@@ -9,10 +10,15 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'chess_engine.dart';
+import 'stockfish_downloadable_engine.dart';
 
 class StockfishEngine implements ChessEngine {
   // Accept sfVersion/variantId for API compat with web engine (ignored on native)
-  StockfishEngine({dynamic sfVersion, String? variantId});
+  StockfishEngine({dynamic sfVersion, String? variantId})
+      : _delegate = Platform.isIOS ? StockfishDownloadableEngine() : null;
+
+  // On iOS, all work is forwarded to the WebKit-backed engine.
+  final ChessEngine? _delegate;
 
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
@@ -32,21 +38,23 @@ class StockfishEngine implements ChessEngine {
   @override
   String get license => 'GPL-3.0 (separate process)';
   @override
-  int get estimatedElo => 3600;
+  int get estimatedElo => _delegate?.estimatedElo ?? 3600;
   @override
-  EngineState get state => _stateNotifier.value;
+  EngineState get state => _delegate?.state ?? _stateNotifier.value;
   @override
-  ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+  ValueNotifier<EngineState> get stateNotifier =>
+      _delegate?.stateNotifier ?? _stateNotifier;
 
   static bool get isAvailable {
     if (kIsWeb) return false;
-    // Available on desktop and Android (bundled binary)
-    return Platform.isLinux || Platform.isMacOS ||
-        Platform.isWindows || Platform.isAndroid;
+    // Desktop/Android: native binary. iOS: stockfish.js inside WebKit.
+    return Platform.isLinux || Platform.isMacOS || Platform.isWindows ||
+        Platform.isAndroid || Platform.isIOS;
   }
 
   @override
   Future<void> initialize() async {
+    if (_delegate != null) return _delegate.initialize();
     _stateNotifier.value = EngineState.initializing;
     try {
       final path = await _findOrExtractBinary();
@@ -109,6 +117,10 @@ class StockfishEngine implements ChessEngine {
   Future<String> bestMove(String positionCommand, {
     int? depth, Duration? moveTime, int? skillLevel,
   }) async {
+    if (_delegate != null) {
+      return _delegate.bestMove(positionCommand,
+          depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    }
     if (_process == null) throw StateError('Not initialized');
     _stateNotifier.value = EngineState.thinking;
 
@@ -128,6 +140,9 @@ class StockfishEngine implements ChessEngine {
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
+    if (_delegate != null) {
+      return _delegate.analyze(positionCommand, depth: depth, infinite: infinite);
+    }
     if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
     _process!.stdin.writeln(positionCommand);
@@ -137,17 +152,20 @@ class StockfishEngine implements ChessEngine {
 
   @override
   void stop() {
+    if (_delegate != null) return _delegate.stop();
     _process?.stdin.writeln('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
   @override
   void setOption(String name, String value) {
+    if (_delegate != null) return _delegate.setOption(name, value);
     _process?.stdin.writeln('setoption name $name value $value');
   }
 
   @override
   void dispose() {
+    if (_delegate != null) return _delegate.dispose();
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
     _evalController.close();

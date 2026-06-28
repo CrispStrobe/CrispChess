@@ -263,10 +263,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ));
     } else {
       final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+      // iOS downloads stockfish.js at runtime and runs it inside WebKit
+      // (App Store-sanctioned; no GPL code in the app binary). Desktop/Android
+      // use a native binary. See NOTICE.md and StockfishJSBridge.swift.
       engines.add(_EngineOption(
         name: 'Stockfish',
         description: isIOS
-            ? 'Optional download (JavaScriptCore)'
+            ? 'Optional download (runs in WebKit)'
             : 'Optional — install stockfish separately',
         elo: isIOS ? '~3200' : '~3600',
         license: 'GPL-3.0',
