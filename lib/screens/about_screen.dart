@@ -106,19 +106,31 @@ class _AboutScreenState extends State<AboutScreen> {
           )),
 
           _section(Icons.shield_outlined, 'Privacy Policy', const Text(
-            'Short version: CrispChess collects nothing.\n\n'
-            'This app does not collect, store, or transmit any personal data. '
-            'All chess computation runs locally on your device. '
-            'No analytics, no tracking, no advertising, no network requests, '
-            'no account system, no cookies.\n\n'
-            'Game state (board position, move history) exists only in memory '
-            'and is lost when you close the app. Nothing is saved to disk.\n\n'
+            'Short version: CrispChess collects nothing about you.\n\n'
+            'This app does not collect, store, or transmit any personal data, '
+            'and has no analytics, no tracking, no advertising, and no '
+            'account system. All chess computation runs locally on your '
+            'device.\n\n'
+            'The app does make network requests for functional purposes: '
+            'downloading engine files (Lc0, Stockfish, Lynx) and neural '
+            'network weights on first use of those engines, and querying a '
+            'public opening-book/tablebase service from the Opening '
+            'Explorer. These requests go to the engines\' hosting servers '
+            '(e.g. GitHub Releases) and public chess APIs, and — like any '
+            'network request — expose your IP address to those servers as '
+            'an unavoidable part of how the internet works. CrispChess '
+            'itself does not attach any personal data to these requests, '
+            'and downloaded engine files are cached locally so this only '
+            'happens once per engine.\n\n'
+            'Game state (board position, move history) exists only in '
+            'memory and is lost when you close the app. Nothing else is '
+            'saved to disk.\n\n'
             'The web version (crispchess.vercel.app) is a static site. '
             'Vercel may log standard HTTP access logs (IP, user agent). '
-            'CrispChess itself sends no data to any server.\n\n'
-            'If we ever add features that involve data storage or network '
-            'access, this policy will be updated and any new data collection '
-            'will be opt-in.',
+            'CrispChess itself sends no personal data to any server.\n\n'
+            'If we ever add features that involve storing or transmitting '
+            'personal data, this policy will be updated and any new data '
+            'collection will be opt-in.',
           )),
 
           _section(Icons.gavel, 'Disclaimer', const Text(
