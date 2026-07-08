@@ -1,10 +1,12 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for English (`en`).
 class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn([super.locale = 'en']);
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
   String get appTitle => 'CrispChess';
@@ -25,7 +27,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get engineError => 'Engine error';
 
   @override
-  String loading(String engineName) {
+  String loading(Object engineName) {
     return 'Loading $engineName...';
   }
 
@@ -33,12 +35,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloading => 'Downloading & initializing...';
 
   @override
-  String engineReady(String engineName) {
+  String engineReady(Object engineName) {
     return '$engineName ready';
   }
 
   @override
-  String engineThinking(String engineName) {
+  String engineThinking(Object engineName) {
     return '$engineName is thinking...';
   }
 
@@ -85,12 +87,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resign => 'Resign';
 
   @override
-  String resignConfirm(String engineName) {
+  String resignConfirm(Object engineName) {
     return '$engineName wins by resignation.';
   }
 
   @override
-  String drawDeclined(String engineName) {
+  String drawDeclined(Object engineName) {
     return '$engineName declines the draw offer.';
   }
 
@@ -107,7 +109,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resumeGame => 'Resume game?';
 
   @override
-  String savedGameMoves(String count) {
+  String savedGameMoves(Object count) {
     return 'You have a saved game ($count moves).';
   }
 
@@ -166,7 +168,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hintDepth => 'Hint Depth';
 
   @override
-  String analysisDepth(String depth) {
+  String analysisDepth(Object depth) {
     return 'Analysis Depth: $depth';
   }
 
@@ -183,7 +185,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showValidMoves => 'Show Valid Moves';
 
   @override
-  String get showValidMovesSubtitle => 'Highlight legal moves when selecting a piece';
+  String get showValidMovesSubtitle =>
+      'Highlight legal moves when selecting a piece';
 
   @override
   String get allowUndo => 'Allow Undo';
@@ -195,7 +198,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get solidBlackPieces => 'Solid Black Pieces';
 
   @override
-  String get solidBlackPiecesSubtitle => 'Render black pieces as solid black instead of grey gradient';
+  String get solidBlackPiecesSubtitle =>
+      'Render black pieces as solid black instead of grey gradient';
 
   @override
   String get animationSpeed => 'Animation Speed';
@@ -276,7 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skip => 'Skip';
 
   @override
-  String wrongMove(String remaining) {
+  String wrongMove(Object remaining) {
     return 'Wrong move. Try again. ($remaining left)';
   }
 
@@ -323,7 +327,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToViewPosition => 'Tap to view position';
 
   @override
-  String moveN(String n) {
+  String moveN(Object n) {
     return 'Move $n';
   }
 
@@ -340,7 +344,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchToBuiltIn => 'Switch to Built-in';
 
   @override
-  String failedToInitialize(String engineName) {
+  String failedToInitialize(Object engineName) {
     return '$engineName: failed to initialize';
   }
 
@@ -441,12 +445,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get probingEngine => 'Probing engine...';
 
   @override
-  String engineAdded(String name) {
+  String engineAdded(Object name) {
     return 'Added: $name';
   }
 
   @override
-  String engineInitFailed(String error) {
+  String engineInitFailed(Object error) {
     return 'Engine failed to initialize: $error';
   }
 
@@ -457,14 +461,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noCustomEngines => 'No custom engines added';
 
   @override
-  String get noCustomEnginesSubtitle => 'Add any UCI-compatible chess engine\nby providing the path to its binary.';
+  String get noCustomEnginesSubtitle =>
+      'Add any UCI-compatible chess engine\nby providing the path to its binary.';
 
   @override
   String get removeEngine => 'Remove Engine?';
 
   @override
-  String removeEngineConfirm(String name) {
-    return 'Remove "$name" from your engine list?';
+  String removeEngineConfirm(Object name) {
+    return 'Remove \"$name\" from your engine list?';
   }
 
   @override
@@ -477,7 +482,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get run => 'Run';
 
   @override
-  String rangeMinMax(String min, String max) {
+  String rangeMinMax(Object min, Object max) {
     return 'Range: $min – $max';
   }
 
@@ -536,7 +541,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get databaseStatistics => 'Database Statistics';
 
   @override
-  String nGames(String count) {
+  String nGames(Object count) {
     return '$count games';
   }
 
@@ -565,7 +570,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDatabaseLoaded => 'No database loaded';
 
   @override
-  String get noDatabaseSubtitle => 'Copy a PGN file with multiple games\nto your clipboard, then tap the paste icon.';
+  String get noDatabaseSubtitle =>
+      'Copy a PGN file with multiple games\nto your clipboard, then tap the paste icon.';
 
   @override
   String get searchByPlayer => 'Search by player...';
@@ -601,7 +607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectAtLeast3 => 'Select at least 3 engines';
 
   @override
-  String selectEngines(String count) {
+  String selectEngines(Object count) {
     return 'Select engines ($count selected, min 3):';
   }
 
@@ -639,7 +645,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get start => 'Start';
 
   @override
-  String multiEngineFailed(String error) {
+  String multiEngineFailed(Object error) {
     return 'Multi-engine failed: $error';
   }
 
@@ -665,7 +671,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resignQuestion => 'Resign?';
 
   @override
-  String dailyLogin(String xp, String streak) {
+  String dailyLogin(Object xp, Object streak) {
     return 'Daily login: +$xp XP (streak: $streak)';
   }
 
@@ -673,7 +679,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get levelUp => 'Level Up!';
 
   @override
-  String youReached(String level) {
+  String youReached(Object level) {
     return 'You reached $level!';
   }
 
@@ -684,12 +690,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotCaptureBoard => 'Could not capture board';
 
   @override
-  String boardCaptured(String size) {
+  String boardCaptured(Object size) {
     return 'Board captured ($size KB)';
   }
 
   @override
-  String screenshotFailed(String error) {
+  String screenshotFailed(Object error) {
     return 'Screenshot failed: $error';
   }
 
@@ -697,7 +703,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get illegalMove => 'Illegal Move!';
 
   @override
-  String premove(String move) {
+  String premove(Object move) {
     return 'Premove: $move';
   }
 
@@ -708,7 +714,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drillComplete => 'Drill Complete!';
 
   @override
-  String correctOnFirstTry(String correct, String total) {
+  String correctOnFirstTry(Object correct, Object total) {
     return '$correct / $total correct on first try';
   }
 
@@ -716,7 +722,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get done => 'Done';
 
   @override
-  String stepOf(String current, String total) {
+  String stepOf(Object current, Object total) {
     return 'Step $current of $total';
   }
 
@@ -742,13 +748,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacy => 'Privacy';
 
   @override
-  String get privacyNotice => 'Your API key is stored locally on your device only. Game data (FEN/PGN) is sent directly to your chosen AI provider. CrispChess does not store, log, or transmit any data to its own servers. You can delete your API key at any time.';
+  String get privacyNotice =>
+      'Your API key is stored locally on your device only. Game data (FEN/PGN) is sent directly to your chosen AI provider. CrispChess does not store, log, or transmit any data to its own servers. You can delete your API key at any time.';
 
   @override
   String get enterApiKey => 'Enter your API key to get started:';
 
   @override
-  String keyConfigured(String provider) {
+  String keyConfigured(Object provider) {
     return '$provider key configured';
   }
 
@@ -759,7 +766,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMistakesYet => 'No mistakes tracked yet!';
 
   @override
-  String get noMistakesSubtitle => 'Play games with analysis enabled to track blunders.';
+  String get noMistakesSubtitle =>
+      'Play games with analysis enabled to track blunders.';
 
   @override
   String get clearAll => 'Clear all';
@@ -789,7 +797,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get urlCopied => 'URL copied to clipboard';
 
   @override
-  String get contributionsWelcome => 'Contributions welcome. Open an issue first for major changes.';
+  String get contributionsWelcome =>
+      'Contributions welcome. Open an issue first for major changes.';
 
   @override
   String get openSourceLicenses => 'Open Source Licenses';
@@ -832,4 +841,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blindfoldModeSubtitle => 'Hide pieces — play by memory';
+
+  @override
+  String get importExport => 'Import / Export';
+
+  @override
+  String get boardToolsMenu => 'Board Tools';
+
+  @override
+  String get learnMenu => 'Learn';
+
+  @override
+  String get progressMenu => 'Progress';
+
+  @override
+  String get openingExplorer => 'Opening Explorer';
+
+  @override
+  String get coordinateTrainer => 'Coordinate Trainer';
+
+  @override
+  String get gameHistory => 'Game History';
 }

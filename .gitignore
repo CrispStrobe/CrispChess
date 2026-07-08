@@ -55,3 +55,4 @@ third_party/lynx-chess/
 .claude/
 .vercel
 .env*.local
+CLAUDE.md

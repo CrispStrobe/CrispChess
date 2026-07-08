@@ -14,7 +14,7 @@ import 'app_localizations_en.dart';
 /// returned by `AppLocalizations.of(context)`.
 ///
 /// Applications need to include `AppLocalizations.delegate()` in their app's
-/// `localizationsDelegates` list, and the locales they support in the app's
+/// `localizationDelegates` list, and the locales they support in the app's
 /// `supportedLocales` list. For example:
 ///
 /// ```dart
@@ -34,7 +34,7 @@ import 'app_localizations_en.dart';
 ///
 /// ```yaml
 /// dependencies:
-///   # Localizations support.
+///   # Internationalization support.
 ///   flutter_localizations:
 ///     sdk: flutter
 ///   intl: any # Use the pinned version from flutter_localizations
@@ -46,13 +46,24 @@ import 'app_localizations_en.dart';
 ///
 /// iOS applications define key application metadata, including supported
 /// locales, in an Info.plist file that is built into the application bundle.
-/// To configure the locales supported by your app, you'll need to edit this
+/// To configure the locales supported by your app, you’ll need to edit this
 /// file.
 ///
-/// Read more about configuring the Info.plist at
-/// <https://developer.apple.com/documentation/bundleresources/information_property_list>
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -60,7 +71,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -72,7 +84,8 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
     delegate,
     GlobalMaterialLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -82,7 +95,7 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('de'),
-    Locale('en'),
+    Locale('en')
   ];
 
   /// No description provided for @appTitle.
@@ -125,7 +138,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Loading {engineName}...'**
-  String loading(String engineName);
+  String loading(Object engineName);
 
   /// No description provided for @downloading.
   ///
@@ -137,13 +150,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{engineName} ready'**
-  String engineReady(String engineName);
+  String engineReady(Object engineName);
 
   /// No description provided for @engineThinking.
   ///
   /// In en, this message translates to:
   /// **'{engineName} is thinking...'**
-  String engineThinking(String engineName);
+  String engineThinking(Object engineName);
 
   /// No description provided for @newGame.
   ///
@@ -233,13 +246,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{engineName} wins by resignation.'**
-  String resignConfirm(String engineName);
+  String resignConfirm(Object engineName);
 
   /// No description provided for @drawDeclined.
   ///
   /// In en, this message translates to:
   /// **'{engineName} declines the draw offer.'**
-  String drawDeclined(String engineName);
+  String drawDeclined(Object engineName);
 
   /// No description provided for @drawAgreed.
   ///
@@ -269,7 +282,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'You have a saved game ({count} moves).'**
-  String savedGameMoves(String count);
+  String savedGameMoves(Object count);
 
   /// No description provided for @discard.
   ///
@@ -383,7 +396,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Analysis Depth: {depth}'**
-  String analysisDepth(String depth);
+  String analysisDepth(Object depth);
 
   /// No description provided for @hintEngine.
   ///
@@ -599,7 +612,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Wrong move. Try again. ({remaining} left)'**
-  String wrongMove(String remaining);
+  String wrongMove(Object remaining);
 
   /// No description provided for @puzzleSolved.
   ///
@@ -689,7 +702,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Move {n}'**
-  String moveN(String n);
+  String moveN(Object n);
 
   /// No description provided for @welcome.
   ///
@@ -719,7 +732,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{engineName}: failed to initialize'**
-  String failedToInitialize(String engineName);
+  String failedToInitialize(Object engineName);
 
   /// No description provided for @checkmate.
   ///
@@ -917,13 +930,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Added: {name}'**
-  String engineAdded(String name);
+  String engineAdded(Object name);
 
   /// No description provided for @engineInitFailed.
   ///
   /// In en, this message translates to:
   /// **'Engine failed to initialize: {error}'**
-  String engineInitFailed(String error);
+  String engineInitFailed(Object error);
 
   /// No description provided for @loadingEngineOptions.
   ///
@@ -952,8 +965,8 @@ abstract class AppLocalizations {
   /// No description provided for @removeEngineConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove "{name}" from your engine list?'**
-  String removeEngineConfirm(String name);
+  /// **'Remove \"{name}\" from your engine list?'**
+  String removeEngineConfirm(Object name);
 
   /// No description provided for @noConfigurableOptions.
   ///
@@ -977,7 +990,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Range: {min} – {max}'**
-  String rangeMinMax(String min, String max);
+  String rangeMinMax(Object min, Object max);
 
   /// No description provided for @positionEditor.
   ///
@@ -1091,7 +1104,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{count} games'**
-  String nGames(String count);
+  String nGames(Object count);
 
   /// No description provided for @results.
   ///
@@ -1217,7 +1230,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Select engines ({count} selected, min 3):'**
-  String selectEngines(String count);
+  String selectEngines(Object count);
 
   /// No description provided for @depth.
   ///
@@ -1289,7 +1302,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Multi-engine failed: {error}'**
-  String multiEngineFailed(String error);
+  String multiEngineFailed(Object error);
 
   /// No description provided for @reAnalyze.
   ///
@@ -1337,7 +1350,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Daily login: +{xp} XP (streak: {streak})'**
-  String dailyLogin(String xp, String streak);
+  String dailyLogin(Object xp, Object streak);
 
   /// No description provided for @levelUp.
   ///
@@ -1349,7 +1362,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'You reached {level}!'**
-  String youReached(String level);
+  String youReached(Object level);
 
   /// No description provided for @continueButton.
   ///
@@ -1367,13 +1380,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Board captured ({size} KB)'**
-  String boardCaptured(String size);
+  String boardCaptured(Object size);
 
   /// No description provided for @screenshotFailed.
   ///
   /// In en, this message translates to:
   /// **'Screenshot failed: {error}'**
-  String screenshotFailed(String error);
+  String screenshotFailed(Object error);
 
   /// No description provided for @illegalMove.
   ///
@@ -1385,7 +1398,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Premove: {move}'**
-  String premove(String move);
+  String premove(Object move);
 
   /// No description provided for @premoveIllegal.
   ///
@@ -1403,7 +1416,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{correct} / {total} correct on first try'**
-  String correctOnFirstTry(String correct, String total);
+  String correctOnFirstTry(Object correct, Object total);
 
   /// No description provided for @done.
   ///
@@ -1415,7 +1428,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Step {current} of {total}'**
-  String stepOf(String current, String total);
+  String stepOf(Object current, Object total);
 
   /// No description provided for @next.
   ///
@@ -1475,7 +1488,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{provider} key configured'**
-  String keyConfigured(String provider);
+  String keyConfigured(Object provider);
 
   /// No description provided for @removeKey.
   ///
@@ -1638,9 +1651,52 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hide pieces — play by memory'**
   String get blindfoldModeSubtitle;
+
+  /// No description provided for @importExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import / Export'**
+  String get importExport;
+
+  /// No description provided for @boardToolsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Board Tools'**
+  String get boardToolsMenu;
+
+  /// No description provided for @learnMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get learnMenu;
+
+  /// No description provided for @progressMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progressMenu;
+
+  /// No description provided for @openingExplorer.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening Explorer'**
+  String get openingExplorer;
+
+  /// No description provided for @coordinateTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinate Trainer'**
+  String get coordinateTrainer;
+
+  /// No description provided for @gameHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Game History'**
+  String get gameHistory;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -1649,7 +1705,8 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['de', 'en'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['de', 'en'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -1665,9 +1722,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

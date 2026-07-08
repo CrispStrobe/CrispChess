@@ -111,6 +111,28 @@ jobs:
           name: frozenight-libs
           path: frozenight-libs.tar.gz
 
+  build-ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build ios --release --no-codesign
+      - run: |
+          cd build/ios/iphoneos
+          APP=$(ls -d *.app | head -1)
+          echo "Found app: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -r $GITHUB_WORKSPACE/CrispChess-ios-unsigned.ipa Payload/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned
+          path: CrispChess-ios-unsigned.ipa
+
   build-macos:
     name: macOS
     runs-on: macos-latest
@@ -174,7 +196,7 @@ jobs:
 
   create-release:
     name: GitHub Release
-    needs: [build-android, build-linux, build-linux-frozenight, build-frozenight-libs, build-macos, build-windows, build-web]
+    needs: [build-android, build-ios, build-linux, build-linux-frozenight, build-frozenight-libs, build-macos, build-windows, build-web]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -186,6 +208,7 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/android-apk/app-release.apk
+            artifacts/ios-unsigned/CrispChess-ios-unsigned.ipa
             artifacts/linux-x64/CrispChess-linux-x64.tar.gz
             artifacts/linux-x64-frozenight/CrispChess-linux-x64-frozenight.tar.gz
             artifacts/macos-app/CrispChess-macos.tar.gz

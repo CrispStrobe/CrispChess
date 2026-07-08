@@ -283,5 +283,12 @@
   "boardColorThemeLabel": "Board Color",
   "notationStyleLabel": "Notation",
   "blindfoldMode": "Blindfold Mode",
-  "blindfoldModeSubtitle": "Hide pieces — play by memory"
+  "blindfoldModeSubtitle": "Hide pieces — play by memory",
+  "importExport": "Import / Export",
+  "boardToolsMenu": "Board Tools",
+  "learnMenu": "Learn",
+  "progressMenu": "Progress",
+  "openingExplorer": "Opening Explorer",
+  "coordinateTrainer": "Coordinate Trainer",
+  "gameHistory": "Game History"
 }

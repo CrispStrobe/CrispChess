@@ -495,6 +495,47 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
+  bool _isPromotion(int fromRow, int fromCol, int toRow, int toCol) {
+    final piece = _game.board[fromRow][fromCol];
+    if (piece == null || piece.type != PieceType.pawn) return false;
+    return (piece.color == PieceColor.white && toRow == 0) ||
+           (piece.color == PieceColor.black && toRow == 7);
+  }
+
+  Future<String?> _showPromotionDialog(PieceColor color) async {
+    final isDark = color == PieceColor.black;
+    final pieces = [
+      ('q', Icons.star, 'Queen'),
+      ('r', Icons.domain, 'Rook'),
+      ('b', Icons.change_history, 'Bishop'),
+      ('n', Icons.pets, 'Knight'),
+    ];
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Promote to'),
+        content: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: pieces.map((p) => InkWell(
+            onTap: () => Navigator.pop(ctx, p.$1),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                p.$1 == 'q' ? (isDark ? '\u265B' : '\u2655')
+                  : p.$1 == 'r' ? (isDark ? '\u265C' : '\u2656')
+                  : p.$1 == 'b' ? (isDark ? '\u265D' : '\u2657')
+                  : (isDark ? '\u265E' : '\u2658'),
+                style: const TextStyle(fontSize: 40),
+              ),
+            ),
+          )).toList(),
+        ),
+      ),
+    );
+  }
+
   void _onMove(int fromRow, int fromCol, int toRow, int toCol) {
     debugPrint('[CrispChess] _onMove($fromRow,$fromCol -> $toRow,$toCol) whiteToMove=${_game.whiteToMove} isThinking=${_state.isThinking} engineState=${_engineService.state}');
 
@@ -513,9 +554,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
     if (!_isPlayerTurn || _state.isThinking) return;
 
+    // Handle pawn promotion
+    if (_isPromotion(fromRow, fromCol, toRow, toCol)) {
+      final piece = _game.board[fromRow][fromCol]!;
+      _showPromotionDialog(piece.color).then((promo) {
+        if (promo == null) return; // user cancelled (shouldn't happen with barrierDismissible: false)
+        final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
+            _game.squareToAlgebraic(toRow, toCol) + promo;
+        _executeMove(uciMove, toRow, toCol);
+      });
+      return;
+    }
+
     final uciMove = _game.squareToAlgebraic(fromRow, fromCol) +
         _game.squareToAlgebraic(toRow, toCol);
+    _executeMove(uciMove, toRow, toCol);
+  }
 
+  void _executeMove(String uciMove, int toRow, int toCol) {
     // Detect capture before making the move
     final isCapture = _game.board[toRow][toCol] != null;
 
@@ -1575,11 +1631,18 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _offerDraw() {
-    // Engine evaluates: accepts if eval is within ±1.5 pawns
+    // Eval is from white's perspective: positive = white is better.
+    // Determine the engine's advantage from its own perspective.
     final eval = _evalNotifier.value;
-    final engineAdvantage = eval != null ? eval.abs() : 0.0;
+    final engineIsWhite = _state.playAsBlack; // if player is black, engine is white
+    final engineEval = eval != null
+        ? (engineIsWhite ? eval : -eval)
+        : 0.0;
 
-    if (engineAdvantage < 1.5) {
+    // Engine accepts if:
+    // - position is roughly equal (within ±1.5 pawns from engine's view)
+    // - engine is losing (eval negative from engine's perspective)
+    if (engineEval < 1.5) {
       // Engine accepts draw
       _game.agreeToDraw();
       _clock?.pause();
@@ -1592,11 +1655,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       });
       _showGameOverDialog();
     } else {
-      // Engine declines
+      // Engine declines — it believes it's winning
       if (mounted) {
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_engineService.engineName} declines the draw offer.'),
+            content: Text(l?.drawDeclined(_engineService.engineName)
+                ?? '${_engineService.engineName} declines the draw offer.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -2014,6 +2079,123 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMainMenu(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
+    MenuItemButton item(IconData icon, String label, VoidCallback onPressed) {
+      return MenuItemButton(
+        leadingIcon: Icon(icon, size: 20),
+        onPressed: onPressed,
+        child: Text(label),
+      );
+    }
+
+    SubmenuButton submenu(IconData icon, String label, List<Widget> children) {
+      return SubmenuButton(
+        leadingIcon: Icon(icon, size: 20),
+        menuChildren: children,
+        child: Text(label),
+      );
+    }
+
+    return MenuAnchor(
+      builder: (ctx, controller, child) => IconButton(
+        icon: const Icon(Icons.more_vert, size: 20),
+        tooltip: 'Menu',
+        onPressed: () {
+          if (controller.isOpen) {
+            controller.close();
+          } else {
+            controller.open();
+          }
+        },
+      ),
+      menuChildren: [
+        // 1. New Game
+        item(Icons.refresh, l?.newGame ?? 'New Game', _confirmNewGame),
+        const Divider(height: 1),
+        // 2. Game
+        submenu(Icons.videogame_asset, l?.game ?? 'Game', [
+          item(Icons.swap_vert, l?.flipBoard ?? 'Flip Board', () {
+            setState(() => _state = _state.copyWith(boardFlipped: !_state.boardFlipped));
+          }),
+          item(Icons.handshake, l?.offerDraw ?? 'Offer Draw', _offerDraw),
+          item(Icons.flag, l?.resign ?? 'Resign', _confirmResign),
+        ]),
+        // 3. Import / Export
+        submenu(Icons.import_export, l?.importExport ?? 'Import / Export', [
+          item(Icons.copy, l?.copyPgn ?? 'Copy PGN', _exportPgn),
+          item(Icons.paste, l?.pastePgn ?? 'Paste PGN', _importPgn),
+          item(Icons.input, l?.loadFen ?? 'Load FEN', _loadFen),
+          item(Icons.grid_on, l?.setupPosition ?? 'Setup Position', _openPositionEditor),
+          item(Icons.storage, l?.pgnDatabase ?? 'PGN Database', _openPgnDatabase),
+        ]),
+        // 4. Board Tools
+        submenu(Icons.dashboard_customize, l?.boardToolsMenu ?? 'Board Tools', [
+          item(Icons.photo_camera, l?.boardScreenshot ?? 'Board Screenshot', _shareScreenshot),
+          item(Icons.layers_clear, l?.clearAnnotations ?? 'Clear Annotations', () {
+            setState(() => _boardAnnotations.clear());
+          }),
+          item(Icons.bookmark_add, l?.bookmarkPosition ?? 'Bookmark Position', () {
+            _prefs.addBookmark(_game.currentFEN);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l?.positionBookmarked ?? 'Position bookmarked')),
+              );
+            }
+          }),
+        ]),
+        // 5. Learn
+        submenu(Icons.school, l?.learnMenu ?? 'Learn', [
+          item(Icons.extension, l?.puzzles ?? 'Puzzles', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => PuzzleScreen(puzzleDb: _puzzleDb)));
+          }),
+          item(Icons.school, l?.drills ?? 'Drills', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const DrillListScreen()));
+          }),
+          item(Icons.explore, l?.openingExplorer ?? 'Opening Explorer', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const OpeningExplorerScreen()));
+          }),
+          item(Icons.grid_3x3, l?.coordinateTrainer ?? 'Coordinate Trainer', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()));
+          }),
+          item(Icons.psychology, l?.askCoach ?? 'Ask Coach', () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => AiCoachSheet(
+                fen: _game.currentFEN,
+                pgn: _game.toPgn(engineName: _engineService.engineName, playAsBlack: _state.playAsBlack),
+                lastMove: _game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : null,
+              ),
+            );
+          }),
+          item(Icons.sports_esports, l?.engineVsEngine ?? 'Engine vs Engine', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
+          }),
+        ]),
+        // 6. Progress
+        submenu(Icons.timeline, l?.progressMenu ?? 'Progress', [
+          item(Icons.history, l?.gameHistory ?? 'Game History', _openGameHistory),
+          item(Icons.warning_amber, l?.mistakes ?? 'My Mistakes', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const MistakesScreen()));
+          }),
+          item(Icons.bar_chart, l?.stats ?? 'Stats', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const StatsScreen()));
+          }),
+        ]),
+        const Divider(height: 1),
+        // 7. Settings
+        item(Icons.settings, l?.settings ?? 'Settings', _openSettings),
+        // 8. About
+        item(Icons.info_outline, l?.about ?? 'About', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+        }),
+      ],
     );
   }
 

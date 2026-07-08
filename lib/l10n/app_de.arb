@@ -258,5 +258,12 @@
   "boardColorThemeLabel": "Brettfarbe",
   "notationStyleLabel": "Notation",
   "blindfoldMode": "Blindfold-Modus",
-  "blindfoldModeSubtitle": "Figuren ausblenden — aus dem Gedächtnis spielen"
+  "blindfoldModeSubtitle": "Figuren ausblenden — aus dem Gedächtnis spielen",
+  "importExport": "Import / Export",
+  "boardToolsMenu": "Brett-Werkzeuge",
+  "learnMenu": "Lernen",
+  "progressMenu": "Fortschritt",
+  "openingExplorer": "Eröffnungsexplorer",
+  "coordinateTrainer": "Koordinatentrainer",
+  "gameHistory": "Partieverlauf"
 }

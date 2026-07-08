@@ -1,10 +1,12 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for German (`de`).
 class AppLocalizationsDe extends AppLocalizations {
-  AppLocalizationsDe([super.locale = 'de']);
+  AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
   String get appTitle => 'CrispChess';
@@ -25,7 +27,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get engineError => 'Engine-Fehler';
 
   @override
-  String loading(String engineName) {
+  String loading(Object engineName) {
     return 'Lade $engineName...';
   }
 
@@ -33,12 +35,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get downloading => 'Wird heruntergeladen...';
 
   @override
-  String engineReady(String engineName) {
+  String engineReady(Object engineName) {
     return '$engineName bereit';
   }
 
   @override
-  String engineThinking(String engineName) {
+  String engineThinking(Object engineName) {
     return '$engineName denkt nach...';
   }
 
@@ -85,12 +87,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get resign => 'Aufgeben';
 
   @override
-  String resignConfirm(String engineName) {
+  String resignConfirm(Object engineName) {
     return '$engineName gewinnt durch Aufgabe.';
   }
 
   @override
-  String drawDeclined(String engineName) {
+  String drawDeclined(Object engineName) {
     return '$engineName lehnt das Remisangebot ab.';
   }
 
@@ -107,7 +109,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get resumeGame => 'Partie fortsetzen?';
 
   @override
-  String savedGameMoves(String count) {
+  String savedGameMoves(Object count) {
     return 'Du hast eine gespeicherte Partie ($count Züge).';
   }
 
@@ -166,7 +168,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hintDepth => 'Analysetiefe';
 
   @override
-  String analysisDepth(String depth) {
+  String analysisDepth(Object depth) {
     return 'Analysetiefe: $depth';
   }
 
@@ -183,7 +185,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get showValidMoves => 'Gültige Züge anzeigen';
 
   @override
-  String get showValidMovesSubtitle => 'Legale Züge hervorheben bei Figurenauswahl';
+  String get showValidMovesSubtitle =>
+      'Legale Züge hervorheben bei Figurenauswahl';
 
   @override
   String get allowUndo => 'Rückgängig erlauben';
@@ -195,7 +198,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get solidBlackPieces => 'Schwarze Figuren einfarbig';
 
   @override
-  String get solidBlackPiecesSubtitle => 'Schwarze Figuren als reines Schwarz statt grauem Farbverlauf';
+  String get solidBlackPiecesSubtitle =>
+      'Schwarze Figuren als reines Schwarz statt grauem Farbverlauf';
 
   @override
   String get animationSpeed => 'Animationsgeschwindigkeit';
@@ -276,7 +280,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get skip => 'Überspringen';
 
   @override
-  String wrongMove(String remaining) {
+  String wrongMove(Object remaining) {
     return 'Falscher Zug. Nochmal versuchen. ($remaining übrig)';
   }
 
@@ -323,7 +327,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tapToViewPosition => 'Tippe um Stellung zu sehen';
 
   @override
-  String moveN(String n) {
+  String moveN(Object n) {
     return 'Zug $n';
   }
 
@@ -331,7 +335,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get welcome => 'Willkommen bei CrispChess';
 
   @override
-  String get welcomeSubtitle => 'Spiele Schach gegen KI-Engines oder einen Freund.';
+  String get welcomeSubtitle =>
+      'Spiele Schach gegen KI-Engines oder einen Freund.';
 
   @override
   String get letsPlay => 'Los geht\'s!';
@@ -340,7 +345,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get switchToBuiltIn => 'Zu Built-in wechseln';
 
   @override
-  String failedToInitialize(String engineName) {
+  String failedToInitialize(Object engineName) {
     return '$engineName: Initialisierung fehlgeschlagen';
   }
 
@@ -411,7 +416,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get engineManager => 'Engine-Verwaltung';
 
   @override
-  String get engineManagerSubtitle => 'Engine-Verwaltung — UCI-Engines hinzufügen';
+  String get engineManagerSubtitle =>
+      'Engine-Verwaltung — UCI-Engines hinzufügen';
 
   @override
   String get addEngine => 'Engine hinzufügen';
@@ -441,12 +447,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get probingEngine => 'Engine wird geprüft...';
 
   @override
-  String engineAdded(String name) {
+  String engineAdded(Object name) {
     return 'Hinzugefügt: $name';
   }
 
   @override
-  String engineInitFailed(String error) {
+  String engineInitFailed(Object error) {
     return 'Engine-Initialisierung fehlgeschlagen: $error';
   }
 
@@ -457,14 +463,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noCustomEngines => 'Keine eigenen Engines';
 
   @override
-  String get noCustomEnginesSubtitle => 'Füge eine UCI-kompatible Schach-Engine\nüber den Dateipfad hinzu.';
+  String get noCustomEnginesSubtitle =>
+      'Füge eine UCI-kompatible Schach-Engine\nüber den Dateipfad hinzu.';
 
   @override
   String get removeEngine => 'Engine entfernen?';
 
   @override
-  String removeEngineConfirm(String name) {
-    return '"$name" aus der Engine-Liste entfernen?';
+  String removeEngineConfirm(Object name) {
+    return '\"$name\" aus der Engine-Liste entfernen?';
   }
 
   @override
@@ -477,7 +484,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get run => 'Ausführen';
 
   @override
-  String rangeMinMax(String min, String max) {
+  String rangeMinMax(Object min, Object max) {
     return 'Bereich: $min – $max';
   }
 
@@ -515,7 +522,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get customPositionLoaded => 'Eigene Stellung geladen';
 
   @override
-  String get pawnsOnEdgeRank => 'Bauern können nicht auf der ersten oder letzten Reihe stehen';
+  String get pawnsOnEdgeRank =>
+      'Bauern können nicht auf der ersten oder letzten Reihe stehen';
 
   @override
   String get needOneWhiteKing => 'Weiß muss genau einen König haben';
@@ -536,7 +544,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get databaseStatistics => 'Datenbankstatistik';
 
   @override
-  String nGames(String count) {
+  String nGames(Object count) {
     return '$count Partien';
   }
 
@@ -565,7 +573,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noDatabaseLoaded => 'Keine Datenbank geladen';
 
   @override
-  String get noDatabaseSubtitle => 'Kopiere eine PGN-Datei mit mehreren Partien\nin die Zwischenablage, dann tippe auf Einfügen.';
+  String get noDatabaseSubtitle =>
+      'Kopiere eine PGN-Datei mit mehreren Partien\nin die Zwischenablage, dann tippe auf Einfügen.';
 
   @override
   String get searchByPlayer => 'Nach Spieler suchen...';
@@ -601,7 +610,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get selectAtLeast3 => 'Mindestens 3 Engines auswählen';
 
   @override
-  String selectEngines(String count) {
+  String selectEngines(Object count) {
     return 'Engines auswählen ($count gewählt, min. 3):';
   }
 
@@ -639,7 +648,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get start => 'Start';
 
   @override
-  String multiEngineFailed(String error) {
+  String multiEngineFailed(Object error) {
     return 'Multi-Engine fehlgeschlagen: $error';
   }
 
@@ -665,7 +674,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get resignQuestion => 'Aufgeben?';
 
   @override
-  String dailyLogin(String xp, String streak) {
+  String dailyLogin(Object xp, Object streak) {
     return 'Täglicher Login: +$xp XP (Serie: $streak)';
   }
 
@@ -673,7 +682,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get levelUp => 'Aufstieg!';
 
   @override
-  String youReached(String level) {
+  String youReached(Object level) {
     return 'Du hast $level erreicht!';
   }
 
@@ -684,12 +693,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get couldNotCaptureBoard => 'Brett konnte nicht erfasst werden';
 
   @override
-  String boardCaptured(String size) {
+  String boardCaptured(Object size) {
     return 'Brett erfasst ($size KB)';
   }
 
   @override
-  String screenshotFailed(String error) {
+  String screenshotFailed(Object error) {
     return 'Screenshot fehlgeschlagen: $error';
   }
 
@@ -697,7 +706,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get illegalMove => 'Ungültiger Zug!';
 
   @override
-  String premove(String move) {
+  String premove(Object move) {
     return 'Vorzug: $move';
   }
 
@@ -708,7 +717,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get drillComplete => 'Übung abgeschlossen!';
 
   @override
-  String correctOnFirstTry(String correct, String total) {
+  String correctOnFirstTry(Object correct, Object total) {
     return '$correct / $total beim ersten Versuch richtig';
   }
 
@@ -716,7 +725,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get done => 'Fertig';
 
   @override
-  String stepOf(String current, String total) {
+  String stepOf(Object current, Object total) {
     return 'Schritt $current von $total';
   }
 
@@ -742,13 +751,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get privacy => 'Datenschutz';
 
   @override
-  String get privacyNotice => 'Dein API-Schlüssel wird nur lokal auf deinem Gerät gespeichert. Partiedaten (FEN/PGN) werden direkt an deinen KI-Anbieter gesendet. CrispChess speichert, protokolliert oder überträgt keine Daten an eigene Server. Du kannst deinen API-Schlüssel jederzeit löschen.';
+  String get privacyNotice =>
+      'Dein API-Schlüssel wird nur lokal auf deinem Gerät gespeichert. Partiedaten (FEN/PGN) werden direkt an deinen KI-Anbieter gesendet. CrispChess speichert, protokolliert oder überträgt keine Daten an eigene Server. Du kannst deinen API-Schlüssel jederzeit löschen.';
 
   @override
   String get enterApiKey => 'Gib deinen API-Schlüssel ein:';
 
   @override
-  String keyConfigured(String provider) {
+  String keyConfigured(Object provider) {
     return '$provider-Schlüssel konfiguriert';
   }
 
@@ -759,7 +769,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noMistakesYet => 'Noch keine Fehler erfasst!';
 
   @override
-  String get noMistakesSubtitle => 'Spiele Partien mit Analyse, um Patzer zu verfolgen.';
+  String get noMistakesSubtitle =>
+      'Spiele Partien mit Analyse, um Patzer zu verfolgen.';
 
   @override
   String get clearAll => 'Alle löschen';
@@ -789,7 +800,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get urlCopied => 'URL in Zwischenablage kopiert';
 
   @override
-  String get contributionsWelcome => 'Beiträge willkommen. Bitte zuerst ein Issue eröffnen.';
+  String get contributionsWelcome =>
+      'Beiträge willkommen. Bitte zuerst ein Issue eröffnen.';
 
   @override
   String get openSourceLicenses => 'Open-Source-Lizenzen';
@@ -831,5 +843,27 @@ class AppLocalizationsDe extends AppLocalizations {
   String get blindfoldMode => 'Blindfold-Modus';
 
   @override
-  String get blindfoldModeSubtitle => 'Figuren ausblenden — aus dem Gedächtnis spielen';
+  String get blindfoldModeSubtitle =>
+      'Figuren ausblenden — aus dem Gedächtnis spielen';
+
+  @override
+  String get importExport => 'Import / Export';
+
+  @override
+  String get boardToolsMenu => 'Brett-Werkzeuge';
+
+  @override
+  String get learnMenu => 'Lernen';
+
+  @override
+  String get progressMenu => 'Fortschritt';
+
+  @override
+  String get openingExplorer => 'Eröffnungsexplorer';
+
+  @override
+  String get coordinateTrainer => 'Koordinatentrainer';
+
+  @override
+  String get gameHistory => 'Partieverlauf';
 }
