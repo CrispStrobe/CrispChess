@@ -56,3 +56,7 @@ third_party/lynx-chess/
 .vercel
 .env*.local
 CLAUDE.md
+
+# App Store Connect API key — secret, never commit
+.appstoreconnect/
+*.p8
