@@ -884,36 +884,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   String _maia3Variant = '5m';
 
-  void _showSubMenu(String title, List<(IconData, String, VoidCallback)> entries) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(title, style: Theme.of(ctx).textTheme.titleMedium),
-              ),
-            ),
-            for (final (icon, label, onTap) in entries)
-              ListTile(
-                leading: Icon(icon),
-                title: Text(label),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  onTap();
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _openGameHistory() async {
     final pgn = await Navigator.push<String>(context,
         MaterialPageRoute(builder: (_) => const GameHistoryScreen()));
@@ -2357,99 +2327,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             tooltip: AppLocalizations.of(context)?.analyze ?? 'Analyze',
             onPressed: _toggleAnalysis,
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 20),
-            onSelected: (value) {
-              final l = AppLocalizations.of(context);
-              switch (value) {
-                case 'new':
-                  _confirmNewGame();
-                case 'flip':
-                  setState(() {
-                    _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
-                  });
-                case 'resign':
-                  _confirmResign();
-                case 'draw':
-                  _offerDraw();
-                case 'position_menu':
-                  _showSubMenu('Position & PGN', [
-                    (Icons.copy, l?.copyPgn ?? 'Copy PGN', _exportPgn),
-                    (Icons.paste, l?.pastePgn ?? 'Paste PGN', _importPgn),
-                    (Icons.input, 'Load FEN', _loadFen),
-                    (Icons.grid_on, 'Setup Position', _openPositionEditor),
-                    (Icons.storage, 'PGN Database', _openPgnDatabase),
-                    (Icons.bookmark_add, 'Bookmark Position', () {
-                      _prefs.addBookmark(_game.currentFEN);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(AppLocalizations.of(context)?.positionBookmarked ?? 'Position bookmarked')),
-                        );
-                      }
-                    }),
-                    (Icons.photo_camera, 'Board Screenshot', _shareScreenshot),
-                    (Icons.layers_clear, 'Clear Annotations',
-                        () => setState(() => _boardAnnotations.clear())),
-                  ]);
-                case 'practice_menu':
-                  _showSubMenu('Practice', [
-                    (Icons.extension, l?.puzzles ?? 'Puzzles', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => PuzzleScreen(puzzleDb: _puzzleDb)))),
-                    (Icons.school, 'Drills', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const DrillListScreen()))),
-                    (Icons.explore, 'Opening Explorer', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const OpeningExplorerScreen()))),
-                    (Icons.grid_3x3, 'Coordinate Trainer', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()))),
-                    (Icons.sports_esports, 'Engine vs Engine', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const EngineMatchScreen()))),
-                    (Icons.psychology, 'Ask Coach', () => showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => AiCoachSheet(
-                            fen: _game.currentFEN,
-                            pgn: _game.toPgn(engineName: _engineService.engineName, playAsBlack: _state.playAsBlack),
-                            lastMove: _game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : null,
-                          ),
-                        )),
-                  ]);
-                case 'review_menu':
-                  _showSubMenu('Review', [
-                    (Icons.history, 'Game History', _openGameHistory),
-                    (Icons.warning_amber, l?.mistakes ?? 'My Mistakes', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const MistakesScreen()))),
-                    (Icons.bar_chart, 'Stats', () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const StatsScreen()))),
-                  ]);
-                case 'settings':
-                  _openSettings();
-                case 'about':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const AboutScreen()));
-              }
-            },
-            itemBuilder: (ctx) {
-              final l = AppLocalizations.of(ctx);
-              PopupMenuItem<String> item(String value, IconData icon, String label) =>
-                PopupMenuItem(value: value, child: ListTile(
-                  leading: Icon(icon), title: Text(label),
-                  contentPadding: EdgeInsets.zero, dense: true));
-              return [
-                item('new', Icons.refresh, l?.newGame ?? 'New Game'),
-                item('flip', Icons.swap_vert, l?.flipBoard ?? 'Flip Board'),
-                item('draw', Icons.handshake, l?.offerDraw ?? 'Offer Draw'),
-                item('resign', Icons.flag, l?.resign ?? 'Resign'),
-                const PopupMenuDivider(),
-                item('position_menu', Icons.description_outlined, 'Position & PGN'),
-                item('practice_menu', Icons.fitness_center, 'Practice'),
-                item('review_menu', Icons.query_stats, 'Review'),
-                const PopupMenuDivider(),
-                item('settings', Icons.settings, l?.settings ?? 'Settings'),
-                item('about', Icons.info_outline, l?.about ?? 'About'),
-              ];
-            },
-          ),
+          _buildMainMenu(context),
         ],
       ),
       body: Column(
