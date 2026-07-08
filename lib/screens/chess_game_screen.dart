@@ -828,6 +828,36 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   String _maia3Variant = '5m';
 
+  void _showSubMenu(String title, List<(IconData, String, VoidCallback)> entries) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(title, style: Theme.of(ctx).textTheme.titleMedium),
+              ),
+            ),
+            for (final (icon, label, onTap) in entries)
+              ListTile(
+                leading: Icon(icon),
+                title: Text(label),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onTap();
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openGameHistory() async {
     final pgn = await Navigator.push<String>(context,
         MaterialPageRoute(builder: (_) => const GameHistoryScreen()));
@@ -2148,19 +2178,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
             onSelected: (value) {
+              final l = AppLocalizations.of(context);
               switch (value) {
                 case 'new':
                   _confirmNewGame();
-                case 'export_pgn':
-                  _exportPgn();
-                case 'import_pgn':
-                  _importPgn();
-                case 'load_fen':
-                  _loadFen();
-                case 'setup_position':
-                  _openPositionEditor();
-                case 'pgn_database':
-                  _openPgnDatabase();
                 case 'flip':
                   setState(() {
                     _state = _state.copyWith(boardFlipped: !_state.boardFlipped);
@@ -2169,54 +2190,58 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   _confirmResign();
                 case 'draw':
                   _offerDraw();
-                case 'screenshot':
-                  _shareScreenshot();
-                case 'clear_arrows':
-                  setState(() => _boardAnnotations.clear());
-                case 'bookmark':
-                  _prefs.addBookmark(_game.currentFEN);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.of(context)?.positionBookmarked ?? 'Position bookmarked')),
-                    );
-                  }
-                case 'ask_coach':
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => AiCoachSheet(
-                      fen: _game.currentFEN,
-                      pgn: _game.toPgn(engineName: _engineService.engineName, playAsBlack: _state.playAsBlack),
-                      lastMove: _game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : null,
-                    ),
-                  );
-                case 'drills':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const DrillListScreen()));
-                case 'opening_explorer':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const OpeningExplorerScreen()));
-                case 'coordinates':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()));
-                case 'engine_match':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
-                case 'puzzles':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) =>
-                          PuzzleScreen(puzzleDb: _puzzleDb)));
+                case 'position_menu':
+                  _showSubMenu('Position & PGN', [
+                    (Icons.copy, l?.copyPgn ?? 'Copy PGN', _exportPgn),
+                    (Icons.paste, l?.pastePgn ?? 'Paste PGN', _importPgn),
+                    (Icons.input, 'Load FEN', _loadFen),
+                    (Icons.grid_on, 'Setup Position', _openPositionEditor),
+                    (Icons.storage, 'PGN Database', _openPgnDatabase),
+                    (Icons.bookmark_add, 'Bookmark Position', () {
+                      _prefs.addBookmark(_game.currentFEN);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(AppLocalizations.of(context)?.positionBookmarked ?? 'Position bookmarked')),
+                        );
+                      }
+                    }),
+                    (Icons.photo_camera, 'Board Screenshot', _shareScreenshot),
+                    (Icons.layers_clear, 'Clear Annotations',
+                        () => setState(() => _boardAnnotations.clear())),
+                  ]);
+                case 'practice_menu':
+                  _showSubMenu('Practice', [
+                    (Icons.extension, l?.puzzles ?? 'Puzzles', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => PuzzleScreen(puzzleDb: _puzzleDb)))),
+                    (Icons.school, 'Drills', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const DrillListScreen()))),
+                    (Icons.explore, 'Opening Explorer', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const OpeningExplorerScreen()))),
+                    (Icons.grid_3x3, 'Coordinate Trainer', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const CoordinateTrainerScreen()))),
+                    (Icons.sports_esports, 'Engine vs Engine', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const EngineMatchScreen()))),
+                    (Icons.psychology, 'Ask Coach', () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => AiCoachSheet(
+                            fen: _game.currentFEN,
+                            pgn: _game.toPgn(engineName: _engineService.engineName, playAsBlack: _state.playAsBlack),
+                            lastMove: _game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : null,
+                          ),
+                        )),
+                  ]);
+                case 'review_menu':
+                  _showSubMenu('Review', [
+                    (Icons.history, 'Game History', _openGameHistory),
+                    (Icons.warning_amber, l?.mistakes ?? 'My Mistakes', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MistakesScreen()))),
+                    (Icons.bar_chart, 'Stats', () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const StatsScreen()))),
+                  ]);
                 case 'settings':
                   _openSettings();
-                case 'game_history':
-                  _openGameHistory();
-                case 'mistakes':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const MistakesScreen()));
-                case 'stats':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const StatsScreen()));
                 case 'about':
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const AboutScreen()));
@@ -2230,27 +2255,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                   contentPadding: EdgeInsets.zero, dense: true));
               return [
                 item('new', Icons.refresh, l?.newGame ?? 'New Game'),
-                item('export_pgn', Icons.copy, l?.copyPgn ?? 'Copy PGN'),
-                item('import_pgn', Icons.paste, l?.pastePgn ?? 'Paste PGN'),
-                item('load_fen', Icons.input, 'Load FEN'),
-                item('setup_position', Icons.grid_on, 'Setup Position'),
-                item('pgn_database', Icons.storage, 'PGN Database'),
                 item('flip', Icons.swap_vert, l?.flipBoard ?? 'Flip Board'),
                 item('draw', Icons.handshake, l?.offerDraw ?? 'Offer Draw'),
                 item('resign', Icons.flag, l?.resign ?? 'Resign'),
-                item('screenshot', Icons.photo_camera, 'Board Screenshot'),
-                item('clear_arrows', Icons.layers_clear, 'Clear Annotations'),
-                item('bookmark', Icons.bookmark_add, 'Bookmark Position'),
-                item('ask_coach', Icons.psychology, 'Ask Coach'),
-                item('drills', Icons.school, 'Drills'),
-                item('opening_explorer', Icons.explore, 'Opening Explorer'),
-                item('coordinates', Icons.grid_3x3, 'Coordinate Trainer'),
-                item('engine_match', Icons.sports_esports, 'Engine vs Engine'),
-                item('puzzles', Icons.extension, l?.puzzles ?? 'Puzzles'),
+                const PopupMenuDivider(),
+                item('position_menu', Icons.description_outlined, 'Position & PGN'),
+                item('practice_menu', Icons.fitness_center, 'Practice'),
+                item('review_menu', Icons.query_stats, 'Review'),
+                const PopupMenuDivider(),
                 item('settings', Icons.settings, l?.settings ?? 'Settings'),
-                item('game_history', Icons.history, 'Game History'),
-                item('mistakes', Icons.warning_amber, l?.mistakes ?? 'My Mistakes'),
-                item('stats', Icons.bar_chart, 'Stats'),
                 item('about', Icons.info_outline, l?.about ?? 'About'),
               ];
             },

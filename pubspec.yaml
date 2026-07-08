@@ -21,6 +21,7 @@ dependencies:
   shared_preferences: ^2.3.0
   web: ^1.0.0
   onnxruntime: ^1.4.1
+  package_info_plus: ^10.2.0
 
 dev_dependencies:
   flutter_test:

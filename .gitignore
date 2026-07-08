@@ -53,3 +53,5 @@ third_party/lynx-chess/
 
 # Claude Code working data
 .claude/
+.vercel
+.env*.local
