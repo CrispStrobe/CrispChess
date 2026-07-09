@@ -47,6 +47,7 @@ class CrispChessApp extends StatelessWidget {
           builder: (context, locale, _) {
         return MaterialApp(
           title: 'CrispChess',
+          debugShowCheckedModeBanner: false,
           locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
