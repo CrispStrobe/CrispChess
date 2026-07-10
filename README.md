@@ -293,43 +293,48 @@ The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all o
 | Stockfish | GPL-3.0 | No — downloaded separately, runs isolated |
 | Lc0 | GPL-3.0 | No — downloaded separately, runs isolated |
 
-¹ **Maia3 weight provenance and license status.** CrispChess downloads
-weights from `huggingface.co/cstr/maia3-onnx-int32` (a CrispChess-side
-mirror, modified for Safari/WebKit ONNX compatibility, of
-`cemoss17/maia3-onnx`). Both of those Hugging Face repos self-declare
-MIT. However, the authoritative upstream source — the official
-[CSSLab/maia3](https://github.com/CSSLab/maia3) repository by the
-model's actual authors — is **AGPL-3.0**, and its own Hugging Face
-model card (`MaiaChess/maia3-*`) explicitly states the weights follow
-the repo's license, not an independent one. The downstream MIT
-self-declarations on the repos this app actually pulls from do not
-appear to carry a documented relicensing grant from CSSLab, so this
-app treats the AGPL-3.0 status as authoritative going forward.
+¹ **Maia3 weight provenance and license status — two distinct acts.**
+GPL/AGPL's obligations attach to *conveying* (distributing copies to
+others), not to mere *use*; those are different acts here.
 
-Rather than isolating a third-party ONNX runtime in a separate
-process (the mitigation Stockfish/Lc0 use, since those really do run
-GPL code, just outside the app's own process), Maia3 Dart instead runs
-**no third-party code at all**: a from-scratch Dart interpreter
+**Act 1 — the HuggingFace re-upload (the actual "conveying" act).**
+The official [CSSLab/maia3](https://github.com/CSSLab/maia3)
+repository (the model's actual authors) is **AGPL-3.0**, and its own
+Hugging Face model card explicitly states the weights follow the
+repo's license. `cemoss17/maia3-onnx` (an ONNX conversion of CSSLab's
+weights) and, on top of that, our own `cstr/maia3-onnx-int32`
+(modified further for Safari/WebKit compatibility) both publicly
+re-uploaded a modified copy of that AGPL-covered material — self-
+declared **MIT**, without a documented relicensing grant from CSSLab.
+That re-upload, not anything CrispChess does, is the step GPL/AGPL
+actually cares about — and it's fixed: `cstr/maia3-onnx-int32`'s
+license tag and README now correctly state AGPL-3.0 with attribution,
+instead of conveying it under an inaccurate permissive label.
+
+**Act 2 — the app's runtime download-and-use (a different, weaker
+case).** CrispChess fetching that file onto an end user's device to
+run local inference is much closer to ordinary software use (`pip
+install` fetching a package) than to redistribution — the app itself
+makes no further copies available to anyone. Rather than isolating a
+third-party ONNX runtime in a separate process (the mitigation
+Stockfish/Lc0 use below, since those really do run GPL code, just
+outside the app's own process), Maia3 Dart runs **no third-party code
+at all**: a from-scratch Dart interpreter
 (`lib/engines/maia3_dart/onnx/`) parses the `.onnx` file directly
 (implementing the public, Apache-2.0 ONNX format spec) and executes
 its graph using original implementations of the standard ONNX
-operators. Only original MIT code ever executes; only the downloaded
-weight *data* carries the AGPL-3.0 question above, unaffected by how
-it's executed. Verified numerically equivalent to the previous
-`onnxruntime`-based implementation before switching over.
-
-Whether trained weight *values* themselves (as opposed to the code
-that produced them) carry their training project's copyleft when
-redistributed independently is an unsettled question industry-wide —
-the same one every app shipping downloaded GGUF/ONNX/safetensors
-weights from a copyleft-licensed training project operates under, not
-one specific to this app. We're not seeking a case-by-case resolution
-from every upstream author; the position taken here is the same one
-that ecosystem runs on: disclose the actual license accurately (this
-section, `THIRD_PARTY_LICENSES.md`, and the in-app About screen all
-state AGPL-3.0 rather than the incorrect downstream MIT tags) and
-attribute properly, rather than assume permissive relicensing that
-isn't documented.
+operators — verified numerically equivalent to the previous
+`onnxruntime`-based implementation before switching over. Whether
+trained weight *values* (as opposed to the code that produced them)
+carry a training project's copyleft into every device that merely
+uses them is an unsettled question industry-wide, not specific to
+this app — the same one every project shipping downloaded
+GGUF/ONNX/safetensors weights from a copyleft-licensed training
+project operates under. The position here follows that norm: disclose
+the actual license accurately (this section, `THIRD_PARTY_LICENSES.md`,
+and the in-app About screen all state AGPL-3.0) and attribute
+properly, rather than seek case-by-case permission or assume
+undocumented relicensing.
 
 The separate **"Maia3 (JS)"** engine (web-only, listed in the table
 above) still uses `onnxruntime-web` in-process and hasn't had the same

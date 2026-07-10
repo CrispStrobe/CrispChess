@@ -60,27 +60,40 @@ or compiled into CrispChess.
   follow the repo's license ("see repo for code/weights license") —
   i.e. the copyright holders themselves say AGPL-3.0 covers the
   weights, not just the training code.
-- **What we actually download:** `huggingface.co/cstr/maia3-onnx-int32`
-  (a CrispChess-side mirror/modification of `cemoss17/maia3-onnx`,
-  adding ONNX Cast nodes for Safari/WebKit compatibility). Both of
-  those intermediate repos self-declare **MIT**, but neither documents
-  a relicensing grant from CSSLab — converting a model's file format
-  does not, on its own, grant the right to relicense it under
-  different terms. We treat the downstream MIT tags as unverified and
-  the AGPL-3.0 upstream status as authoritative (already corrected on
-  our own `cstr/maia3-onnx-int32` model card's license tag and README).
-- Whether trained weight *values* (as opposed to the code that
-  produced them) carry a training project's copyleft when
-  redistributed independently, separate from the code that executes
-  them, is an unsettled question industry-wide, not something specific
-  to this app — the same one every project shipping downloaded
-  GGUF/ONNX/safetensors weights derived from a copyleft-licensed
-  training project operates under. The position here follows that same
-  norm rather than seeking case-by-case resolution from every upstream
-  author: disclose the actual license accurately (this file, the
-  README, and the in-app About screen all correctly state AGPL-3.0)
-  and attribute properly, rather than assume permissive relicensing
-  that isn't documented.
+- **Two distinct acts, two different analyses — don't conflate them.**
+  GPL/AGPL's obligations attach to *conveying* (distributing copies to
+  others), not to mere *use*. Those are different acts here:
+
+  1. **The HuggingFace re-upload — this is the actual "conveying" act.**
+     `cemoss17/maia3-onnx` (converting CSSLab's original weights to
+     ONNX) and, on top of that, our own `cstr/maia3-onnx-int32`
+     (adding Cast nodes for Safari/WebKit) are both public re-uploads
+     of a modified copy of AGPL-covered material — making copies
+     available to anyone who visits those repos, independent of
+     CrispChess's existence or behavior. Both self-declared **MIT**,
+     but neither documents a relicensing grant from CSSLab — converting
+     a model's file format doesn't, on its own, grant the right to
+     relicense it under different terms. This is the step that needed
+     fixing, and is fixed: `cstr/maia3-onnx-int32`'s license tag and
+     README now correctly state AGPL-3.0 with attribution to the
+     original source, rather than conveying it under an inaccurate
+     permissive label.
+  2. **The app's runtime download-and-use — a different, weaker case.**
+     CrispChess fetching that file onto an end user's own device to run
+     local inference is much closer to ordinary software use (`pip
+     install` fetching a package, a browser fetching a resource) than
+     to redistribution — no further copies are made available to
+     anyone by the app itself. Whether trained weight *values* (as
+     opposed to the code that produced them) carry a training
+     project's copyleft into every downstream device that merely uses
+     them is an unsettled question industry-wide, not specific to this
+     app — the same one every project shipping downloaded
+     GGUF/ONNX/safetensors weights derived from a copyleft-licensed
+     training project operates under. The position here follows that
+     norm: disclose the actual license accurately (this file, the
+     README, and the in-app About screen all correctly state AGPL-3.0)
+     and attribute properly, rather than seek case-by-case permission
+     or assume undocumented relicensing.
 - **Mitigation: no third-party code executes at all, on any platform.**
   Maia3 inference no longer uses Microsoft's `onnxruntime` (or any
   other pre-built ONNX runtime, JS or native). It runs on a from-scratch
@@ -94,9 +107,10 @@ or compiled into CrispChess.
   separate process/Worker" mitigation used for Stockfish/Lc0 below:
   there, GPL code still *executes*, just outside the app's own
   process. Here, no AGPL/GPL code executes anywhere, in any process —
-  only original MIT code operating on downloaded numeric data. The
-  remaining open question is the weights themselves (see above),
-  unaffected by this change either way.
+  only original MIT code operating on downloaded numeric data. This
+  change affects only act 2 above (the app's runtime download-and-use);
+  act 1 (the HuggingFace re-upload) and its compliance status are
+  unrelated to what executes the weights afterward.
 - Verified numerically equivalent to the original `onnxruntime`-based
   implementation on the 5M model (max logit diff ~2e-5, matching
   float32 rounding) before switching over.
