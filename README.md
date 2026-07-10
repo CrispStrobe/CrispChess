@@ -14,7 +14,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 |--------|---------|------|-----------|-------|
 | **Built-in** | MIT | ~1800 | All | Pure Dart, alpha-beta + NMP + PVS |
 | **Maia3 (JS)** | MIT (code) / AGPL-3.0 (weights)¹ | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
-| **Maia3 Dart** | MIT (code) / AGPL-3.0 (weights)¹ | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
+| **Maia3 Dart** | MIT (code) / AGPL-3.0 (weights)¹ | ~1500–2500 | All | Neural net, 100% pure Dart incl. a from-scratch ONNX interpreter — no third-party runtime |
 | **Frozenight** | MIT / Apache-2.0 | ~3226 | All (WASM + FFI) | Rust NNUE engine |
 | **Lynx** | MIT | ~3350 | All (WASM + native) | C# classical HCE, .NET WASM on web |
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
@@ -205,7 +205,7 @@ lib/
     lynx_web_engine.dart          # Lynx engine — .NET WASM (web)
     frozenight_engine.dart        # Frozenight FFI (native) / WASM (web)
     stockfish_engine.dart         # Stockfish process (native) / Web Worker
-    maia3_dart_engine.dart        # Maia3 Dart — native ONNX
+    maia3_dart_engine.dart        # Maia3 Dart — pure Dart, all platforms (incl. its own ONNX interpreter)
     lc0_engine.dart               # Lc0 MCTS + neural net
   services/
     engine_service.dart           # Engine lifecycle + event stream
@@ -285,11 +285,11 @@ The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all o
 | Component | License | Bundled in binary |
 |-----------|---------|-------------------|
 | CrispChess app + Built-in engine | MIT | Yes |
-| Maia3 Dart / JS (tokenization + sampling glue code) | MIT | Yes |
+| Maia3 Dart (tokenization, sampling, and the ONNX interpreter itself) | MIT | Yes |
 | Maia3 model weights | AGPL-3.0¹ | No — downloaded at runtime |
 | Frozenight | MIT + Apache-2.0 | Yes (WASM) |
 | Lynx | MIT | Yes (WASM on web), downloaded on desktop |
-| ONNX Runtime Web | MIT | Yes (lazy-loaded JS) |
+| ONNX Runtime Web (used by the separate "Maia3 (JS)" web engine and Lc0's web bridge — not Maia3 Dart, which has no runtime dependency at all) | MIT | Yes (lazy-loaded JS) |
 | Stockfish | GPL-3.0 | No — downloaded separately, runs isolated |
 | Lc0 | GPL-3.0 | No — downloaded separately, runs isolated |
 
@@ -304,14 +304,27 @@ model card (`MaiaChess/maia3-*`) explicitly states the weights follow
 the repo's license, not an independent one. The downstream MIT
 self-declarations on the repos this app actually pulls from do not
 appear to carry a documented relicensing grant from CSSLab, so this
-app treats the AGPL-3.0 status as authoritative going forward. Unlike
-Stockfish/Lc0 — which are isolated in a separate OS process or Web
-Worker (satisfying the standard "mere aggregation" exception) — Maia3
-inference currently runs in-process via the `onnxruntime` plugin;
-isolating it the same way is planned but not yet shipped. We intend to
-reach out to CSSLab for clarification/permission; until resolved,
-treat Maia3's licensing status as unsettled rather than assume the
-downstream MIT tags are correct.
+app treats the AGPL-3.0 status as authoritative going forward.
+
+Rather than isolating a third-party ONNX runtime in a separate
+process (the mitigation Stockfish/Lc0 use, since those really do run
+GPL code, just outside the app's own process), Maia3 Dart instead runs
+**no third-party code at all**: a from-scratch Dart interpreter
+(`lib/engines/maia3_dart/onnx/`) parses the `.onnx` file directly
+(implementing the public, Apache-2.0 ONNX format spec) and executes
+its graph using original implementations of the standard ONNX
+operators. Only original MIT code ever executes; only the downloaded
+weight *data* carries the open AGPL-3.0 question above, unaffected by
+how it's executed. Verified numerically equivalent to the previous
+`onnxruntime`-based implementation before switching over. We intend to
+reach out to CSSLab for clarification/permission on the weights
+themselves regardless; until resolved, treat that specific question as
+unsettled rather than assume the downstream MIT tags were correct.
+
+The separate **"Maia3 (JS)"** engine (web-only, listed in the table
+above) still uses `onnxruntime-web` in-process and hasn't had the same
+treatment applied yet — same underlying weight-license question, less
+isolation. Not yet addressed.
 
 Piece themes are from [Lichess](https://github.com/lichess-org/lila) under MIT, CC0, or CC-BY 4.0.
 

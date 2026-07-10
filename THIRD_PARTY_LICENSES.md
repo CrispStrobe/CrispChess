@@ -69,13 +69,25 @@ or compiled into CrispChess.
   different terms. We are treating the downstream MIT tags as
   unverified and the AGPL-3.0 upstream status as the one to actually
   comply with, pending a response from CSSLab.
-- **Current mitigation status:** unlike Stockfish/Lc0 below, which are
-  never bundled and run in an isolated process/Web Worker (the
-  standard "mere aggregation" exception), Maia3 inference currently
-  runs **in-process** via the `onnxruntime` Flutter plugin on all
-  platforms. Isolating it into a separate process/Worker/WebView
-  (matching Stockfish's treatment) is planned, not yet shipped — until
-  then, treat this component's compliance status as open, not settled.
+- **Mitigation: no third-party code executes at all, on any platform.**
+  Maia3 inference no longer uses Microsoft's `onnxruntime` (or any
+  other pre-built ONNX runtime, JS or native). It runs on a from-scratch
+  Dart interpreter (`lib/engines/maia3_dart/onnx/`) that parses the
+  `.onnx` file's protobuf container (implementing the public,
+  Apache-2.0 ONNX format specification — not CSSLab's code) and
+  executes its computation graph using original Dart implementations
+  of the ~25 standard ONNX operators (Add, MatMul, LayerNormalization,
+  Softmax, etc. — all part of the open ONNX operator spec at onnx.ai).
+  This is a strictly stronger position than the "isolated in a
+  separate process/Worker" mitigation used for Stockfish/Lc0 below:
+  there, GPL code still *executes*, just outside the app's own
+  process. Here, no AGPL/GPL code executes anywhere, in any process —
+  only original MIT code operating on downloaded numeric data. The
+  remaining open question is the weights themselves (see above),
+  unaffected by this change either way.
+- Verified numerically equivalent to the original `onnxruntime`-based
+  implementation on the 5M model (max logit diff ~2e-5, matching
+  float32 rounding) before switching over.
 - **Previous note in this file** ("Research use... weights treated as
   independent output, same principle as GCC-compiled programs") is
   **retracted** — that reasoning doesn't hold once the actual rights

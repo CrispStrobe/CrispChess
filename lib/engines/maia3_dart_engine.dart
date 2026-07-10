@@ -1,10 +1,8 @@
 /// Maia3 Dart engine — pure Dart port of maia3-js.
 ///
-/// All tokenization, move vocabulary, and sampling logic is in Dart.
-/// Only ONNX inference is platform-specific (native FFI / web JS interop).
-///
-/// This is the native/stub version. On web, the conditional import
-/// in engine_factory.dart resolves to maia3_dart_web_engine.dart instead.
+/// All tokenization, move vocabulary, sampling, *and* ONNX inference are
+/// pure Dart — one implementation for every platform (see
+/// maia3_dart/onnx_model_dart.dart and maia3_dart/onnx/).
 ///
 /// License: MIT (port of maia3-js MIT code).
 
@@ -18,7 +16,7 @@ import 'maia3_dart/encoding.dart';
 import 'maia3_dart/history.dart';
 import 'maia3_dart/moves.dart' as moves;
 import 'maia3_dart/onnx_model.dart';
-import 'maia3_dart/onnx_model_native.dart';
+import 'maia3_dart/onnx_model_dart.dart';
 import 'maia3_dart/utils.dart';
 import 'maia3_dart/variants.dart';
 import 'uci_position.dart';
@@ -59,7 +57,7 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
     try {
       final variant = getVariant(variantId);
-      _model = Maia3NativeOnnxModel(variant: variant);
+      _model = Maia3DartOnnxModel(variant: variant);
       await _model!.load();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Maia3Dart] Ready (${variant.displayName})');

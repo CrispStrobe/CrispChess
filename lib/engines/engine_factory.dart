@@ -17,8 +17,7 @@ import 'frozenight_engine.dart'
 import 'maia3_engine.dart'
     if (dart.library.js_interop) 'maia3_web_engine.dart';
 
-import 'maia3_dart_engine.dart'
-    if (dart.library.js_interop) 'maia3_dart_web_engine.dart';
+import 'maia3_dart_engine.dart'; // pure Dart, one implementation for every platform
 
 import 'lynx_engine.dart'
     if (dart.library.js_interop) 'lynx_web_engine.dart';

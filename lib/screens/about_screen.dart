@@ -86,12 +86,14 @@ class _AboutScreenState extends State<AboutScreen> {
                   'Pure Dart engine. Alpha-beta + TT + quiescence + '
                   'reverse futility pruning + LMR. Works everywhere.'),
               SizedBox(height: 12),
-              _EngineInfo('Maia3 / Maia3 Dart', '~1500-2500 ELO', 'AGPL-3.0 (weights)',
+              _EngineInfo('Maia3 Dart', '~1500-2500 ELO', 'AGPL-3.0 (weights)',
                   'Neural network trained on human games. '
                   'ELO-conditioned: plays like a human at your rating. '
-                  '3 model sizes (5M/23M/79M). Glue code is MIT; the '
-                  'weights\' upstream license is AGPL-3.0 — see '
-                  'THIRD_PARTY_LICENSES.md for details.'),
+                  '3 model sizes (5M/23M/79M). 100% pure Dart, including '
+                  'a from-scratch ONNX interpreter — no third-party code '
+                  'runs, only original MIT code operating on downloaded '
+                  'weight data. The weights\' upstream license is '
+                  'AGPL-3.0 — see THIRD_PARTY_LICENSES.md for details.'),
               SizedBox(height: 12),
               _EngineInfo('Lc0', '~1100-1900 ELO', 'GPL-3.0',
                   'MCTS + Maia neural network. AlphaZero-style search. '
