@@ -314,12 +314,22 @@ GPL code, just outside the app's own process), Maia3 Dart instead runs
 (implementing the public, Apache-2.0 ONNX format spec) and executes
 its graph using original implementations of the standard ONNX
 operators. Only original MIT code ever executes; only the downloaded
-weight *data* carries the open AGPL-3.0 question above, unaffected by
-how it's executed. Verified numerically equivalent to the previous
-`onnxruntime`-based implementation before switching over. We intend to
-reach out to CSSLab for clarification/permission on the weights
-themselves regardless; until resolved, treat that specific question as
-unsettled rather than assume the downstream MIT tags were correct.
+weight *data* carries the AGPL-3.0 question above, unaffected by how
+it's executed. Verified numerically equivalent to the previous
+`onnxruntime`-based implementation before switching over.
+
+Whether trained weight *values* themselves (as opposed to the code
+that produced them) carry their training project's copyleft when
+redistributed independently is an unsettled question industry-wide —
+the same one every app shipping downloaded GGUF/ONNX/safetensors
+weights from a copyleft-licensed training project operates under, not
+one specific to this app. We're not seeking a case-by-case resolution
+from every upstream author; the position taken here is the same one
+that ecosystem runs on: disclose the actual license accurately (this
+section, `THIRD_PARTY_LICENSES.md`, and the in-app About screen all
+state AGPL-3.0 rather than the incorrect downstream MIT tags) and
+attribute properly, rather than assume permissive relicensing that
+isn't documented.
 
 The separate **"Maia3 (JS)"** engine (web-only, listed in the table
 above) still uses `onnxruntime-web` in-process and hasn't had the same

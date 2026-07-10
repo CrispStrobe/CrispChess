@@ -66,9 +66,21 @@ or compiled into CrispChess.
   those intermediate repos self-declare **MIT**, but neither documents
   a relicensing grant from CSSLab — converting a model's file format
   does not, on its own, grant the right to relicense it under
-  different terms. We are treating the downstream MIT tags as
-  unverified and the AGPL-3.0 upstream status as the one to actually
-  comply with, pending a response from CSSLab.
+  different terms. We treat the downstream MIT tags as unverified and
+  the AGPL-3.0 upstream status as authoritative (already corrected on
+  our own `cstr/maia3-onnx-int32` model card's license tag and README).
+- Whether trained weight *values* (as opposed to the code that
+  produced them) carry a training project's copyleft when
+  redistributed independently, separate from the code that executes
+  them, is an unsettled question industry-wide, not something specific
+  to this app — the same one every project shipping downloaded
+  GGUF/ONNX/safetensors weights derived from a copyleft-licensed
+  training project operates under. The position here follows that same
+  norm rather than seeking case-by-case resolution from every upstream
+  author: disclose the actual license accurately (this file, the
+  README, and the in-app About screen all correctly state AGPL-3.0)
+  and attribute properly, rather than assume permissive relicensing
+  that isn't documented.
 - **Mitigation: no third-party code executes at all, on any platform.**
   Maia3 inference no longer uses Microsoft's `onnxruntime` (or any
   other pre-built ONNX runtime, JS or native). It runs on a from-scratch
