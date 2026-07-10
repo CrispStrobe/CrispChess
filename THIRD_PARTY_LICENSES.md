@@ -54,14 +54,42 @@ or compiled into CrispChess.
 
 ## Maia3 Neural Network Weights
 
-- **License:** Research use (model weights are outputs, not code)
-- **Source:** https://huggingface.co/cemoss17/maia3-onnx
-- **Training code:** AGPL (CSSLab/maia-chess), but weights are treated
-  as independent output (same principle as GCC-compiled programs).
+- **Authoritative license: AGPL-3.0.** The official authors' repo,
+  https://github.com/CSSLab/maia3, is AGPL-3.0, and its own Hugging
+  Face model cards (`MaiaChess/maia3-*`) explicitly say the weights
+  follow the repo's license ("see repo for code/weights license") —
+  i.e. the copyright holders themselves say AGPL-3.0 covers the
+  weights, not just the training code.
+- **What we actually download:** `huggingface.co/cstr/maia3-onnx-int32`
+  (a CrispChess-side mirror/modification of `cemoss17/maia3-onnx`,
+  adding ONNX Cast nodes for Safari/WebKit compatibility). Both of
+  those intermediate repos self-declare **MIT**, but neither documents
+  a relicensing grant from CSSLab — converting a model's file format
+  does not, on its own, grant the right to relicense it under
+  different terms. We are treating the downstream MIT tags as
+  unverified and the AGPL-3.0 upstream status as the one to actually
+  comply with, pending a response from CSSLab.
+- **Current mitigation status:** unlike Stockfish/Lc0 below, which are
+  never bundled and run in an isolated process/Web Worker (the
+  standard "mere aggregation" exception), Maia3 inference currently
+  runs **in-process** via the `onnxruntime` Flutter plugin on all
+  platforms. Isolating it into a separate process/Worker/WebView
+  (matching Stockfish's treatment) is planned, not yet shipped — until
+  then, treat this component's compliance status as open, not settled.
+- **Previous note in this file** ("Research use... weights treated as
+  independent output, same principle as GCC-compiled programs") is
+  **retracted** — that reasoning doesn't hold once the actual rights
+  holder has explicitly stated the weights follow the AGPL repo
+  license; the GCC-output exception is an explicit carve-out the FSF
+  wrote into GCC's own licensing, and no equivalent exception exists
+  here.
 
 ## Maia/Lc0 Neural Network Weights
 
-- **License:** Research use
+- **License:** stated as "Research use" on the Hugging Face repo, not
+  independently re-verified against the original CSSLab/maia-chess
+  license the way Maia3 was above — this entry should get the same
+  level of scrutiny before being relied on. Flagged, not yet resolved.
 - **Source:** https://huggingface.co/shermansiu/maia-1100 through maia-1900
 - **Original:** https://github.com/CSSLab/maia-chess
 

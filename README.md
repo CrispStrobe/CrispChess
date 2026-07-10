@@ -13,8 +13,8 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | Engine | License | ~ELO | Platforms | Notes |
 |--------|---------|------|-----------|-------|
 | **Built-in** | MIT | ~1800 | All | Pure Dart, alpha-beta + NMP + PVS |
-| **Maia3 (JS)** | MIT | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
-| **Maia3 Dart** | MIT | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
+| **Maia3 (JS)** | MIT (code) / AGPL-3.0 (weights)¹ | ~1500–2500 | Web | Neural net, human-like play via JS bridge |
+| **Maia3 Dart** | MIT (code) / AGPL-3.0 (weights)¹ | ~1500–2500 | All | Neural net, pure Dart + ONNX Runtime |
 | **Frozenight** | MIT / Apache-2.0 | ~3226 | All (WASM + FFI) | Rust NNUE engine |
 | **Lynx** | MIT | ~3350 | All (WASM + native) | C# classical HCE, .NET WASM on web |
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
@@ -22,7 +22,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | **Custom UCI** | Any | Any | Desktop/Mobile | Load any engine binary from disk |
 
 - **Built-in** — pure Dart engine with alpha-beta pruning, null move pruning, principal variation search, transposition table, quiescence search with MVV-LVA + delta pruning, and piece-square table evaluation. Works everywhere including Web WASM.
-- **Maia3** — ELO-conditioned neural network trained on human games. Three model sizes: 5M (~25MB), 23M (~92MB), 79M (~313MB).
+- **Maia3** — ELO-conditioned neural network trained on human games. Three model sizes: 5M (~25MB), 23M (~92MB), 79M (~313MB). ¹ Weights are downloaded at runtime, never bundled — see [Engine Licenses](#engine-licenses) below for the full provenance chain and license status.
 - **Frozenight** — NNUE-based Rust engine compiled to WASM for web.
 - **Lynx** — strong classical engine (~3350 ELO) by Eduardo Caceres. MIT licensed. Runs as native binary (desktop, downloaded on first use) or .NET WASM in the browser (compiled from C# via `wasm-tools`, ~6 MB). Supports Chess960.
 - **Stockfish** — strongest traditional engine. Runs as Web Worker (web), process (desktop/Android), or JavaScriptCore (iOS). Downloaded at runtime.
@@ -285,13 +285,33 @@ The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all o
 | Component | License | Bundled in binary |
 |-----------|---------|-------------------|
 | CrispChess app + Built-in engine | MIT | Yes |
-| Maia3 Dart (tokenization + sampling) | MIT | Yes |
-| ONNX model weights (maia3-onnx) | Research use | Downloaded at runtime |
+| Maia3 Dart / JS (tokenization + sampling glue code) | MIT | Yes |
+| Maia3 model weights | AGPL-3.0¹ | No — downloaded at runtime |
 | Frozenight | MIT + Apache-2.0 | Yes (WASM) |
 | Lynx | MIT | Yes (WASM on web), downloaded on desktop |
 | ONNX Runtime Web | MIT | Yes (lazy-loaded JS) |
-| Stockfish | GPL-3.0 | No — downloaded separately |
-| Lc0 | GPL-3.0 | No — downloaded separately |
+| Stockfish | GPL-3.0 | No — downloaded separately, runs isolated |
+| Lc0 | GPL-3.0 | No — downloaded separately, runs isolated |
+
+¹ **Maia3 weight provenance and license status.** CrispChess downloads
+weights from `huggingface.co/cstr/maia3-onnx-int32` (a CrispChess-side
+mirror, modified for Safari/WebKit ONNX compatibility, of
+`cemoss17/maia3-onnx`). Both of those Hugging Face repos self-declare
+MIT. However, the authoritative upstream source — the official
+[CSSLab/maia3](https://github.com/CSSLab/maia3) repository by the
+model's actual authors — is **AGPL-3.0**, and its own Hugging Face
+model card (`MaiaChess/maia3-*`) explicitly states the weights follow
+the repo's license, not an independent one. The downstream MIT
+self-declarations on the repos this app actually pulls from do not
+appear to carry a documented relicensing grant from CSSLab, so this
+app treats the AGPL-3.0 status as authoritative going forward. Unlike
+Stockfish/Lc0 — which are isolated in a separate OS process or Web
+Worker (satisfying the standard "mere aggregation" exception) — Maia3
+inference currently runs in-process via the `onnxruntime` plugin;
+isolating it the same way is planned but not yet shipped. We intend to
+reach out to CSSLab for clarification/permission; until resolved,
+treat Maia3's licensing status as unsettled rather than assume the
+downstream MIT tags are correct.
 
 Piece themes are from [Lichess](https://github.com/lichess-org/lila) under MIT, CC0, or CC-BY 4.0.
 
