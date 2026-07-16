@@ -13,9 +13,8 @@ library;
 import 'dart:typed_data';
 
 import 'onnx/model_fetch.dart';
-import 'onnx/onnx.pb.dart';
-import 'onnx/onnx_graph.dart';
-import 'onnx/tensor.dart';
+import 'package:onnx_runtime_dart/onnx_proto.dart';
+import 'package:onnx_runtime_dart/onnx_runtime_dart.dart';
 import 'onnx_model.dart';
 import 'variants.dart';
 

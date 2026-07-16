@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crispchess/engines/chess_engine.dart';
 import 'package:crispchess/engines/dart_engine.dart';
-import 'package:crispchess/engines/dart_engine/evaluation.dart';
+import 'package:crisp_chess_engine/crisp_chess_engine.dart';
 import 'package:chess/chess.dart' as chess;
 
 void main() {

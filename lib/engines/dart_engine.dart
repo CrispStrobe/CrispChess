@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
-import 'dart_engine/search.dart';
+import 'package:crisp_chess_engine/crisp_chess_engine.dart';
 
 /// Built-in chess engine written in pure Dart.
 ///
