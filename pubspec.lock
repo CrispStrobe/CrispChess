@@ -117,10 +117,10 @@ packages:
     dependency: "direct main"
     description:
       name: crisp_chess_engine
-      sha256: "98a1d99027061c8557d2c7a2b3ae8276165df657e3ae6763ba42bfd05486902c"
+      sha256: be9c928577f5fad3c4509bae188df67526379125f4aafa213e619751d4313ab1
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.0"
+    version: "0.8.0"
   crypto:
     dependency: transitive
     description:
@@ -383,10 +383,11 @@ packages:
   onnx_runtime_dart:
     dependency: "direct main"
     description:
-      path: "../onnx_runtime_dart"
-      relative: true
-    source: path
-    version: "0.3.2"
+      name: onnx_runtime_dart
+      sha256: d26a1aa82618b342ac7624a2eac8f0a11c459c3d656da86fb5e42ebf61292b78
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.5"
   package_config:
     dependency: transitive
     description:
