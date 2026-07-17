@@ -488,13 +488,16 @@ _License: all engine code MIT, no new dependencies._
   longer draws a won game by repetition. Also converts K+R vs K at depth 6
   (incl. a central lone king), which mop-up alone couldn't.
 
+- [x] **0.8.0** — web parity: the chess-package (web) search now gets the same
+  repetition history seeding (`positionKeyOf` + `repetitionHistory`) and the
+  endgame mop-up term, so on web the built-in engine also converts endgames and
+  won't draw a won game by repetition
+
 ### Pending / doable
 - [ ] SEE-based capture ordering in the main search (demote losing captures
   below quiet moves)
 - [ ] KPK conversion: the strong king must shepherd the pawn to promote (the
   mop-up only covers R/Q mates)
-- [ ] Web repetition awareness: the chess-package (web) search doesn't get the
-  game history yet — only the native bitboard path does
 - [ ] Countermove / continuation-history move ordering; adaptive null-move R;
   futility + late-move pruning at frontier nodes
 - [ ] Magic bitboards for slider attacks (another ~2-4x nps; higher complexity —
