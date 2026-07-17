@@ -483,14 +483,18 @@ _License: all engine code MIT, no new dependencies._
   weak levels
 - [x] **0.6.0** — endgame mop-up eval: converts K+Q vs K (depth 6) and K+R vs K
   (depth 8) that material+PST shuffled forever
+- [x] **0.7.0** — game-history repetition awareness: the search is seeded with
+  the game's prior positions (plumbed app-side through DartEngine), so it no
+  longer draws a won game by repetition. Also converts K+R vs K at depth 6
+  (incl. a central lone king), which mop-up alone couldn't.
 
 ### Pending / doable
 - [ ] SEE-based capture ordering in the main search (demote losing captures
   below quiet moves)
-- [ ] More endgame conversion: KRK from a central king / KPK (needs the strong
-  king to shepherd the pawn; the current mop-up only covers R/Q mates)
-- [ ] Seed game history into the search so it avoids repeating won positions
-      (the shallow-depth endgame shuffle)
+- [ ] KPK conversion: the strong king must shepherd the pawn to promote (the
+  mop-up only covers R/Q mates)
+- [ ] Web repetition awareness: the chess-package (web) search doesn't get the
+  game history yet — only the native bitboard path does
 - [ ] Countermove / continuation-history move ordering; adaptive null-move R;
   futility + late-move pruning at frontier nodes
 - [ ] Magic bitboards for slider attacks (another ~2-4x nps; higher complexity —
