@@ -17,6 +17,7 @@ import 'maia3_dart/history.dart';
 import 'maia3_dart/moves.dart' as moves;
 import 'maia3_dart/onnx_model.dart';
 import 'maia3_dart/onnx_model_dart.dart';
+import 'maia3_dart/onnx_runtime_backend.dart';
 import 'maia3_dart/utils.dart';
 import 'maia3_dart/variants.dart';
 import 'uci_position.dart';
@@ -30,6 +31,12 @@ class Maia3DartEngine implements ChessEngine {
   final double topP;
 
   Maia3OnnxModel? _model;
+
+  /// Backend selector. The default is the onnx_runtime_dart `OnnxModel`
+  /// backend (isolate-pooled + batched). Flip to true to fall back to the
+  /// legacy direct-executor wiring in maia3_dart/onnx_model_dart.dart, kept
+  /// as the parity oracle (test/maia3_runtime_parity_test.dart).
+  static bool useLegacyBackend = false;
 
   Maia3DartEngine({
     this.variantId = defaultVariant,
@@ -56,7 +63,9 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
     try {
       final variant = getVariant(variantId);
-      _model = Maia3DartOnnxModel(variant: variant);
+      _model = useLegacyBackend
+          ? Maia3DartOnnxModel(variant: variant)
+          : Maia3OnnxRuntimeBackend(variant: variant);
       await _model!.load();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Maia3Dart] Ready (${variant.displayName})');
