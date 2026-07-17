@@ -3,6 +3,22 @@ name: Deploy Web
 on:
   push:
     branches: [main]
+    # Only redeploy when something that affects the web build changes. Docs,
+    # tests, CI config and the non-web platform dirs don't — skipping them
+    # avoids burning Vercel's free-tier daily deploy quota (100/day).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'test/**'
+      - 'integration_test/**'
+      - 'test_driver/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'macos/**'
+      - 'windows/**'
+      - 'linux/**'
+      - '.appstoreconnect/**'
+      - '.github/**'
   workflow_dispatch:
 
 concurrency:
