@@ -4,11 +4,23 @@
 // dart2js can't represent).
 import 'package:crisp_chess_engine/bitboard.dart';
 
-/// Search [fen] to [depth], bounded by [budgetMs] (0 = no budget). Returns the
-/// best move from the last completed depth, or null if there are no legal moves.
-SearchResult? searchPositionNative(String fen, int depth, int budgetMs) {
-  final pos = Position.fromFen(fen);
-  return BitboardSearch(pos).search(
+/// Replay [moves] from [baseFen] and search the resulting position to [depth],
+/// bounded by [budgetMs] (0 = no budget). The replay also collects the game's
+/// position history so the search avoids repeating positions already reached —
+/// otherwise it can draw a won game (or shuffle a won ending) by repetition.
+/// Returns the best move from the last completed depth, or null if there are no
+/// legal moves.
+SearchResult? searchPositionNative(
+    String baseFen, List<String> moves, int depth, int budgetMs) {
+  final pos = Position.fromFen(baseFen);
+  final history = <int>[pos.hash()];
+  for (final uci in moves) {
+    final m = pos.moveFromUci(uci);
+    if (m < 0) break; // unparseable/illegal — stop replaying, search what we have
+    pos.makeMove(m);
+    history.add(pos.hash());
+  }
+  return BitboardSearch(pos, repetitionHistory: history).search(
     depth,
     timeBudget: budgetMs > 0 ? Duration(milliseconds: budgetMs) : null,
   );

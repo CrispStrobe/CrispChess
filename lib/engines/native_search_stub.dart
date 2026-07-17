@@ -4,7 +4,8 @@
 // path uses the chess-package search directly (DartEngine._searchWeb).
 import 'package:crisp_chess_engine/crisp_chess_engine.dart';
 
-SearchResult? searchPositionNative(String fen, int depth, int budgetMs) {
+SearchResult? searchPositionNative(
+    String baseFen, List<String> moves, int depth, int budgetMs) {
   throw UnsupportedError('bitboard engine is native-only');
 }
 

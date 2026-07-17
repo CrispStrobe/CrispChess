@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'uci_position.dart';
 import 'package:crisp_chess_engine/crisp_chess_engine.dart';
 // Native builds get the bitboard engine here; web resolves to a stub and uses
 // the chess-package search in _searchWeb instead.
@@ -57,6 +58,7 @@ class DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     _applyPosition(positionCommand);
+    final parsed = parsePositionCommand(positionCommand);
 
     final skill = skillLevel ?? 10;
     final searchDepth = depth ?? _depthFromSkill(skill);
@@ -73,7 +75,8 @@ class DartEngine implements ChessEngine {
       result = await compute(
         _searchInIsolate,
         _SearchRequest(
-          fen: _game.fen,
+          baseFen: parsed.baseFen,
+          moves: parsed.moves,
           depth: searchDepth,
           budgetMs: budget.inMilliseconds,
         ),
@@ -146,6 +149,7 @@ class DartEngine implements ChessEngine {
     if (_disposed) return;
     _stateNotifier.value = EngineState.thinking;
     _applyPosition(positionCommand);
+    final parsed = parsePositionCommand(positionCommand);
     final maxDepth = infinite ? 100 : (depth ?? 20);
     _search = AlphaBetaSearch(_game);
 
@@ -166,7 +170,8 @@ class DartEngine implements ChessEngine {
         result = await compute(
           _searchInIsolate,
           _SearchRequest(
-            fen: _game.fen,
+            baseFen: parsed.baseFen,
+            moves: parsed.moves,
             depth: d,
             budgetMs: perIteration.inMilliseconds,
           ),
@@ -234,11 +239,13 @@ class DartEngine implements ChessEngine {
 }
 
 class _SearchRequest {
-  final String fen;
+  final String baseFen;
+  final List<String> moves;
   final int depth;
   final int budgetMs;
   _SearchRequest({
-    required this.fen,
+    required this.baseFen,
+    required this.moves,
     required this.depth,
     required this.budgetMs,
   });
@@ -248,5 +255,7 @@ SearchResult? _searchInIsolate(_SearchRequest request) {
   // Native only (compute() isolates don't exist on web). Uses the bitboard
   // engine — ~20-60x the nodes/sec of the chess-package search. The time
   // budget is what guarantees a prompt return: the isolate can't be signalled.
-  return searchPositionNative(request.fen, request.depth, request.budgetMs);
+  // baseFen + moves let it rebuild the game history for repetition detection.
+  return searchPositionNative(
+      request.baseFen, request.moves, request.depth, request.budgetMs);
 }

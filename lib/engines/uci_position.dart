@@ -25,6 +25,21 @@ const Set<String> _promotionChars = {'q', 'r', 'b', 'n'};
 String fenFromPositionCommand(String command) =>
     fenHistoryFromPositionCommand(command, limit: 1).last;
 
+/// Splits a UCI `position` command into its base FEN and the list of UCI moves
+/// played from it. Lets an engine replay the game to recover the full position
+/// history (e.g. for repetition detection) rather than only the final FEN.
+({String baseFen, List<String> moves}) parsePositionCommand(String command) {
+  final parts = command.trim().split(RegExp(r'\s+'));
+  final movesIdx = parts.indexOf('moves');
+  String baseFen = _startFen;
+  if (parts.length >= 2 && parts[1] == 'fen') {
+    final end = movesIdx > 0 ? movesIdx : parts.length;
+    if (end > 2) baseFen = parts.sublist(2, end).join(' ');
+  }
+  final moves = movesIdx >= 0 ? parts.sublist(movesIdx + 1) : const <String>[];
+  return (baseFen: baseFen, moves: moves);
+}
+
 /// Builds the sequence of FENs the position command passes through, oldest to
 /// newest, with the *current* position last. Keeps at most [limit] entries
 /// (the most recent ones).
