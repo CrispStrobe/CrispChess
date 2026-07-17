@@ -451,6 +451,51 @@ _License: `sqflite` (BSD) or `drift` (MIT) for SQLite. All code MIT._
 
 ---
 
+## Phase 28: Built-in Engine — Bitboard Core & Strength
+
+_Goal: make the built-in ("Built-in" / Dart) engine fast, correct, and strong.
+The engine now lives in the extracted `crisp_chess_engine` package (pub.dev)._
+_License: all engine code MIT, no new dependencies._
+
+### Completed (this cycle)
+- [x] Extracted the engine to the `crisp_chess_engine` package (pub.dev), app depends on it
+- [x] **0.2.0** — fixed a search bug that returned moves for the *wrong side*
+  (null-move via `load()` wiped undo history; `evaluate()` called
+  `in_threefold_repetition`, restoring `turn` behind the search). TT key now
+  includes castling + en-passant. ~5x faster.
+- [x] Drive play by **time, not fixed depth** — level-scaled `movetime`; fixes
+  the tablet "hang" and Stockfish being slow at low Skill Level
+- [x] Maia3: feed the *real* consecutive game history (from the position
+  command) instead of engine-side accumulation that skipped every other ply;
+  removed the dead JS-bridge Maia3 engine (native stub that threw)
+- [x] **0.3.0** — native **bitboard engine**, perft-verified (startpos, Kiwipete,
+  positions 3-6); 20-60x nodes/sec (depth-8 midgame ~37s → ~0.8s). Wired via
+  conditional import: native uses bitboards, web keeps the chess-package search
+  (dart2js can't represent 64-bit ints)
+- [x] **0.4.0** — aspiration windows + SEE quiescence pruning (~32% fewer nodes
+  to a given depth → deeper in the same time budget)
+
+### Pending / doable
+- [ ] **Evaluation terms** (biggest strength lever now search is fast): bishop
+  pair, mobility, passed pawns, doubled/isolated pawns, basic king safety
+  (pawn shield + attacker count). Verify each with a self-play match
+  (new eval must score > 50% vs old).
+- [ ] SEE-based capture ordering in the main search (demote losing captures
+  below quiet moves)
+- [ ] Clock-aware time management — allocate the per-move budget from remaining
+  clock + increment, not a flat per-level budget
+- [ ] Endgame knowledge: KPK / KQK / KRK heuristics so won endings don't dawdle
+  (the K+P-vs-K horizon that evaluates ~0)
+- [ ] Countermove / continuation-history move ordering; adaptive null-move R;
+  futility + late-move pruning at frontier nodes
+- [ ] Magic bitboards for slider attacks (another ~2-4x nps; higher complexity —
+  only if a concrete need appears)
+- [ ] Expanded opening book feeding the engine (currently ~40 positions)
+- [ ] Web parity: evaluate `dart2wasm` (real 64-bit ints) so web could also run
+  the bitboard engine instead of the slower chess-package search
+
+---
+
 ## Backlog (Not Prioritized)
 
 _Items that don't fit current strategy or have low ROI._
