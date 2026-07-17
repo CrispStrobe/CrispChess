@@ -97,6 +97,48 @@ Duration thinkTimeForLevel(int skillLevel) =>
 /// enough not to weaken the answer, but still bounded so nothing can hang.
 const Duration kFixedDepthTimeCap = Duration(seconds: 5);
 
+/// Per-move think time when a real clock is running, derived from the engine's
+/// own [remaining] time and the Fischer [incrementSeconds].
+///
+/// Replaces the flat per-level budget for clocked games. The flat budget both
+/// *flags* the engine in bullet (a 2s cap x ~30 moves spends a 1-minute clock)
+/// and *wastes* long clocks (the strongest bot would leave 29 of 30 minutes
+/// unused). This instead:
+///  - takes a fair slice of the clock (~1/30) plus most of the increment,
+///  - never commits more than a quarter of the clock, or an absolute 30s (app
+///    UX cap), to one move,
+///  - keeps a safety margin so a search can never flag the clock — and because
+///    the slice shrinks with the clock, it asymptotically never runs out,
+///  - blends toward the flat per-level budget for weak levels, so a weak bot
+///    stays fast (and weak) while the strongest uses the full slice.
+Duration clockAwareThinkTime({
+  required Duration remaining,
+  required int incrementSeconds,
+  required int skillLevel,
+}) {
+  final remMs = remaining.inMilliseconds;
+  if (remMs <= 0) return const Duration(milliseconds: 50);
+
+  var slice = remMs ~/ 30 + (incrementSeconds * 1000 * 7) ~/ 10;
+  final quarter = remMs ~/ 4;
+  if (slice > quarter) slice = quarter;
+  if (slice > 30000) slice = 30000; // absolute per-move cap for app UX
+
+  final safety = (remMs ~/ 10).clamp(200, 3000);
+  final usable = remMs - safety;
+  if (slice > usable) slice = usable > 50 ? usable : 50;
+  if (slice < 50) slice = 50;
+
+  // Weak levels play fast (near the flat per-level budget); strong levels use
+  // the full slice. Linear blend by level.
+  final levelMs = thinkTimeForLevel(skillLevel).inMilliseconds;
+  final weakTarget = levelMs < slice ? levelMs : slice;
+  final t = skillLevel.clamp(0, 20) / 20;
+  var ms = (weakTarget + (slice - weakTarget) * t).round();
+  if (ms < 50) ms = 50;
+  return Duration(milliseconds: ms);
+}
+
 /// Build the UCI `go` command for a move request.
 ///
 /// Prefers `movetime`. `Skill Level` weakens Stockfish's *play* but does not

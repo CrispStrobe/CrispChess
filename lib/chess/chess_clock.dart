@@ -80,6 +80,9 @@ class ChessClock extends ChangeNotifier {
 
   int get _incrementSecs => customIncrementSeconds ?? timeControl.incrementSeconds;
 
+  /// Fischer increment (seconds) added to a player after each move.
+  int get incrementSeconds => _incrementSecs;
+
   bool get isUnlimited => timeControl.isUnlimited;
   bool get isStarted => _started;
   bool get isWhiteTurn => _isWhiteTurn;

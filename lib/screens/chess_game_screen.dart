@@ -632,6 +632,22 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _engineService.requestMove(
       _game.positionCommand,
       skillLevel: _state.strengthLevel,
+      moveTime: _engineMoveTime(),
+    );
+  }
+
+  /// When a real clock is running, budget the engine's move from *its own*
+  /// remaining time; otherwise return null so EngineService falls back to the
+  /// flat per-level think time.
+  Duration? _engineMoveTime() {
+    final clock = _clock;
+    if (clock == null || clock.isUnlimited || !clock.isStarted) return null;
+    // Player is Black => engine plays White, and vice versa.
+    final engineSide = _state.playAsBlack ? clock.white : clock.black;
+    return clockAwareThinkTime(
+      remaining: engineSide.remaining,
+      incrementSeconds: clock.incrementSeconds,
+      skillLevel: _state.strengthLevel,
     );
   }
 
