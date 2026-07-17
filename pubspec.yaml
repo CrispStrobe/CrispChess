@@ -14,8 +14,11 @@ dependencies:
     sdk: flutter
   intl: any
   chess: ^0.8.1
-  crisp_chess_engine: ^0.2.0
-  onnx_runtime_dart: ^0.2.0
+  crisp_chess_engine: ^0.3.0
+  # Path dep while iterating; can switch to `onnx_runtime_dart: ^0.3.2`
+  # from pub.dev once no local changes are needed.
+  onnx_runtime_dart:
+    path: ../onnx_runtime_dart
   ffi: ^2.0.0
   flutter_svg: ^2.2.3
   logging: ^1.2.0

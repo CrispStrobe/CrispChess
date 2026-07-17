@@ -4,6 +4,9 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
 import 'package:crisp_chess_engine/crisp_chess_engine.dart';
+// Native builds get the bitboard engine here; web resolves to a stub and uses
+// the chess-package search in _searchWeb instead.
+import 'native_search.dart';
 
 /// Built-in chess engine written in pure Dart.
 ///
@@ -242,15 +245,8 @@ class _SearchRequest {
 }
 
 SearchResult? _searchInIsolate(_SearchRequest request) {
-  final game = chess.Chess();
-  game.load(request.fen);
-  final search = AlphaBetaSearch(game);
-  // The isolate can't be signalled to stop, so the time budget is what
-  // guarantees the search returns promptly.
-  return search.search(
-    request.depth,
-    timeBudget: request.budgetMs > 0
-        ? Duration(milliseconds: request.budgetMs)
-        : null,
-  );
+  // Native only (compute() isolates don't exist on web). Uses the bitboard
+  // engine — ~20-60x the nodes/sec of the chess-package search. The time
+  // budget is what guarantees a prompt return: the isolate can't be signalled.
+  return searchPositionNative(request.fen, request.depth, request.budgetMs);
 }
