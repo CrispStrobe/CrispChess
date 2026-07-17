@@ -26,15 +26,6 @@ dependencies:
   protobuf: ^6.0.0
   fixnum: ^1.1.1
 
-# Temporary: crisp_chess_engine 0.2.0 fixes a search bug that could return a
-# move for the wrong side, and is ~5x faster. 0.2.0 is not on pub.dev yet, so
-# resolve it from git; delete this whole block once it is published.
-dependency_overrides:
-  crisp_chess_engine:
-    git:
-      url: https://github.com/CrispStrobe/crisp_chess_engine.git
-      ref: 458a12824043e308e122891b8fe92efa4dffeada
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
