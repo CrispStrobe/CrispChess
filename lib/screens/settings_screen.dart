@@ -196,8 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  bool get _isMaiaEngine =>
-      _selectedEngine == 'Maia3' || _selectedEngine == 'Maia3 Dart';
+  bool get _isMaiaEngine => _selectedEngine == 'Maia3 Dart';
   bool get _isStockfish => _selectedEngine == 'Stockfish';
   bool get _isLc0 => _selectedEngine == 'Lc0';
 
@@ -211,15 +210,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         available: true,
       ),
     ];
-
-    // Maia3 JS — bundled maia3-js + ONNX Runtime (web only)
-    engines.add(_EngineOption(
-      name: 'Maia3',
-      description: 'Neural net — human-like play (JS bridge)',
-      elo: '~1500',
-      license: 'MIT',
-      available: kIsWeb,
-    ));
 
     // Maia3 Dart — pure Dart port, works everywhere
     engines.add(_EngineOption(
@@ -306,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     switch (_selectedEngine) {
       case 'Built-in':
         return 'ELO ~${800 + level * 80}  ·  Depth ${3 + level}';
-      case 'Maia3' || 'Maia3 Dart':
+      case 'Maia3 Dart':
         final elo = 800 + (level * 60);
         return 'Target ELO ~$elo (model adapts to play at this level)';
       case 'Lc0':
@@ -585,7 +575,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       items: [
                         DropdownMenuItem(value: 'same', child: Text(l?.sameAsOpponent ?? 'Same as opponent', style: const TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Built-in', child: Text('Built-in', style: TextStyle(fontSize: 13))),
-                        DropdownMenuItem(value: 'Maia3', child: Text('Maia3', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Maia3 Dart', child: Text('Maia3 Dart', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Lc0', child: Text('Lc0', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Frozenight', child: Text('Frozenight', style: TextStyle(fontSize: 13))),

@@ -117,8 +117,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "7bec1814c4aadae30aaa3978c84704a1422dc52a"
-      resolved-ref: "7bec1814c4aadae30aaa3978c84704a1422dc52a"
+      ref: "458a12824043e308e122891b8fe92efa4dffeada"
+      resolved-ref: "458a12824043e308e122891b8fe92efa4dffeada"
       url: "https://github.com/CrispStrobe/crisp_chess_engine.git"
     source: git
     version: "0.2.0"

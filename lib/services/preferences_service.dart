@@ -32,8 +32,18 @@ class PreferencesService {
   }
 
   // Engine
-  String get engine => _prefs?.getString(_keyEngine) ?? 'Built-in';
+  String get engine => migrateEngineName(_prefs?.getString(_keyEngine)) ?? 'Built-in';
   set engine(String v) => _prefs?.setString(_keyEngine, v);
+
+  /// Maps removed engine names onto their replacements.
+  ///
+  /// 'Maia3' was a separate JS-bridge engine: web-only, and a stub that threw
+  /// on native. 'Maia3 Dart' is the same model via the pure-Dart ONNX
+  /// interpreter and works everywhere, so anyone who had the old one selected
+  /// is moved across rather than silently dropped back to the built-in engine
+  /// (and a stale value would crash the settings dropdown).
+  static String? migrateEngineName(String? name) =>
+      name == 'Maia3' ? 'Maia3 Dart' : name;
 
   // Variant (used for Maia3/Lc0/Stockfish sub-selection)
   String get variant => _prefs?.getString(_keyVariant) ?? '5m';

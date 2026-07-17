@@ -30,13 +30,9 @@ function applyPolicyMap(spatialData) {
 async function lc0OnnxLoad(modelUrl) {
   await lc0OnnxClose();
 
-  // Close maia3 sessions to avoid memory conflicts
-  if (typeof globalThis.maia3OnnxClose === 'function') {
-    try { await globalThis.maia3OnnxClose(); } catch(_) {}
-  }
-  if (typeof globalThis.maia3Close === 'function') {
-    try { await globalThis.maia3Close(); } catch(_) {}
-  }
+  // (Maia3 used to share ONNX Runtime here and its sessions had to be closed
+  // first to avoid memory conflicts. It now runs on the pure-Dart interpreter
+  // and never touches this runtime, so Lc0 is the only user.)
 
   // Lazy-load ONNX Runtime if not yet loaded
   if (typeof globalThis.ort === 'undefined') {

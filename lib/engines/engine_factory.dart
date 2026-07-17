@@ -14,9 +14,6 @@ import 'stockfish_engine.dart'
 import 'frozenight_engine.dart'
     if (dart.library.js_interop) 'frozenight_web_engine.dart';
 
-import 'maia3_engine.dart'
-    if (dart.library.js_interop) 'maia3_web_engine.dart';
-
 import 'maia3_dart_engine.dart'; // pure Dart, one implementation for every platform
 
 import 'lynx_engine.dart'
@@ -37,9 +34,10 @@ ChessEngine createEngine(String name, {
       return StockfishEngine(variantId: maia3Variant); // Downloaded from CDN
     case 'Frozenight':
       return FrozenightEngine(); // MIT/Apache-2.0
-    case 'Maia3':
-      return Maia3Engine(playerElo: playerElo ?? 1500); // MIT (JS bridge)
-    case 'Maia3 Dart':
+    // 'Maia3' is the retired JS-bridge engine; kept as an alias so a stale
+    // saved preference still gets a working Maia3. See
+    // PreferencesService.migrateEngineName.
+    case 'Maia3' || 'Maia3 Dart':
       return Maia3DartEngine(
         variantId: maia3Variant ?? '5m',
         playerElo: playerElo ?? 1500,

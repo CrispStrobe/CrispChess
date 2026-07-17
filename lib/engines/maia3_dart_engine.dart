@@ -30,7 +30,6 @@ class Maia3DartEngine implements ChessEngine {
   final double topP;
 
   Maia3OnnxModel? _model;
-  final List<String> _fenHistory = [];
 
   Maia3DartEngine({
     this.variantId = defaultVariant,
@@ -78,18 +77,17 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      final fen = _extractFen(positionCommand);
+      // Real, consecutive game history straight from the position command —
+      // maia3-js conditions on it, and it must not be reconstructed from the
+      // engine's own turns (that skips every other ply).
+      final history = _historyFor(positionCommand);
+      final fen = history.last;
       final selfElo = skillLevel != null
           ? (800 + (skillLevel * 60)).clamp(0, 5000)
           : playerElo.clamp(0, 5000);
-      final oppoElo = selfElo; // Assume equal opponent
+      final oppoElo = selfElo; // maia3-js defaults oppoElo to selfElo
 
-      // Build history tokens
-      final historyInput = HistoryInput(
-        fen: fen,
-        priorFens: _fenHistory.length > 1 ? _fenHistory : null,
-      );
-      final boards = resolveHistory(historyInput);
+      final boards = resolveHistory(_historyInput(history));
       final tokens = buildHistoryTokens(boards);
 
       // Run inference
@@ -138,10 +136,6 @@ class Maia3DartEngine implements ChessEngine {
       String bestUci = moves.indexToMove(moveIdx);
       if (isBlack) bestUci = mirrorMove(bestUci);
 
-      // Track history
-      _fenHistory.add(fen);
-      if (_fenHistory.length > 8) _fenHistory.removeAt(0);
-
       _stateNotifier.value = EngineState.ready;
       return bestUci;
     } catch (e) {
@@ -158,9 +152,9 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      final fen = _extractFen(positionCommand);
+      final history = _historyFor(positionCommand);
       final selfElo = playerElo.clamp(0, 5000);
-      final boards = resolveHistory(HistoryInput(fen: fen));
+      final boards = resolveHistory(_historyInput(history));
       final tokens = buildHistoryTokens(boards);
       final result = await _model!.infer(tokens, selfElo, selfElo);
 
@@ -193,9 +187,21 @@ class Maia3DartEngine implements ChessEngine {
   void dispose() {
     _model?.close();
     _model = null;
-    _fenHistory.clear();
     _stateNotifier.value = EngineState.disposed;
   }
 
-  String _extractFen(String cmd) => fenFromPositionCommand(cmd);
+  /// The last [historySlots] positions of the game, current one last.
+  ///
+  /// Derived per call rather than accumulated in a field: engine-side state
+  /// both skipped every other ply and leaked across games.
+  List<String> _historyFor(String positionCommand) =>
+      fenHistoryFromPositionCommand(positionCommand, limit: historySlots);
+
+  /// Split into the prior positions plus the current one, the shape
+  /// [resolveHistory] expects.
+  HistoryInput _historyInput(List<String> history) => HistoryInput(
+        fen: history.last,
+        priorFens:
+            history.length > 1 ? history.sublist(0, history.length - 1) : null,
+      );
 }

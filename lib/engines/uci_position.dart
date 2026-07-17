@@ -22,7 +22,19 @@ const Set<String> _promotionChars = {'q', 'r', 'b', 'n'};
 /// Builds the FEN for the position described by a UCI `position` command,
 /// replaying any `moves` it carries. Returns the start position FEN if the
 /// command can't be parsed.
-String fenFromPositionCommand(String command) {
+String fenFromPositionCommand(String command) =>
+    fenHistoryFromPositionCommand(command, limit: 1).last;
+
+/// Builds the sequence of FENs the position command passes through, oldest to
+/// newest, with the *current* position last. Keeps at most [limit] entries
+/// (the most recent ones).
+///
+/// History-conditioned engines (Maia3) need the real, consecutive positions of
+/// the game. Accumulating them engine-side across `bestMove` calls does not
+/// work: those only happen on the engine's own turns, so it sees every *other*
+/// ply and hands the model a game that never occurred. The position command
+/// already carries the full move list, so replay it and snapshot each ply.
+List<String> fenHistoryFromPositionCommand(String command, {int limit = 8}) {
   final parts = command.trim().split(RegExp(r'\s+'));
   final movesIdx = parts.indexOf('moves');
 
@@ -33,6 +45,7 @@ String fenFromPositionCommand(String command) {
   }
 
   final game = chess.Chess.fromFEN(baseFen);
+  final fens = <String>[game.fen];
 
   if (movesIdx >= 0) {
     for (final uci in parts.sublist(movesIdx + 1)) {
@@ -40,10 +53,14 @@ String fenFromPositionCommand(String command) {
         debugPrint('[uci_position] Could not apply move "$uci"');
         break;
       }
+      fens.add(game.fen);
     }
   }
 
-  return game.fen;
+  if (limit > 0 && fens.length > limit) {
+    return fens.sublist(fens.length - limit);
+  }
+  return fens;
 }
 
 bool _playUci(chess.Chess game, String uci) {

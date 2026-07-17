@@ -33,7 +33,7 @@ dependency_overrides:
   crisp_chess_engine:
     git:
       url: https://github.com/CrispStrobe/crisp_chess_engine.git
-      ref: 7bec1814c4aadae30aaa3978c84704a1422dc52a
+      ref: 458a12824043e308e122891b8fe92efa4dffeada
 
 dev_dependencies:
   flutter_test:

@@ -26,9 +26,8 @@ List<BoardState> resolveHistory(HistoryInput input) {
   if (input.priorFens != null && input.priorFens!.isNotEmpty) {
     final boards = input.priorFens!.map(BoardState.fromFen).toList();
     boards.add(current);
-    // Clamp to last 8
-    if (boards.length > 8) {
-      return boards.sublist(boards.length - 8);
+    if (boards.length > historySlots) {
+      return boards.sublist(boards.length - historySlots);
     }
     return boards;
   }
