@@ -474,18 +474,23 @@ _License: all engine code MIT, no new dependencies._
   (dart2js can't represent 64-bit ints)
 - [x] **0.4.0** — aspiration windows + SEE quiescence pruning (~32% fewer nodes
   to a given depth → deeper in the same time budget)
+- [x] **0.5.0** — evaluation terms: bishop pair + pawn structure (doubled /
+  isolated / passed pawns), verified stronger by a self-play A/B harness
+  (~54-62% vs the material+PST baseline, cost-free). Mobility was tried and
+  dropped (40% slower, net wash under a time budget).
+- [x] Clock-aware time management (app) — per-move budget from the engine's own
+  remaining clock + increment; never flags, uses long clocks, stays fast at
+  weak levels
+- [x] **0.6.0** — endgame mop-up eval: converts K+Q vs K (depth 6) and K+R vs K
+  (depth 8) that material+PST shuffled forever
 
 ### Pending / doable
-- [ ] **Evaluation terms** (biggest strength lever now search is fast): bishop
-  pair, mobility, passed pawns, doubled/isolated pawns, basic king safety
-  (pawn shield + attacker count). Verify each with a self-play match
-  (new eval must score > 50% vs old).
 - [ ] SEE-based capture ordering in the main search (demote losing captures
   below quiet moves)
-- [ ] Clock-aware time management — allocate the per-move budget from remaining
-  clock + increment, not a flat per-level budget
-- [ ] Endgame knowledge: KPK / KQK / KRK heuristics so won endings don't dawdle
-  (the K+P-vs-K horizon that evaluates ~0)
+- [ ] More endgame conversion: KRK from a central king / KPK (needs the strong
+  king to shepherd the pawn; the current mop-up only covers R/Q mates)
+- [ ] Seed game history into the search so it avoids repeating won positions
+      (the shallow-depth endgame shuffle)
 - [ ] Countermove / continuation-history move ordering; adaptive null-move R;
   futility + late-move pruning at frontier nodes
 - [ ] Magic bitboards for slider attacks (another ~2-4x nps; higher complexity —
