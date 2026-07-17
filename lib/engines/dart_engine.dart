@@ -70,7 +70,7 @@ class DartEngine implements ChessEngine {
 
     SearchResult? result;
     if (kIsWeb) {
-      result = await _searchWeb(searchDepth, budget);
+      result = await _searchWeb(searchDepth, budget, parsed.baseFen, parsed.moves);
     } else {
       result = await compute(
         _searchInIsolate,
@@ -116,14 +116,23 @@ class DartEngine implements ChessEngine {
 
   /// Web has no isolates, so step depth-by-depth and yield to the event loop
   /// between iterations to keep the UI responsive, bounded by [budget].
-  Future<SearchResult?> _searchWeb(int maxDepth, Duration budget) async {
+  ///
+  /// Replays [baseFen] + [moves] to recover the game's position history, so the
+  /// (chess-package) search avoids repeating positions already reached — same
+  /// as the native path.
+  Future<SearchResult?> _searchWeb(
+      int maxDepth, Duration budget, String baseFen, List<String> moves) async {
     final webDepth = maxDepth.clamp(1, 7);
     debugPrint('[Built-in] Web search: maxDepth=$webDepth budget=${budget.inMilliseconds}ms');
     final sw = Stopwatch()..start();
 
-    final game = chess.Chess();
-    game.load(_game.fen);
-    final search = AlphaBetaSearch(game);
+    final game = chess.Chess.fromFEN(baseFen);
+    final history = <int>[AlphaBetaSearch.positionKeyOf(game)];
+    for (final uci in moves) {
+      _playUciOn(game, uci);
+      history.add(AlphaBetaSearch.positionKeyOf(game));
+    }
+    final search = AlphaBetaSearch(game, repetitionHistory: history);
     SearchResult? best;
 
     for (int d = 1; d <= webDepth; d++) {
@@ -223,9 +232,11 @@ class DartEngine implements ChessEngine {
     }
   }
 
-  void _makeUciMove(String uci) {
+  void _makeUciMove(String uci) => _playUciOn(_game, uci);
+
+  static void _playUciOn(chess.Chess game, String uci) {
     if (uci.length < 4) return;
-    _game.move({
+    game.move({
       'from': uci.substring(0, 2),
       'to': uci.substring(2, 4),
       'promotion': uci.length > 4 ? uci.substring(4, 5) : null,
