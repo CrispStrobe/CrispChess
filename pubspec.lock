@@ -116,11 +116,12 @@ packages:
   crisp_chess_engine:
     dependency: "direct main"
     description:
-      name: crisp_chess_engine
-      sha256: "2502c7cd87aabd8875b89b587953ab7d51cdf825e2cc7caa660f7e9f3c5ca714"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0"
+      path: "."
+      ref: "7bec1814c4aadae30aaa3978c84704a1422dc52a"
+      resolved-ref: "7bec1814c4aadae30aaa3978c84704a1422dc52a"
+      url: "https://github.com/CrispStrobe/crisp_chess_engine.git"
+    source: git
+    version: "0.2.0"
   crypto:
     dependency: transitive
     description:

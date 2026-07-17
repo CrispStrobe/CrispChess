@@ -129,7 +129,8 @@ class StockfishEngine implements ChessEngine {
     }
     _process!.stdin.writeln(positionCommand);
     _moveCompleter = Completer<String>();
-    _process!.stdin.writeln('go depth ${depth ?? 15}');
+    _process!.stdin.writeln(
+        uciGoCommand(depth: depth, moveTime: moveTime, skillLevel: skillLevel));
 
     return _moveCompleter!.future.timeout(const Duration(seconds: 30),
         onTimeout: () {

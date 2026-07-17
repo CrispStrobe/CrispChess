@@ -83,3 +83,29 @@ abstract class ChessEngine {
   /// Release all engine resources.
   void dispose();
 }
+
+/// Per-move think time for a 0-20 strength level.
+///
+/// Engines are driven by *time*, not a fixed depth. A fixed depth is what made
+/// moves take 10-25s on a tablet (the built-in search) and made Stockfish grind
+/// a full `go depth 15` in WASM even at low Skill Level — Skill Level caps
+/// strength, not search time. Scales level 0 (~200ms, snappy) to level 20 (~2s).
+Duration thinkTimeForLevel(int skillLevel) =>
+    Duration(milliseconds: 200 + (skillLevel.clamp(0, 20) * 90));
+
+/// Time cap for an explicit fixed-depth request (hints/analysis). Generous
+/// enough not to weaken the answer, but still bounded so nothing can hang.
+const Duration kFixedDepthTimeCap = Duration(seconds: 5);
+
+/// Build the UCI `go` command for a move request.
+///
+/// Prefers `movetime`. `Skill Level` weakens Stockfish's *play* but does not
+/// reduce its search time, so the old fixed `go depth 15` took just as long at
+/// level 7 as at level 20 — and on iOS Stockfish runs as single-threaded WASM
+/// inside WebKit, where depth 15 is many seconds per move. An explicit [depth]
+/// (hint/analysis) still wins.
+String uciGoCommand({int? depth, Duration? moveTime, int? skillLevel}) {
+  if (depth != null) return 'go depth $depth';
+  final budget = moveTime ?? thinkTimeForLevel(skillLevel ?? 10);
+  return 'go movetime ${budget.inMilliseconds}';
+}

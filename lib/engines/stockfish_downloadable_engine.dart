@@ -215,7 +215,8 @@ class StockfishDownloadableEngine implements ChessEngine {
     }
     await _send(positionCommand);
     _moveCompleter = Completer<String>();
-    await _send('go depth ${depth ?? 15}');
+    await _send(
+        uciGoCommand(depth: depth, moveTime: moveTime, skillLevel: skillLevel));
 
     return _moveCompleter!.future.timeout(const Duration(seconds: 30),
         onTimeout: () { _send('stop'); throw TimeoutException('timeout'); });

@@ -106,10 +106,17 @@ class EngineService {
         }
       }
 
+      // Drive normal play by time, not a fixed depth. Callers that ask for an
+      // explicit depth (hints/analysis) keep that behaviour.
+      final budget = moveTime ??
+          (depth == null && skillLevel != null
+              ? thinkTimeForLevel(skillLevel)
+              : null);
+
       final move = await _engine.bestMove(
         positionCommand,
         depth: depth,
-        moveTime: moveTime,
+        moveTime: budget,
         skillLevel: skillLevel,
       );
       _eventController.add(BestMoveEvent(move));

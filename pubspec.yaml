@@ -14,7 +14,7 @@ dependencies:
     sdk: flutter
   intl: any
   chess: ^0.8.1
-  crisp_chess_engine: ^0.1.0
+  crisp_chess_engine: ^0.2.0
   onnx_runtime_dart: ^0.2.0
   ffi: ^2.0.0
   flutter_svg: ^2.2.3
@@ -25,6 +25,15 @@ dependencies:
   package_info_plus: ^10.2.0
   protobuf: ^6.0.0
   fixnum: ^1.1.1
+
+# Temporary: crisp_chess_engine 0.2.0 fixes a search bug that could return a
+# move for the wrong side, and is ~5x faster. 0.2.0 is not on pub.dev yet, so
+# resolve it from git; delete this whole block once it is published.
+dependency_overrides:
+  crisp_chess_engine:
+    git:
+      url: https://github.com/CrispStrobe/crisp_chess_engine.git
+      ref: 7bec1814c4aadae30aaa3978c84704a1422dc52a
 
 dev_dependencies:
   flutter_test:

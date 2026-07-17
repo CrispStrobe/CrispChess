@@ -57,14 +57,23 @@ class DartEngine implements ChessEngine {
 
     final skill = skillLevel ?? 10;
     final searchDepth = depth ?? _depthFromSkill(skill);
+    // Always search under a time budget. Without one the isolate ran a fixed
+    // depth to completion with no way to stop it — 10-25s per move on a tablet,
+    // which is what read as the engine "hanging" after a few moves.
+    final budget = moveTime ??
+        (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skill));
 
     SearchResult? result;
     if (kIsWeb) {
-      result = await _searchWeb(searchDepth);
+      result = await _searchWeb(searchDepth, budget);
     } else {
       result = await compute(
         _searchInIsolate,
-        _SearchRequest(fen: _game.fen, depth: searchDepth),
+        _SearchRequest(
+          fen: _game.fen,
+          depth: searchDepth,
+          budgetMs: budget.inMilliseconds,
+        ),
       );
     }
 
@@ -99,9 +108,11 @@ class DartEngine implements ChessEngine {
     return uci;
   }
 
-  Future<SearchResult?> _searchWeb(int maxDepth) async {
+  /// Web has no isolates, so step depth-by-depth and yield to the event loop
+  /// between iterations to keep the UI responsive, bounded by [budget].
+  Future<SearchResult?> _searchWeb(int maxDepth, Duration budget) async {
     final webDepth = maxDepth.clamp(1, 7);
-    debugPrint('[Built-in] Web search: maxDepth=$webDepth');
+    debugPrint('[Built-in] Web search: maxDepth=$webDepth budget=${budget.inMilliseconds}ms');
     final sw = Stopwatch()..start();
 
     final game = chess.Chess();
@@ -113,16 +124,17 @@ class DartEngine implements ChessEngine {
       await Future.delayed(Duration.zero);
       if (_disposed) break;
 
-      final depthSw = Stopwatch()..start();
-      final result = search.search(d);
-      if (result != null) {
-        best = result;
-        debugPrint('[Built-in] depth=$d: ${result.bestMove} ${depthSw.elapsedMilliseconds}ms');
-      }
-      if (depthSw.elapsedMilliseconds > 500) break;
+      final remaining = budget - sw.elapsed;
+      if (remaining <= Duration.zero) break;
+
+      // Cap each iteration by the time left so one deep iteration can't
+      // block the UI thread past the budget.
+      final result = search.search(d, timeBudget: remaining);
+      if (result != null) best = result;
+      if (sw.elapsed >= budget) break;
     }
 
-    debugPrint('[Built-in] Total: ${sw.elapsedMilliseconds}ms');
+    debugPrint('[Built-in] Total: ${sw.elapsedMilliseconds}ms depth=${best?.depth}');
     return best;
   }
 
@@ -134,6 +146,11 @@ class DartEngine implements ChessEngine {
     final maxDepth = infinite ? 100 : (depth ?? 20);
     _search = AlphaBetaSearch(_game);
 
+    // Cap each deepening iteration. Without this, analysis marched toward
+    // depth 20 (or 100 when infinite) with each iteration searching from
+    // scratch — the deep ones never return on a slow device.
+    const perIteration = Duration(seconds: 3);
+
     for (int d = 1; d <= maxDepth; d++) {
       if (_disposed) break;
       SearchResult? result;
@@ -141,11 +158,15 @@ class DartEngine implements ChessEngine {
         await Future.delayed(Duration.zero);
         final game = chess.Chess();
         game.load(_game.fen);
-        result = AlphaBetaSearch(game).search(d);
+        result = AlphaBetaSearch(game).search(d, timeBudget: perIteration);
       } else {
         result = await compute(
           _searchInIsolate,
-          _SearchRequest(fen: _game.fen, depth: d),
+          _SearchRequest(
+            fen: _game.fen,
+            depth: d,
+            budgetMs: perIteration.inMilliseconds,
+          ),
         );
       }
       if (result == null || _disposed) break;
@@ -154,6 +175,9 @@ class DartEngine implements ChessEngine {
         depth: result.depth,
         bestMove: result.bestMove,
       );
+      // Iteration hit its cap before completing depth d — going deeper would
+      // only time out again, so stop here rather than spin.
+      if (result.depth < d) break;
     }
     if (!_disposed) _stateNotifier.value = EngineState.ready;
   }
@@ -209,12 +233,24 @@ class DartEngine implements ChessEngine {
 class _SearchRequest {
   final String fen;
   final int depth;
-  _SearchRequest({required this.fen, required this.depth});
+  final int budgetMs;
+  _SearchRequest({
+    required this.fen,
+    required this.depth,
+    required this.budgetMs,
+  });
 }
 
 SearchResult? _searchInIsolate(_SearchRequest request) {
   final game = chess.Chess();
   game.load(request.fen);
   final search = AlphaBetaSearch(game);
-  return search.search(request.depth);
+  // The isolate can't be signalled to stop, so the time budget is what
+  // guarantees the search returns promptly.
+  return search.search(
+    request.depth,
+    timeBudget: request.budgetMs > 0
+        ? Duration(milliseconds: request.budgetMs)
+        : null,
+  );
 }
