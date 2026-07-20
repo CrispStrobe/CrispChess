@@ -11,7 +11,7 @@ name: iOS Release (App Store)
 #   ASC_API_KEY_P8_BASE64  base64 of AuthKey_<KEYID>.p8
 #   ASC_KEY_ID             App Store Connect API key id            (9RMU3C7422)
 #   ASC_ISSUER_ID          App Store Connect issuer id
-#   ASC_APP_ID             numeric app id                          (6789984849)
+#   ASC_APP_ID             numeric app id                          (6788864039)
 #   ASC_TEAM_ID            Apple Developer team id                 (N9XSJ4M3GT)
 #   DIST_CERT_P12_BASE64   base64 of the "Apple Distribution" .p12 (cert + key)
 #   DIST_CERT_PASSWORD     password for that .p12
@@ -155,7 +155,7 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: numbernebula-ipa
+          name: crispchess-ipa
           path: build/ios/ipa/*.ipa
           if-no-files-found: error
 
