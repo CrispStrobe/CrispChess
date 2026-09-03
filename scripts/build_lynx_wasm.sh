@@ -86,9 +86,9 @@ rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 cp -r "$APPBUNDLE/_framework" "$OUTPUT_DIR/"
 
-# Remove unnecessary files
-rm -f "$OUTPUT_DIR/_framework/"*.map \
-      "$OUTPUT_DIR/_framework/"*.symbols
+# Remove source maps. Keep *.symbols: the boot config lists it, and a .NET 10
+# bundle fails to start outright when it is missing (older ones only warned).
+rm -f "$OUTPUT_DIR/_framework/"*.map
 
 BUNDLE_SIZE=$(du -sh "$OUTPUT_DIR" | cut -f1)
 FILE_COUNT=$(find "$OUTPUT_DIR" -type f | wc -l)
