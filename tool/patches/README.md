@@ -51,19 +51,29 @@ Two honest limits:
   never fire" in browser WASM; the A/B above shows the budget is partly
   enforced without the patch, so that claim was too strong.
 
-To apply:
+The patch is cut against `CrispStrobe/lynx-chess` branch `wasm-browser`, which
+is what `scripts/build_lynx_wasm.sh` clones.
 
-```sh
-cd third_party/lynx-chess
-git apply ../../tool/patches/lynx-wasm-time-control.patch
+**Don't build this on a dev box.** The AOT step peaked around 950 MB here
+(clang plus MSBuild) and took a shared 7.7 GB machine to the OOM cliff, where
+the kernel's victim is whichever process has the largest RSS — on a box full of
+agent sessions, that is somebody's conversation, not your build. Use CI:
+
+```
+gh workflow run "Lynx WASM bundle"
 ```
 
-Then rebuild the bundle with `scripts/build_lynx_wasm.sh`. **The AOT build is
-memory-hungry** — it peaked at ~950 MB here (clang plus MSBuild) and pushed a
-7.7 GB shared box to the OOM cliff. Build it somewhere with room, or gate it:
-see `safe_lynx_verify.sh` in the session scratchpad for the shape (require free
-RAM to cover the peak outright when swap is exhausted, and have the build kill
-itself rather than letting the kernel choose a victim).
+`.github/workflows/lynx-wasm.yml` clones the fork, applies this patch, builds
+with .NET 10 + `wasm-tools` (so AOT actually runs rather than silently falling
+back), checks the bundle's files are present and non-empty, drives the engine
+through `tool/uci/lynx_wasm_uci.mjs` for a `uciok`/`readyok`/`bestmove` round
+trip, and opens a PR with the result. Inputs let you pick the Lynx ref, skip
+the patch, or take the artifact without a PR.
+
+If you must build locally, gate it: require free RAM to cover the peak outright
+when swap is exhausted (MemAvailable reads healthy at the cliff, and swap does
+not free itself), and have the build kill itself rather than letting the kernel
+choose.
 
 ### Not included here
 

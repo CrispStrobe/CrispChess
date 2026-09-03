@@ -1,0 +1,114 @@
+# Rebuild the Lynx WASM bundle.
+#
+# This is a .NET AOT build: it peaked around 950 MB locally and took a shared
+# 7.7 GB box to the OOM cliff, which is why it does not belong on a dev
+# machine. A GitHub runner has 16 GB and four cores and does it in minutes.
+#
+# Manual by design — it produces a committed binary artifact, so running it
+# should be a decision rather than a side effect of pushing.
+name: Lynx WASM bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      lynx_ref:
+        description: "Branch or tag of CrispStrobe/lynx-chess to build"
+        default: wasm-browser
+        type: string
+      apply_patch:
+        description: "Apply tool/patches/lynx-wasm-time-control.patch"
+        default: true
+        type: boolean
+      open_pr:
+        description: "Open a PR with the rebuilt bundle (otherwise artifact only)"
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # AOT silently falls back to a non-AOT build when this workload is
+      # missing, so a bundle can look fine and be slow.
+      - name: Install wasm-tools
+        run: dotnet workload install wasm-tools --skip-sign-check
+
+      - name: Clone Lynx (${{ inputs.lynx_ref }})
+        run: |
+          rm -rf third_party/lynx-chess
+          git clone --depth 1 --branch "${{ inputs.lynx_ref }}" \
+            https://github.com/CrispStrobe/lynx-chess.git third_party/lynx-chess
+
+      - name: Apply the time-control patch
+        if: ${{ inputs.apply_patch }}
+        run: |
+          cd third_party/lynx-chess
+          git apply --verbose ../../tool/patches/lynx-wasm-time-control.patch
+
+      - name: Build
+        run: bash scripts/build_lynx_wasm.sh
+
+      # A non-AOT bundle builds and runs perfectly well — it is just slow — so
+      # check for the AOT relink rather than trusting the build to have failed.
+      - name: Check the bundle looks sane
+        run: |
+          set -e
+          fw=web/lynx/_framework
+          for f in dotnet.js dotnet.native.wasm Lynx.wasm dotnet.native.js.symbols; do
+            test -s "$fw/$f" || { echo "missing or empty: $fw/$f"; exit 1; }
+          done
+          echo "bundle: $(du -sh web/lynx | cut -f1), $(find web/lynx -type f | wc -l) files"
+
+      # Drives the real engine through the repo's own UCI adapter: uciok,
+      # readyok, and a legal-looking bestmove from a non-opening position.
+      - name: Smoke-test the engine
+        run: |
+          set -e
+          out=$(printf 'uci\nisready\nposition startpos moves e2e4 c7c5 g1f3\ngo movetime 500\n' \
+            | node tool/uci/lynx_wasm_uci.mjs 2>/dev/null)
+          echo "$out" | grep -q uciok   || { echo "no uciok";   echo "$out"; exit 1; }
+          echo "$out" | grep -q readyok || { echo "no readyok"; echo "$out"; exit 1; }
+          echo "$out" | grep -Eq '^bestmove [a-h][1-8][a-h][1-8]' \
+            || { echo "no bestmove"; echo "$out"; exit 1; }
+          echo "$out" | grep '^bestmove'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lynx-wasm-bundle
+          path: web/lynx/
+          retention-days: 30
+
+      - name: Open a PR with the rebuilt bundle
+        if: ${{ inputs.open_pr }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: web/lynx
+          branch: lynx-wasm-rebuild
+          delete-branch: true
+          commit-message: "chore(lynx): rebuild the WASM bundle"
+          title: "chore(lynx): rebuild the WASM bundle"
+          body: |
+            Rebuilt by the `Lynx WASM bundle` workflow.
+
+            - Lynx ref: `${{ inputs.lynx_ref }}`
+            - Time-control patch applied: `${{ inputs.apply_patch }}`
+
+            Built with .NET 10 and the `wasm-tools` workload, so AOT actually
+            ran. The job checked the bundle's files are present and non-empty
+            and drove the engine through `tool/uci/lynx_wasm_uci.mjs` for a
+            `uciok` / `readyok` / `bestmove` round trip.
+
+            Worth eyeballing the diff size before merging: the bundle is a
+            binary artifact, so a wildly different size is the signal that
+            something about the build changed.

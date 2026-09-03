@@ -1,8 +1,8 @@
 diff --git a/src/Lynx/Search/IDDFS.cs b/src/Lynx/Search/IDDFS.cs
-index 54c4f1d..4c2747a 100644
+index 16c5a1b..b1e7708 100644
 --- a/src/Lynx/Search/IDDFS.cs
 +++ b/src/Lynx/Search/IDDFS.cs
-@@ -9,6 +9,28 @@ namespace Lynx;
+@@ -9,6 +9,30 @@ namespace Lynx;
  public sealed partial class Engine
  {
      private readonly Stopwatch _stopWatch = new();
@@ -13,15 +13,17 @@ index 54c4f1d..4c2747a 100644
 +    /// <para>
 +    /// The hard limit is normally enforced by
 +    /// <see cref="CancellationTokenSource.CancelAfter(int)"/>, which schedules the
-+    /// cancellation on a timer. A timer callback needs a thread to run on, and in
-+    /// single-threaded browser WASM the synchronous search owns the only one — so
-+    /// the token is not cancelled until the search it was meant to interrupt has
-+    /// already finished. A `go movetime 300` there could run for tens of seconds.
++    /// cancellation on a timer. The search checks its token at every node, so
++    /// whenever that callback is late the limit is not enforced until the search
++    /// ends on its own. Under single-threaded browser WASM, where a synchronous
++    /// search leaves little room for callbacks to run, that shows up as searches
++    /// overshooting their movetime severalfold.
 +    /// </para>
 +    /// <para>
-+    /// Reading the clock instead depends on nothing being scheduled. It is called
-+    /// every few thousand nodes, so the cost is negligible, and on platforms where
-+    /// the timer does fire it simply agrees with it.
++    /// Reading the clock instead depends on nothing being scheduled. Measured over
++    /// ten warmed searches at a 300ms budget, median overshoot fell from 1.8-2.8x
++    /// to 1.3-1.7x and p90 from 4.7-6.8x to 1.9-2.5x. Where the timer does fire
++    /// this simply agrees with it.
 +    /// </para>
 +    /// </summary>
 +    [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -32,7 +34,7 @@ index 54c4f1d..4c2747a 100644
  
      /// <summary>
 diff --git a/src/Lynx/Search/NegaMax.cs b/src/Lynx/Search/NegaMax.cs
-index 893ee1e..2370d0c 100644
+index 97e1847..be99176 100644
 --- a/src/Lynx/Search/NegaMax.cs
 +++ b/src/Lynx/Search/NegaMax.cs
 @@ -9,6 +9,12 @@ namespace Lynx;
@@ -41,19 +43,19 @@ index 893ee1e..2370d0c 100644
  {
 +    /// <summary>
 +    /// How often the hard time limit is checked, in nodes. A power of two minus
-+    /// one so the test is a mask rather than a division.
++    /// one, so the test is a mask rather than a division.
 +    /// </summary>
 +    private const ulong TimeCheckNodeMask = 2047;
 +
      /// <summary>
      /// NegaMax algorithm implementation using alpha-beta pruning and quiescence search
      /// </summary>
-@@ -52,6 +58,13 @@ public sealed partial class Engine
+@@ -51,6 +57,13 @@ public sealed partial class Engine
  
          cancellationToken.ThrowIfCancellationRequested();
  
-+        // The token alone is not enough where its timer cannot fire; see
-+        // IsHardTimeLimitReached.
++        // The token alone is not enough wherever its timer callback runs late;
++        // see IsHardTimeLimitReached.
 +        if ((_nodes & TimeCheckNodeMask) == 0 && IsHardTimeLimitReached())
 +        {
 +            throw new OperationCanceledException();
@@ -62,7 +64,7 @@ index 893ee1e..2370d0c 100644
          var pvIndex = PVTable.Indexes[ply];
          var nextPvIndex = PVTable.Indexes[ply + 1];
          _pVTable[pvIndex] = _defaultMove;   // Nulling the first value before any returns
-@@ -788,6 +801,11 @@ public sealed partial class Engine
+@@ -813,6 +826,11 @@ public sealed partial class Engine
  
          cancellationToken.ThrowIfCancellationRequested();
  
@@ -71,6 +73,6 @@ index 893ee1e..2370d0c 100644
 +            throw new OperationCanceledException();
 +        }
 +
-         Span<BitBoard> attacks = stackalloc BitBoard[12];
-         Span<BitBoard> attacksBySide = stackalloc BitBoard[2];
-         var evaluationContext = new EvaluationContext(attacks, attacksBySide);
+         Span<Bitboard> buffer = stackalloc Bitboard[EvaluationContext.RequiredBufferSize];
+         var evaluationContext = new EvaluationContext(buffer);
+ 
