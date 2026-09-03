@@ -39,13 +39,35 @@ The .NET Mono runtime (`dotnet.native.wasm`, `dotnet.js`) is bundled
 with the Lynx WASM build to execute the C# engine in the browser.
 MIT licensed.
 
-## Lc0 (downloaded at runtime, NOT bundled)
+## Lc0
 
 - **License:** GPL-3.0
 - **Source:** https://github.com/LeelaChessZero/lc0
 
-Lc0 WASM is downloaded at runtime. No GPL code is bundled with
-or compiled into CrispChess.
+No lc0 code is bundled with, compiled into, or linked by CrispChess. There is
+no lc0 WASM build to download either — the "Lc0" engine here is this app's own
+Dart MCTS driving a Maia network through ONNX, on both web and native. The
+network weights are downloaded at run time as data (see the weights entries
+below).
+
+One artefact is derived from the lc0 project and ships in the app:
+
+- **The 112-plane input encoding** (`lib/engines/lc0_dart/encoding.dart`) —
+  a Dart reimplementation of lc0's classical input format. Written from the
+  format's description rather than copied, but it is a functional
+  reimplementation of GPL-3.0 work. It is a data format rather than executable
+  lc0 code, and it links nothing.
+
+A transcription of lc0's `src/neural/tables/policy_map.h` used to ship as well,
+in both `web/lc0_onnx_bridge.js` and a Dart copy. It is gone: the network
+exports are now produced by lc0's own `leela2onnx`, whose policy head is already
+in move-vocabulary order, so nothing needs remapping.
+
+`lc0 leela2onnx` was used as a build-time tool to convert the weights. lc0 was
+built from unmodified upstream source (v0.32.1), is not redistributed, and none
+of its code is in the app. Running a GPL program over data does not place the
+data under the GPL — the weights' license comes from their own authors (see the
+weights entry below), not from the converter.
 
 ## ONNX Runtime Web (web/ort.min.js)
 
@@ -124,12 +146,24 @@ or compiled into CrispChess.
 
 ## Maia/Lc0 Neural Network Weights
 
-- **License:** stated as "Research use" on the Hugging Face repo, not
-  independently re-verified against the original CSSLab/maia-chess
-  license the way Maia3 was above — this entry should get the same
-  level of scrutiny before being relied on. Flagged, not yet resolved.
-- **Source:** https://huggingface.co/shermansiu/maia-1100 through maia-1900
+- **License: GPL-3.0-or-later.** Resolved 2026-09-03; this entry previously
+  said "stated as Research use ... not independently re-verified". It has now
+  been checked at the source: https://github.com/CSSLab/maia-chess ships a
+  GPL-3.0 `LICENSE` and its README states "The software is available under the
+  GPL License". Converting the weights to ONNX does not relicense them.
+- **Source:** https://huggingface.co/cstr/maia-chess-onnx-opset15 —
+  `maia-<elo>.onnx`, exported from the CSSLab `.pb.gz` weights with
+  `lc0 leela2onnx` (v0.32.1). That repo's README carries the GPL-3.0-or-later
+  notice and the conversion provenance, which is what redistributing them
+  requires.
 - **Original:** https://github.com/CSSLab/maia-chess
+
+The app's own position is the same as it is for Stockfish: the weights are
+downloaded at run time as data, on the user's request. Nothing GPL is bundled
+in the app binary, nothing is linked, and the app redistributes nothing.
+
+The earlier `maia-<elo>-opset15.onnx` files in that repo are mis-converted and
+are no longer used — see the repo README. They are unrelated to licensing.
 
 ## Piece Themes
 
