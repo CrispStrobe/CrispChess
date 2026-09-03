@@ -36,17 +36,29 @@ an *unrelated* position it reaches depth 8 (10,574 nodes) in the same second.
 Both this adapter and `lynx_web_engine.dart` now spend one short search up front
 so the first real move is not the weak one.
 
-**It does not reliably honour `movetime`.** Even warmed it runs on the order of
-10k nodes/s, and the tournament saw a median of 608 ms against a 300 ms budget
-with one search running past 40 s.
+**It did not honour `movetime`** — median 608 ms against a 300 ms budget in the
+tournament, with one search running past 40 s, which ends its games.
 
-This is not a build problem, though it looked like one at first: the bundle was
-rebuilt from source with .NET 10 and the `wasm-tools` workload (AOT), and it
-performs the same as the artifact it replaced — so both are AOT and the speed is
-simply what Lynx does under WASM. Repeated fixed-depth timings on a loaded
-machine varied by 2x in *both* directions, so no speedup figure is quoted here.
-Driving it with `go depth` instead does not help either; a fixed depth is what
-made it slow in the first place. Treat its time budget as advisory.
+The cause is not speed, and not the build. Lynx enforces its hard time limit
+with `CancellationTokenSource.CancelAfter`, which schedules the cancellation on
+a **timer**. A timer callback needs a thread to run on, and in single-threaded
+browser WASM the synchronous search owns the only one — so the token is not
+cancelled until the search it was meant to interrupt has already finished. The
+search checks the token at every node, diligently, and the token is never set.
+
+The fix is in the engine, not here: check the elapsed clock directly every few
+thousand nodes, which depends on nothing being scheduled. See
+`IsHardTimeLimitReached` in `Lynx/Search/IDDFS.cs` and its two call sites in
+`NegaMax.cs`. That change is in the `third_party/lynx-chess` working copy — it
+is not committed to this repo (that directory is gitignored) and the shipped
+`web/lynx` bundle predates it, so it needs pushing to the Lynx fork and the
+bundle rebuilding before it takes effect.
+
+Two things this rules out, both of which looked plausible first: it is not an
+interpreter-vs-AOT problem (the bundle was rebuilt with .NET 10 + `wasm-tools`
+and performs the same as the artifact it replaced), and driving it with
+`go depth` instead does not help — a fixed depth is what made it slow in the
+first place.
 
 ## `stockfish_js_uci.mjs`
 
