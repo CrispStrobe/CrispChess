@@ -100,9 +100,9 @@ Three entries need reading with context:
   search, so the time budget does not apply to them — their latency columns are
   inference cost. Both imitate human play, so losing to real engines at equal
   time is the expected result rather than a defect.
-- **Lynx WASM** did not honour its time budget: a single search ran past 40 s,
-  which ends its games. The cause is that Lynx enforces its hard limit with a
-  timer callback, which cannot fire while a synchronous search owns the only
-  thread a browser WASM runtime has. A fix exists in the engine source but the
-  shipped bundle predates it, so this table still shows the old behaviour. See
-  `tool/uci/README.md`.
+- **Lynx WASM** overshoots its time budget, and one search here ran past 40 s,
+  which ends its games. Note the conditions: eight engines playing at once on a
+  loaded shared box, so that number is as likely to be CPU starvation as
+  anything in the engine. Lynx's own overshoot is real but smaller, and a patch
+  that tightens it roughly twofold is in `tool/patches/` awaiting a bundle
+  rebuild. See `tool/uci/README.md`.

@@ -36,23 +36,26 @@ an *unrelated* position it reaches depth 8 (10,574 nodes) in the same second.
 Both this adapter and `lynx_web_engine.dart` now spend one short search up front
 so the first real move is not the weak one.
 
-**It did not honour `movetime`** — median 608 ms against a 300 ms budget in the
-tournament, with one search running past 40 s, which ends its games.
+**It overshoots `movetime`.** In the tournament: a median of 608 ms against a
+300 ms budget, and one search that ran past 40 s, which ends the game.
 
-The cause is not speed, and not the build. Lynx enforces its hard time limit
-with `CancellationTokenSource.CancelAfter`, which schedules the cancellation on
-a **timer**. A timer callback needs a thread to run on, and in single-threaded
-browser WASM the synchronous search owns the only one — so the token is not
-cancelled until the search it was meant to interrupt has already finished. The
-search checks the token at every node, diligently, and the token is never set.
+Lynx enforces its hard limit with `CancellationTokenSource.CancelAfter`, which
+schedules the cancellation on a timer. The search checks its token at every
+node, so whenever that callback is late the budget is not enforced until the
+search ends on its own. `tool/patches/lynx-wasm-time-control.patch` adds a
+direct clock check every 2048 nodes, which depends on nothing being scheduled.
+Measured A/B over ten warmed searches at a 300 ms budget: median overshoot
+1.3-1.7x with the patch against 1.8-2.8x without, and p90 1.9-2.5x against
+4.7-6.8x.
 
-The fix is in the engine, not here: check the elapsed clock directly every few
-thousand nodes, which depends on nothing being scheduled. See
-`IsHardTimeLimitReached` in `Lynx/Search/IDDFS.cs` and its two call sites in
-`NegaMax.cs`. That change is in the `third_party/lynx-chess` working copy — it
-is not committed to this repo (that directory is gitignored) and the shipped
-`web/lynx` bundle predates it, so it needs pushing to the Lynx fork and the
-bundle rebuilding before it takes effect.
+It does not remove the tail — about one search in ten still takes 5-6 s in
+*both* builds, so that has another cause — and the 40 s figure above does not
+reproduce outside the tournament, where eight engines were playing at once on a
+loaded box. Treat the budget as tight-ish rather than hard.
+
+The patch is not in the shipped `web/lynx` bundle: that needs an AOT rebuild,
+which is memory-hungry enough to matter on a shared machine. See
+`tool/patches/README.md`.
 
 Two things this rules out, both of which looked plausible first: it is not an
 interpreter-vs-AOT problem (the bundle was rebuilt with .NET 10 + `wasm-tools`

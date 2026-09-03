@@ -12,17 +12,44 @@ past 40 s, which ends the game.
 
 It is not a speed problem and not an AOT problem. Lynx enforces its hard limit
 with `CancellationTokenSource.CancelAfter`, which schedules the cancellation on
-a **timer**. A timer callback needs a thread to run on, and in single-threaded
-browser WASM the synchronous search owns the only one — so the token is never
-cancelled until the search it was meant to interrupt has already finished. The
-search checks that token at every node, and the token is never set.
+a **timer** — and a timer callback needs a thread to run on. The search checks
+its token at every node, so whenever that callback is late, the budget is not
+enforced until the search ends on its own.
 
 The patch adds `IsHardTimeLimitReached()` next to the stopwatch in
 `Search/IDDFS.cs` and calls it from `NegaMax` and `QuiescenceSearch` every 2048
 nodes, alongside the existing token check. Reading the clock depends on nothing
-being scheduled, so it works where the timer cannot; on platforms where the
-timer does fire it simply agrees with it. The cost is one `ElapsedMilliseconds`
-read every few thousand nodes.
+being scheduled, so it catches the cases the timer misses; where the timer does
+fire it simply agrees with it. The cost is one `ElapsedMilliseconds` read every
+few thousand nodes.
+
+### What it measurably does, and what it does not
+
+Ten warmed searches at a 300 ms budget, patched build against the shipped one,
+same harness and positions, three repetitions:
+
+```
+                 median overshoot        p90 overshoot      worst
+  patched          1.3-1.7x               1.9-2.5x          ~5.5s
+  unpatched        1.8-2.8x               4.7-6.8x          ~6.7s
+```
+
+The patched build is consistently tighter, and it is the *non-AOT* build — a
+slower engine per node, which should overshoot more, not less. So the effect is
+real.
+
+Two honest limits:
+
+- **It does not remove the tail.** Roughly one search in ten still runs 5-6 s
+  against a 300 ms budget, in both builds. Whatever causes that is not the
+  cancellation path — most likely the runtime itself (GC, or tiering
+  recompilation) stalling between node checks.
+- **The 40 s search seen in the tournament does not reproduce here.** That run
+  had eight engines playing concurrently on a loaded shared box, so CPU
+  starvation is the more likely explanation for that particular number than
+  anything in Lynx. An earlier version of this note asserted the timer "can
+  never fire" in browser WASM; the A/B above shows the budget is partly
+  enforced without the patch, so that claim was too strong.
 
 To apply:
 
