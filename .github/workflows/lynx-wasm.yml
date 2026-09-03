@@ -102,26 +102,40 @@ jobs:
           path: web/lynx/
           retention-days: 30
 
-      - name: Open a PR with the rebuilt bundle
+      # Pushes a branch rather than opening a PR: creating PRs from Actions
+      # needs "Allow GitHub Actions to create and approve pull requests" turned
+      # on for the repo, and a build job should not depend on a setting it
+      # cannot see. The compare link in the summary is one click from a PR.
+      - name: Push the rebuilt bundle to a branch
         if: ${{ inputs.open_pr }}
-        uses: peter-evans/create-pull-request@v6
-        with:
-          add-paths: web/lynx
-          branch: lynx-wasm-rebuild
-          delete-branch: true
-          commit-message: "chore(lynx): rebuild the WASM bundle"
-          title: "chore(lynx): rebuild the WASM bundle"
-          body: |
-            Rebuilt by the `Lynx WASM bundle` workflow.
+        run: |
+          set -e
+          if git diff --quiet -- web/lynx; then
+            echo "### Lynx WASM bundle: no change" >> "$GITHUB_STEP_SUMMARY"
+            echo "The rebuilt bundle is byte-identical to the committed one." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
-            - Lynx ref: `${{ inputs.lynx_ref }}`
-            - Time-control patch applied: `${{ inputs.apply_patch }}`
+          branch=lynx-wasm-rebuild
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add web/lynx
+          git commit -m "chore(lynx): rebuild the WASM bundle
 
-            Built with .NET 10 and the `wasm-tools` workload, so AOT actually
-            ran. The job checked the bundle's files are present and non-empty
-            and drove the engine through `tool/uci/lynx_wasm_uci.mjs` for a
-            `uciok` / `readyok` / `bestmove` round trip.
+          Lynx ref: ${{ inputs.lynx_ref }}
+          Time-control patch applied: ${{ inputs.apply_patch }}
+          Built with .NET 10 + wasm-tools; AOT verified by native wasm size."
+          git push -f origin "$branch"
 
-            Worth eyeballing the diff size before merging: the bundle is a
-            binary artifact, so a wildly different size is the signal that
-            something about the build changed.
+          repo="${{ github.server_url }}/${{ github.repository }}"
+          {
+            echo "### Lynx WASM bundle rebuilt"
+            echo
+            echo "- Lynx ref: \`${{ inputs.lynx_ref }}\`"
+            echo "- Time-control patch: \`${{ inputs.apply_patch }}\`"
+            echo
+            echo "[Open a PR from \`$branch\`]($repo/compare/main...$branch?expand=1)"
+            echo
+            echo "The bundle is a binary artifact — check the size change before merging."
+          } >> "$GITHUB_STEP_SUMMARY"
