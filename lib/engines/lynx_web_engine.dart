@@ -39,6 +39,11 @@ class LynxEngine implements ChessEngine {
   bool _stopping = false;
   String _version = 'WASM';
 
+  /// One search at a time. The .NET/Mono search runs to completion on the UI
+  /// thread; overlapping calls interleave `position` and `go` commands on the
+  /// same engine and hand back a move for the wrong position.
+  Future<void> _searchLock = Future<void>.value();
+
   @override
   String get name => 'Lynx';
   @override
@@ -53,6 +58,19 @@ class LynxEngine implements ChessEngine {
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
   static bool get isAvailable => kIsWeb;
+
+  // The Mono interpreter runs the search synchronously on the UI thread and
+  // `stop` cannot cut it short, so a background ponder search would freeze the
+  // app for as long as it takes — and it takes longer every move.
+  @override
+  bool get canPonder => false;
+
+  /// Run [body] once any previous search has finished.
+  Future<T> _serialized<T>(Future<T> Function() body) {
+    final result = _searchLock.then((_) => body());
+    _searchLock = result.then((_) {}, onError: (_) {});
+    return result;
+  }
 
   @override
   Future<void> initialize() async {
@@ -84,6 +102,16 @@ class LynxEngine implements ChessEngine {
 
       await _lynxSendUci('isready'.toJS).toDart;
 
+      // Warm the runtime up before handing the engine to the player. Mono
+      // tiers up as it runs, and the difference is not marginal: measured on
+      // this build, the first search of a session reaches depth 1 (57 nodes)
+      // in a second, while the same search after one throwaway search on a
+      // *different* position reaches depth 8 (10,574 nodes). Paying that here
+      // costs nothing the player notices — the UI is already showing
+      // "Loading" — instead of making their first move the slow, weak one.
+      await _lynxSendUci('position startpos'.toJS).toDart;
+      await _lynxSearch('go movetime 600'.toJS).toDart;
+
       _loaded = true;
       _stateNotifier.value = EngineState.ready;
       debugPrint('[LynxWASM] Ready (~3350 ELO)');
@@ -104,36 +132,35 @@ class LynxEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
     _stopping = false;
 
-    // Lynx doesn't have a skill level option — map to depth.
-    // Cap at 8 for web — the Mono interpreter blocks the main thread
-    // during search and deeper searches freeze the UI.
-    final searchDepth = depth ?? (skillLevel != null
-        ? (2 + skillLevel * 8 ~/ 20).clamp(2, 8)
-        : 8);
-    final webDepth = searchDepth.clamp(1, 8);
+    // Lynx has no Skill Level option, so strength used to be dialled with a
+    // fixed depth. Under the Mono interpreter a fixed depth costs whatever that
+    // depth costs in the current position: quick in the opening, many seconds
+    // once the position opens up, and worse every move — the "it gets slower
+    // each turn" report. Search by time instead; Lynx honours `go movetime`.
+    final budget = moveTime ?? thinkTimeForLevel(skillLevel ?? 10);
+    final goCmd = depth != null
+        ? 'go depth $depth'
+        : 'go movetime ${budget.inMilliseconds}';
 
-    try {
-      // Yield to let the UI update before blocking search
-      await Future.delayed(const Duration(milliseconds: 50));
+    return _serialized(() async {
+      try {
+        // Yield to let the UI update before the blocking search
+        await Future.delayed(const Duration(milliseconds: 50));
 
-      // Send position
-      await _lynxSendUci(positionCommand.toJS).toDart;
+        await _lynxSendUci(positionCommand.toJS).toDart;
+        final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
 
-      // Send go command and wait for bestmove
-      final goCmd = 'go depth $webDepth';
-      final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
+        final bestMove = _parseBestMove(result);
+        _stateNotifier.value = EngineState.ready;
 
-      // Parse bestmove from output
-      final bestMove = _parseBestMove(result);
-      _stateNotifier.value = EngineState.ready;
-
-      if (bestMove == null) throw StateError('No bestmove in output');
-      debugPrint('[LynxWASM] bestmove=$bestMove depth=$webDepth');
-      return bestMove;
-    } catch (e) {
-      _stateNotifier.value = EngineState.ready;
-      rethrow;
-    }
+        if (bestMove == null) throw StateError('No bestmove in output');
+        debugPrint('[LynxWASM] bestmove=$bestMove ($goCmd)');
+        return bestMove;
+      } catch (e) {
+        _stateNotifier.value = EngineState.ready;
+        rethrow;
+      }
+    });
   }
 
   @override
@@ -157,24 +184,30 @@ class LynxEngine implements ChessEngine {
     int? depth,
     bool infinite = false,
   }) async {
-    try {
-      await _lynxSendUci(positionCommand.toJS).toDart;
+    // Analysis is time-bounded, not depth-bounded. The Mono search blocks the
+    // UI thread and only reads `stop` once it has finished, so neither `go
+    // infinite` nor a deep `go depth` can be cut short — whatever is asked for
+    // is what the app freezes for. [depth] is therefore advisory here; the
+    // reported depth comes back on the `info` lines.
+    final goCmd = 'go movetime ${kFixedDepthTimeCap.inMilliseconds}';
+    await _serialized(() async {
+      try {
+        await _lynxSendUci(positionCommand.toJS).toDart;
+        final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
 
-      final goCmd = infinite ? 'go infinite' : 'go depth ${depth ?? 20}';
-      final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
-
-      // Parse all info lines from the result
-      for (final line in result.split('\n')) {
-        if (_stopping) break;
-        _parseInfoLine(line.trim());
+        // Parse all info lines from the result
+        for (final line in result.split('\n')) {
+          if (_stopping) break;
+          _parseInfoLine(line.trim());
+        }
+      } catch (e) {
+        debugPrint('[LynxWASM] Analysis error: $e');
+      } finally {
+        if (!_stopping) {
+          _stateNotifier.value = EngineState.ready;
+        }
       }
-    } catch (e) {
-      debugPrint('[LynxWASM] Analysis error: $e');
-    } finally {
-      if (!_stopping) {
-        _stateNotifier.value = EngineState.ready;
-      }
-    }
+    });
   }
 
   void _parseInfoLine(String line) {

@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'uci_search_coordinator.dart';
 
 /// GitHub release download URLs for Lynx v1.11.0 (self-contained binaries).
 const _lynxVersion = '1.11.0';
@@ -46,10 +47,9 @@ const _lynxBaseUrl =
 }
 
 /// Lynx chess engine — downloads and runs as a native UCI process.
-class LynxEngine implements ChessEngine {
+class LynxEngine with UciSearchCoordinator implements ChessEngine {
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
-  Completer<String>? _moveCompleter;
   StreamSubscription? _stdoutSub;
   final _evalController = StreamController<EvalInfo>.broadcast();
   String _detectedVersion = _lynxVersion;
@@ -73,6 +73,13 @@ class LynxEngine implements ChessEngine {
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  // Lynx runs as its own process and honours `stop`, so it can ponder.
+  @override
+  bool get canPonder => true;
+
+  @override
+  void sendUci(String command) => _process?.stdin.writeln(command);
 
   static bool get isAvailable =>
       !kIsWeb &&
@@ -150,11 +157,9 @@ class LynxEngine implements ChessEngine {
 
     if (t.startsWith('bestmove')) {
       final parts = t.split(' ');
-      if (parts.length >= 2 && parts[1] != '(none)') {
-        _moveCompleter?.complete(parts[1]);
-        _moveCompleter = null;
-        _stateNotifier.value = EngineState.ready;
-      }
+      finishSearch(
+          parts.length >= 2 && parts[1] != '(none)' ? parts[1] : null);
+      _stateNotifier.value = EngineState.ready;
     }
   }
 
@@ -165,32 +170,41 @@ class LynxEngine implements ChessEngine {
     if (_process == null) throw StateError('Not initialized');
     _stateNotifier.value = EngineState.thinking;
 
-    _process!.stdin.writeln(positionCommand);
-    _moveCompleter = Completer<String>();
+    // Lynx has no Skill Level option, so strength used to be dialled with a
+    // fixed depth — up to `go depth 15`. A given depth costs an order of
+    // magnitude more once the position opens up (measured: 0.7s at the start
+    // vs 5s by move 5 for the same depth), which is exactly the "it gets
+    // slower every turn" symptom. Search by time instead and let the depth
+    // fall where it may.
+    final go = uciGoCommand(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    final cap = uciSearchTimeout(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
-    // Lynx doesn't have Skill Level — use depth to control strength
-    final searchDepth = depth ?? (skillLevel != null ? 5 + skillLevel ~/ 2 : 15);
-    _process!.stdin.writeln('go depth $searchDepth');
-
-    return _moveCompleter!.future.timeout(const Duration(seconds: 30),
-        onTimeout: () {
-      _process!.stdin.writeln('stop');
-      throw TimeoutException('Search timed out');
+    final move = await startSearch(positionCommand, go, awaitMove: true)
+        .timeout(cap, onTimeout: () {
+      abandonSearch();
+      return null;
     });
+    if (move == null) throw TimeoutException('Search timed out');
+    return move;
   }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
-    _process!.stdin.writeln(positionCommand);
-    _process!.stdin.writeln(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
+    startSearch(positionCommand,
+        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+        awaitMove: false);
     return _evalController.stream;
   }
 
   @override
   void stop() {
-    _process?.stdin.writeln('stop');
+    // The `bestmove` this triggers still belongs to the running search; the
+    // coordinator consumes it so it can't answer the next request.
+    if (isSearching) sendUci('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -201,6 +215,7 @@ class LynxEngine implements ChessEngine {
 
   @override
   void dispose() {
+    finishSearch(null);
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
     _evalController.close();

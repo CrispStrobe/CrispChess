@@ -71,6 +71,17 @@ void main() {
       engine.dispose();
     });
 
+    test('engines declare whether they can search in the background', () {
+      // Pondering runs a search while the player thinks. It is only safe for
+      // engines that search off the UI thread and can be stopped; for the WASM
+      // and FFI engines the search is one blocking call, so a ponder froze the
+      // app for its whole duration — and that duration grew every move as the
+      // position opened up.
+      expect(DartEngine().canPonder, isTrue,
+          reason: 'the built-in engine searches in an isolate (or yields '
+              'between depths on web)');
+    });
+
     test('DartEngine stop is safe when not thinking', () {
       final engine = DartEngine();
       expect(() => engine.stop(), returnsNormally);

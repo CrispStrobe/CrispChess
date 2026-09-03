@@ -26,6 +26,7 @@ class GenericUciEngine implements ChessEngine {
       throw UnsupportedError('Custom UCI engines not available on web');
   @override Stream<EvalInfo> analyze(String p, {int? depth, bool infinite = false}) =>
       const Stream.empty();
+  @override bool get canPonder => false;
   @override void stop() {}
   @override void setOption(String name, String value) {}
   @override void dispose() {}

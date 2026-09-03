@@ -11,8 +11,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'chess_engine.dart';
 import 'stockfish_downloadable_engine.dart';
+import 'uci_search_coordinator.dart';
 
-class StockfishEngine implements ChessEngine {
+class StockfishEngine with UciSearchCoordinator implements ChessEngine {
   // Accept sfVersion/variantId for API compat with web engine (ignored on native)
   StockfishEngine({dynamic sfVersion, String? variantId})
       : _delegate = Platform.isIOS ? StockfishDownloadableEngine() : null;
@@ -22,7 +23,6 @@ class StockfishEngine implements ChessEngine {
 
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
-  Completer<String>? _moveCompleter;
   StreamSubscription? _stdoutSub;
   final _evalController = StreamController<EvalInfo>.broadcast();
 
@@ -44,6 +44,14 @@ class StockfishEngine implements ChessEngine {
   @override
   ValueNotifier<EngineState> get stateNotifier =>
       _delegate?.stateNotifier ?? _stateNotifier;
+
+  // Stockfish searches in its own process (or, on iOS, its own JS worker) and
+  // honours `stop`, so background analysis is safe.
+  @override
+  bool get canPonder => _delegate?.canPonder ?? true;
+
+  @override
+  void sendUci(String command) => _process?.stdin.writeln(command);
 
   static bool get isAvailable {
     if (kIsWeb) return false;
@@ -105,11 +113,9 @@ class StockfishEngine implements ChessEngine {
 
     if (t.startsWith('bestmove')) {
       final parts = t.split(' ');
-      if (parts.length >= 2 && parts[1] != '(none)') {
-        _moveCompleter?.complete(parts[1]);
-        _moveCompleter = null;
-        _stateNotifier.value = EngineState.ready;
-      }
+      finishSearch(
+          parts.length >= 2 && parts[1] != '(none)' ? parts[1] : null);
+      _stateNotifier.value = EngineState.ready;
     }
   }
 
@@ -127,16 +133,18 @@ class StockfishEngine implements ChessEngine {
     if (skillLevel != null) {
       _process!.stdin.writeln('setoption name Skill Level value $skillLevel');
     }
-    _process!.stdin.writeln(positionCommand);
-    _moveCompleter = Completer<String>();
-    _process!.stdin.writeln(
-        uciGoCommand(depth: depth, moveTime: moveTime, skillLevel: skillLevel));
+    final go = uciGoCommand(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    final cap = uciSearchTimeout(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
-    return _moveCompleter!.future.timeout(const Duration(seconds: 30),
-        onTimeout: () {
-      _process!.stdin.writeln('stop');
-      throw TimeoutException('Search timed out');
+    final move = await startSearch(positionCommand, go, awaitMove: true)
+        .timeout(cap, onTimeout: () {
+      abandonSearch();
+      return null;
     });
+    if (move == null) throw TimeoutException('Search timed out');
+    return move;
   }
 
   @override
@@ -146,15 +154,18 @@ class StockfishEngine implements ChessEngine {
     }
     if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
-    _process!.stdin.writeln(positionCommand);
-    _process!.stdin.writeln(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
+    startSearch(positionCommand,
+        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+        awaitMove: false);
     return _evalController.stream;
   }
 
   @override
   void stop() {
     if (_delegate != null) return _delegate.stop();
-    _process?.stdin.writeln('stop');
+    // Leave the search registered — the `bestmove` it is about to print belongs
+    // to it, and must not be adopted by the next request.
+    if (isSearching) sendUci('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -167,6 +178,7 @@ class StockfishEngine implements ChessEngine {
   @override
   void dispose() {
     if (_delegate != null) return _delegate.dispose();
+    finishSearch(null);
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
     _evalController.close();

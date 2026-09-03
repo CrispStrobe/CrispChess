@@ -10,15 +10,15 @@ import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
 import 'generic_uci_engine_stub.dart';
 import 'uci_option.dart';
+import 'uci_search_coordinator.dart';
 
 export 'generic_uci_engine_stub.dart' show EngineProfile;
 
-class GenericUciEngine implements ChessEngine {
+class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
   final EngineProfile profile;
 
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
-  Completer<String>? _moveCompleter;
   StreamSubscription? _stdoutSub;
   final _evalController = StreamController<EvalInfo>.broadcast();
 
@@ -48,6 +48,11 @@ class GenericUciEngine implements ChessEngine {
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  // A real UCI process searches on its own thread and honours `stop`, so
+  // background analysis is safe here.
+  @override
+  bool get canPonder => true;
 
   @override
   Future<void> initialize() async {
@@ -102,9 +107,12 @@ class GenericUciEngine implements ChessEngine {
     }
   }
 
-  void _send(String command) {
+  @override
+  void sendUci(String command) {
     _process?.stdin.writeln(command);
   }
+
+  void _send(String command) => sendUci(command);
 
   void _handleLine(String line, {bool handshake = false}) {
     final t = line.trim();
@@ -150,14 +158,15 @@ class GenericUciEngine implements ChessEngine {
       }
     }
 
-    // Parse bestmove
+    // Parse bestmove. Every `bestmove` ends exactly one search, including
+    // `(none)` and the one the engine emits in response to `stop` — routing all
+    // of them through the coordinator is what keeps an aborted search's answer
+    // from being handed to the next request.
     if (t.startsWith('bestmove')) {
       final parts = t.split(' ');
-      if (parts.length >= 2 && parts[1] != '(none)') {
-        _moveCompleter?.complete(parts[1]);
-        _moveCompleter = null;
-        _stateNotifier.value = EngineState.ready;
-      }
+      final move = parts.length >= 2 && parts[1] != '(none)' ? parts[1] : null;
+      finishSearch(move);
+      _stateNotifier.value = EngineState.ready;
     }
   }
 
@@ -175,30 +184,29 @@ class GenericUciEngine implements ChessEngine {
       _send('setoption name Skill Level value $skillLevel');
     }
 
-    _send(positionCommand);
-    _moveCompleter = Completer<String>();
+    // Drive play by time rather than a fixed depth: the cost of a given depth
+    // grows by an order of magnitude once the position opens up, which is what
+    // made moves take seconds by the middlegame.
+    final go = uciGoCommand(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    final cap = uciSearchTimeout(depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
-    if (moveTime != null) {
-      _send('go movetime ${moveTime.inMilliseconds}');
-    } else {
-      _send('go depth ${depth ?? 15}');
-    }
-
-    return _moveCompleter!.future.timeout(
-      const Duration(seconds: 60),
-      onTimeout: () {
-        _send('stop');
-        throw TimeoutException('Search timed out');
-      },
-    );
+    final move = await startSearch(positionCommand, go, awaitMove: true)
+        .timeout(cap, onTimeout: () {
+      abandonSearch();
+      return null;
+    });
+    if (move == null) throw TimeoutException('Search timed out');
+    return move;
   }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     if (_process == null) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
-    _send(positionCommand);
-    _send(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
+    startSearch(positionCommand,
+        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+        awaitMove: false);
     return _evalController.stream;
   }
 
@@ -218,12 +226,15 @@ class GenericUciEngine implements ChessEngine {
 
   @override
   void stop() {
-    _send('stop');
+    // Ask the engine to stop, but leave the search registered: its `bestmove`
+    // is still coming and must be consumed here, not by the next request.
+    if (isSearching) _send('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
   @override
   void dispose() {
+    finishSearch(null);
     _send('quit');
     _stdoutSub?.cancel();
     _evalController.close();

@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'chess_engine.dart';
+import 'uci_search_coordinator.dart';
 
 /// Download URL for stockfish.js WASM build (GPL-3.0, downloaded separately)
 const _stockfishJsUrl =
@@ -34,7 +35,9 @@ enum DownloadStatus { notDownloaded, downloading, ready, error }
 /// - Android: Runs via WebView JavaScript bridge or Process
 /// - Desktop: Runs via system-installed binary or bundled WASM
 /// - Web: Handled by StockfishWebEngine (conditional import)
-class StockfishDownloadableEngine implements ChessEngine {
+class StockfishDownloadableEngine
+    with UciSearchCoordinator
+    implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final _downloadStatus = ValueNotifier<DownloadStatus>(DownloadStatus.notDownloaded);
 
@@ -44,7 +47,6 @@ class StockfishDownloadableEngine implements ChessEngine {
   // On Desktop: uses Process
   static const _channel = MethodChannel('crispchess/stockfish');
 
-  Completer<String>? _moveCompleter;
   final _evalController = StreamController<EvalInfo>.broadcast();
   bool _initialized = false;
 
@@ -66,6 +68,14 @@ class StockfishDownloadableEngine implements ChessEngine {
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
   ValueNotifier<DownloadStatus> get downloadStatus => _downloadStatus;
+
+  // stockfish.js runs in a Web Worker inside WebKit, off the UI thread, and
+  // answers `stop`, so pondering does not block the app.
+  @override
+  bool get canPonder => true;
+
+  @override
+  void sendUci(String command) => _send(command);
 
   // iOS only: runs stockfish.js inside WebKit via the crispchess/stockfish
   // bridge. Web uses StockfishWebEngine; desktop/Android use the native
@@ -195,11 +205,9 @@ class StockfishDownloadableEngine implements ChessEngine {
 
     if (t.startsWith('bestmove')) {
       final parts = t.split(' ');
-      if (parts.length >= 2 && parts[1] != '(none)') {
-        _moveCompleter?.complete(parts[1]);
-        _moveCompleter = null;
-        _stateNotifier.value = EngineState.ready;
-      }
+      finishSearch(
+          parts.length >= 2 && parts[1] != '(none)' ? parts[1] : null);
+      _stateNotifier.value = EngineState.ready;
     }
   }
 
@@ -213,27 +221,33 @@ class StockfishDownloadableEngine implements ChessEngine {
     if (skillLevel != null) {
       await _send('setoption name Skill Level value $skillLevel');
     }
-    await _send(positionCommand);
-    _moveCompleter = Completer<String>();
-    await _send(
-        uciGoCommand(depth: depth, moveTime: moveTime, skillLevel: skillLevel));
+    final go = uciGoCommand(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    final cap = uciSearchTimeout(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
-    return _moveCompleter!.future.timeout(const Duration(seconds: 30),
-        onTimeout: () { _send('stop'); throw TimeoutException('timeout'); });
+    final move = await startSearch(positionCommand, go, awaitMove: true)
+        .timeout(cap, onTimeout: () {
+      abandonSearch();
+      return null;
+    });
+    if (move == null) throw TimeoutException('Search timed out');
+    return move;
   }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
     if (!_initialized) return const Stream.empty();
     _stateNotifier.value = EngineState.thinking;
-    _send(positionCommand);
-    _send(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
+    startSearch(positionCommand,
+        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+        awaitMove: false);
     return _evalController.stream;
   }
 
   @override
   void stop() {
-    _send('stop');
+    if (isSearching) _send('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -244,6 +258,7 @@ class StockfishDownloadableEngine implements ChessEngine {
 
   @override
   void dispose() {
+    finishSearch(null);
     _send('quit');
     _channel.invokeMethod('dispose');
     _evalController.close();

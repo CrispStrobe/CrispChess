@@ -42,6 +42,19 @@ class FrozenightEngine implements ChessEngine {
 
   bool _disposed = false;
   bool _available = false;
+  bool _stopped = false;
+
+  /// One search at a time. The FFI engine holds a single global position, so
+  /// two overlapping searches would clobber each other's board between
+  /// iterations (the deepening loop yields to the event loop, so another call
+  /// really can land in the middle of one).
+  Future<void> _searchLock = Future<void>.value();
+
+  Future<T> _serialized<T>(Future<T> Function() body) {
+    final result = _searchLock.then((_) => body());
+    _searchLock = result.then((_) {}, onError: (_) {});
+    return result;
+  }
 
   final ValueNotifier<EngineState> _stateNotifier =
       ValueNotifier(EngineState.idle);
@@ -58,6 +71,11 @@ class FrozenightEngine implements ChessEngine {
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  // The FFI search is one blocking call on the calling isolate — the UI
+  // isolate here — so a background ponder search would freeze the app.
+  @override
+  bool get canPonder => false;
 
   /// Check if the native library is available on this platform.
   static bool get isAvailable {
@@ -111,26 +129,59 @@ class FrozenightEngine implements ChessEngine {
     if (_disposed || !_available) throw StateError('Engine not ready');
     _stateNotifier.value = EngineState.thinking;
 
-    _applyPosition(positionCommand);
-    final d = depth ?? (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14);
-    final result = _search!(d);
+    final maxDepth = depth ?? (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14);
+    final budget = moveTime ??
+        (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skillLevel ?? 10));
 
-    _stateNotifier.value = EngineState.ready;
+    // Deepen one step at a time inside a time budget rather than jumping
+    // straight to the target depth. A single `search(14)` is one uninterruptible
+    // FFI call whose cost explodes once the position opens up — fine on move 2,
+    // tens of seconds of frozen UI by the middlegame. Each iteration is a small
+    // fraction of the next, so stopping before starting one keeps the overshoot
+    // bounded.
+    return _serialized(() async {
+      _applyPosition(positionCommand);
+      final sw = Stopwatch()..start();
+      String? best;
+      var reached = 0;
+      for (var d = 1; d <= maxDepth; d++) {
+        if (_disposed) break;
+        if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
+        // Yield so the UI can paint between iterations.
+        if (d > 1) await Future<void>.delayed(Duration.zero);
+        if (_search!(d) != 0) break;
+        final ptr = _getBestMove!();
+        if (ptr.address != 0) {
+          best = ptr.toDartString();
+          reached = d;
+        }
+      }
 
-    if (result != 0) throw StateError('Search failed');
-    final ptr = _getBestMove!();
-    if (ptr.address == 0) throw StateError('No move found');
-    return ptr.toDartString();
+      _stateNotifier.value = EngineState.ready;
+
+      if (best == null) throw StateError('No move found');
+      debugPrint('[Frozenight] $best depth=$reached/$maxDepth '
+          '${sw.elapsedMilliseconds}ms (budget ${budget.inMilliseconds}ms)');
+      return best;
+    });
   }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (_disposed || !_available) return;
     _stateNotifier.value = EngineState.thinking;
+    _stopped = false;
     _applyPosition(positionCommand);
 
+    // Bounded for the same reason as [bestMove]: a deep iteration is one
+    // blocking call that `stop` cannot interrupt.
+    final budget = infinite ? const Duration(seconds: 10) : kFixedDepthTimeCap;
+    final sw = Stopwatch()..start();
+
     for (int d = 1; d <= (depth ?? 20); d++) {
-      if (_disposed) break;
+      if (_disposed || _stopped) break;
+      if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
+      if (d > 1) await Future<void>.delayed(Duration.zero);
       if (_search!(d) != 0) break;
 
       final ptr = _getBestMove!();
@@ -144,7 +195,11 @@ class FrozenightEngine implements ChessEngine {
   }
 
   @override
-  void stop() {}
+  void stop() {
+    // The FFI search itself can't be signalled; this stops the deepening loop
+    // from starting another iteration.
+    _stopped = true;
+  }
 
   @override
   void setOption(String name, String value) {
@@ -175,9 +230,16 @@ class FrozenightEngine implements ChessEngine {
 
     final fenPtr = fen.toNativeUtf8();
     final movesPtr = moves.isEmpty ? nullptr.cast<Utf8>() : moves.toNativeUtf8();
-    _setPosition!(fenPtr, movesPtr);
+    final rc = _setPosition!(fenPtr, movesPtr);
     malloc.free(fenPtr);
     if (moves.isNotEmpty) malloc.free(movesPtr);
+    // Ignoring this return code is how a broken position went unnoticed: the
+    // library kept the position it already had and answered with a move for the
+    // wrong side, which the board then rejected as illegal.
+    if (rc != 0) {
+      throw StateError('Frozenight rejected the position (code $rc): $fen'
+          '${moves.isEmpty ? '' : ' moves $moves'}');
+    }
   }
 
   static DynamicLibrary _openLib() {

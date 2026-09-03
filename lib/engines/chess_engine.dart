@@ -77,6 +77,16 @@ abstract class ChessEngine {
   /// Abort the current search.
   void stop();
 
+  /// Whether the app may run background analysis on this engine while the
+  /// player thinks (pondering).
+  ///
+  /// False for engines whose search blocks the thread that draws the UI — the
+  /// WASM and FFI engines run their search synchronously, so a background
+  /// `go` freezes the app until it finishes and cannot be cut short by
+  /// [stop]. Those engines must only search when the app is waiting for a move
+  /// anyway.
+  bool get canPonder;
+
   /// Set a UCI option. No-op for engines that don't support UCI options.
   void setOption(String name, String value) {}
 
@@ -139,6 +149,22 @@ Duration clockAwareThinkTime({
   return Duration(milliseconds: ms);
 }
 
+/// Iterative deepening: is there time to start a deeper iteration?
+///
+/// Engines that cannot be interrupted mid-search — the WASM and FFI ones, which
+/// run the search as one synchronous call — can only respect a time budget
+/// *between* iterations. Each iteration costs roughly [growthFactor] times the
+/// whole search so far, so starting one after more than 1/[growthFactor] of the
+/// budget is spent reliably blows through it. Checking *after* the iteration
+/// (what the WASM engines used to do) is no bound at all: the iteration that
+/// overshoots is the one already running.
+bool hasTimeForNextDepth(
+  Duration elapsed,
+  Duration budget, {
+  double growthFactor = 2.5,
+}) =>
+    elapsed.inMicroseconds * growthFactor < budget.inMicroseconds;
+
 /// Build the UCI `go` command for a move request.
 ///
 /// Prefers `movetime`. `Skill Level` weakens Stockfish's *play* but does not
@@ -146,6 +172,19 @@ Duration clockAwareThinkTime({
 /// level 7 as at level 20 — and on iOS Stockfish runs as single-threaded WASM
 /// inside WebKit, where depth 15 is many seconds per move. An explicit [depth]
 /// (hint/analysis) still wins.
+/// Hard wall-clock cap for one search request.
+///
+/// The `go` command already carries the intended budget; this is the backstop
+/// for an engine that ignores it, wedges, or dies mid-search — without it a
+/// stuck engine leaves the UI on "thinking" forever. Generously above the
+/// budget so a healthy engine is never cut off.
+Duration uciSearchTimeout({int? depth, Duration? moveTime, int? skillLevel}) {
+  if (depth != null) return const Duration(seconds: 60);
+  final budget = moveTime ?? thinkTimeForLevel(skillLevel ?? 10);
+  final cap = budget * 6 + const Duration(seconds: 5);
+  return cap > const Duration(seconds: 120) ? const Duration(seconds: 120) : cap;
+}
+
 String uciGoCommand({int? depth, Duration? moveTime, int? skillLevel}) {
   if (depth != null) return 'go depth $depth';
   final budget = moveTime ?? thinkTimeForLevel(skillLevel ?? 10);

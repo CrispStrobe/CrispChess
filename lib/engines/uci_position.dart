@@ -60,21 +60,28 @@ List<String> fenHistoryFromPositionCommand(String command, {int limit = 8}) {
   }
 
   final game = chess.Chess.fromFEN(baseFen);
-  final fens = <String>[game.fen];
+  final moves = movesIdx >= 0 ? parts.sublist(movesIdx + 1) : const <String>[];
 
-  if (movesIdx >= 0) {
-    for (final uci in parts.sublist(movesIdx + 1)) {
-      if (!_playUci(game, uci)) {
-        debugPrint('[uci_position] Could not apply move "$uci"');
-        break;
-      }
-      fens.add(game.fen);
+  // Only the last [limit] positions are kept, and generating a FEN means
+  // scanning the board and building a string. Skip the plies that would be
+  // thrown away — with limit 1 (the common case: an engine that just wants the
+  // current position) that turns a FEN per move played into exactly one.
+  final firstKept = limit > 0 ? moves.length + 1 - limit : 0;
+
+  final fens = <String>[];
+  if (firstKept <= 0) fens.add(game.fen);
+
+  for (var i = 0; i < moves.length; i++) {
+    if (!_playUci(game, moves[i])) {
+      debugPrint('[uci_position] Could not apply move "${moves[i]}"');
+      break;
     }
+    if (i + 1 >= firstKept) fens.add(game.fen);
   }
 
-  if (limit > 0 && fens.length > limit) {
-    return fens.sublist(fens.length - limit);
-  }
+  // A move failed to apply before anything was kept — fall back to whatever
+  // position we reached, so callers always get the current one.
+  if (fens.isEmpty) fens.add(game.fen);
   return fens;
 }
 

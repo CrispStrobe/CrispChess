@@ -40,6 +40,12 @@ class DartEngine implements ChessEngine {
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
+  // Native builds search in a `compute()` isolate; web steps depth by depth
+  // with an event-loop yield between iterations. Either way the UI keeps
+  // painting, so background analysis is safe.
+  @override
+  bool get canPonder => true;
+
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;

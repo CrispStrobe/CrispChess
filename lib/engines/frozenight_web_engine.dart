@@ -34,6 +34,7 @@ external JSBoolean _frozenightIsLoaded();
 class FrozenightEngine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   bool _loaded = false;
+  bool _stopped = false;
 
   @override
   String get name => 'Frozenight';
@@ -49,6 +50,11 @@ class FrozenightEngine implements ChessEngine {
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
   static bool get isAvailable => kIsWeb;
+
+  // The WASM search runs synchronously between event-loop yields, so a
+  // background ponder search would stall the UI for as long as it runs.
+  @override
+  bool get canPonder => false;
 
   @override
   Future<void> initialize() async {
@@ -79,22 +85,33 @@ class FrozenightEngine implements ChessEngine {
 
     final searchDepth = depth ?? (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14);
     final webDepth = searchDepth.clamp(1, 10); // Cap for responsiveness
+    final budget = moveTime ??
+        (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skillLevel ?? 10));
 
     // Yield to UI before blocking search
     await Future.delayed(Duration.zero);
 
     final sw = Stopwatch()..start();
     String? bestMove;
+    var reached = 0;
 
-    // Incremental deepening with UI yields
+    // Iterative deepening, bounded by the time budget. The check has to happen
+    // *before* starting a depth: each WASM search call runs to completion and
+    // cannot be interrupted, so testing the clock afterwards (as this did) puts
+    // no bound on the iteration that actually overshoots — which is why a
+    // middlegame move could take far longer than an opening one.
     for (int d = 1; d <= webDepth; d++) {
+      if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
       await Future.delayed(Duration.zero);
       final move = _frozenightSearch(d.toJS).toDart;
-      if (move.isNotEmpty && move != '0000') bestMove = move;
-      if (sw.elapsedMilliseconds > 2000) break; // Time limit
+      if (move.isNotEmpty && move != '0000') {
+        bestMove = move;
+        reached = d;
+      }
     }
 
-    debugPrint('[FrozenightWASM] $bestMove depth=$webDepth ${sw.elapsedMilliseconds}ms');
+    debugPrint('[FrozenightWASM] $bestMove depth=$reached/$webDepth '
+        '${sw.elapsedMilliseconds}ms (budget ${budget.inMilliseconds}ms)');
     _stateNotifier.value = EngineState.ready;
 
     if (bestMove == null || bestMove == '0000') throw StateError('No move');
@@ -105,9 +122,17 @@ class FrozenightEngine implements ChessEngine {
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
     if (!_loaded) return;
     _stateNotifier.value = EngineState.thinking;
+    _stopped = false;
     _applyPosition(positionCommand);
 
+    // Bounded even when [infinite]: each depth is one uninterruptible WASM
+    // call, so the only way to stay responsive is to stop starting new ones.
+    final budget = infinite ? const Duration(seconds: 10) : kFixedDepthTimeCap;
+    final sw = Stopwatch()..start();
+
     for (int d = 1; d <= (depth ?? 15); d++) {
+      if (_stopped) break;
+      if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
       await Future.delayed(Duration.zero);
       final move = _frozenightSearch(d.toJS).toDart;
       final eval = _frozenightGetEval().toDartInt;
@@ -123,7 +148,10 @@ class FrozenightEngine implements ChessEngine {
   }
 
   @override
-  void stop() => _stateNotifier.value = EngineState.ready;
+  void stop() {
+    _stopped = true;
+    _stateNotifier.value = EngineState.ready;
+  }
 
   @override
   void setOption(String name, String value) {

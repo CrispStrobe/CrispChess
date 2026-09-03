@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 import 'chess_engine.dart';
+import 'uci_search_coordinator.dart';
 
 @JS('cachedFetch')
 external JSPromise<JSObject> _cachedFetch(JSString url, JSString cacheName);
@@ -25,11 +26,10 @@ enum StockfishVersion {
 /// Uses nmrugg/stockfish.js compiled Stockfish which communicates
 /// via postMessage (UCI protocol over Web Worker messages).
 /// GPL-3.0 licensed — downloaded at runtime, never bundled in app binary.
-class StockfishEngine implements ChessEngine {
+class StockfishEngine with UciSearchCoordinator implements ChessEngine {
   final StockfishVersion sfVersion;
   web.Worker? _worker;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
-  Completer<String>? _moveCompleter;
   final _evalController = StreamController<EvalInfo>.broadcast();
 
   // Pre-compiled regex for parsing UCI output
@@ -61,6 +61,14 @@ class StockfishEngine implements ChessEngine {
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  // stockfish.js runs in a Web Worker — its search does not block the UI
+  // thread and it answers `stop`, so pondering is safe.
+  @override
+  bool get canPonder => true;
+
+  @override
+  void sendUci(String command) => _send(command);
 
   static bool get isAvailable => kIsWeb;
 
@@ -152,11 +160,9 @@ class StockfishEngine implements ChessEngine {
     // Parse bestmove
     if (trimmed.startsWith('bestmove')) {
       final parts = trimmed.split(' ');
-      if (parts.length >= 2 && parts[1] != '(none)') {
-        _moveCompleter?.complete(parts[1]);
-        _moveCompleter = null;
-        _stateNotifier.value = EngineState.ready;
-      }
+      finishSearch(
+          parts.length >= 2 && parts[1] != '(none)' ? parts[1] : null);
+      _stateNotifier.value = EngineState.ready;
     }
   }
 
@@ -175,20 +181,22 @@ class StockfishEngine implements ChessEngine {
       _send('setoption name Skill Level value $skillLevel');
     }
 
-    // Cap depth for responsive WASM play
-    final searchDepth = depth ?? (skillLevel != null ? 5 + skillLevel ~/ 4 : 12);
-    _send(positionCommand);
-    _moveCompleter = Completer<String>();
-    _send('go depth $searchDepth');
+    // Search by time, not by a fixed depth. `Skill Level` caps Stockfish's
+    // *strength*, not its search time, so `go depth N` cost whatever depth N
+    // costs in the current position — cheap in the opening, seconds by the
+    // middlegame, and worse every move. A movetime budget is flat across the
+    // whole game.
+    final go = uciGoCommand(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
+    final cap = uciSearchTimeout(
+        depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
-    final move = await _moveCompleter!.future.timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        _send('stop');
-        throw TimeoutException('Search timed out');
-      },
-    );
-
+    final move = await startSearch(positionCommand, go, awaitMove: true)
+        .timeout(cap, onTimeout: () {
+      abandonSearch();
+      return null;
+    });
+    if (move == null) throw TimeoutException('Search timed out');
     return move;
   }
 
@@ -199,15 +207,16 @@ class StockfishEngine implements ChessEngine {
 
     _send('setoption name Skill Level value 20');
     _send('setoption name MultiPV value $multiPv');
-    _send(positionCommand);
-    _send(infinite ? 'go infinite' : 'go depth ${depth ?? 20}');
+    startSearch(positionCommand,
+        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+        awaitMove: false);
 
     return _evalController.stream;
   }
 
   @override
   void stop() {
-    _send('stop');
+    if (isSearching) _send('stop');
     _stateNotifier.value = EngineState.ready;
   }
 
@@ -218,6 +227,7 @@ class StockfishEngine implements ChessEngine {
 
   @override
   void dispose() {
+    finishSearch(null);
     _worker?.terminate();
     _worker = null;
     _evalController.close();
