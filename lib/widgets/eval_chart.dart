@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 /// Compact evaluation chart showing the eval trajectory across the game.

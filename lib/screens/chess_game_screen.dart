@@ -1092,26 +1092,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
-  Color _engineStatusColor() {
-    return switch (_engineService.state) {
-      EngineState.ready => Colors.green,
-      EngineState.initializing => Colors.orange,
-      EngineState.thinking => Colors.blue,
-      EngineState.error => Colors.red,
-      _ => Colors.grey,
-    };
-  }
-
-  String _engineStatusText() {
-    return switch (_engineService.state) {
-      EngineState.ready => _engineService.engineName,
-      EngineState.initializing => 'Starting...',
-      EngineState.thinking => 'Thinking...',
-      EngineState.error => 'Error',
-      _ => 'Offline',
-    };
-  }
-
   @override
   void dispose() {
     _eventSubscription?.cancel();
@@ -1147,7 +1127,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   Widget _buildAnalysisPanel() {
-    final hasAnnotations = _game.annotations.isNotEmpty;
     final annotations = _game.annotations;
     final lastAnnotation = annotations.isNotEmpty ? annotations.last : null;
 

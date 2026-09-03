@@ -23,9 +23,6 @@ external JSNumber _frozenightGetEval();
 @JS('frozenightDispose')
 external void _frozenightDispose();
 
-@JS('frozenightIsLoaded')
-external JSBoolean _frozenightIsLoaded();
-
 /// Frozenight NNUE engine running as WASM in the browser.
 ///
 /// ~3226 ELO (CCRL). MIT/Apache-2.0 licensed.

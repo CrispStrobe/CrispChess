@@ -95,10 +95,9 @@ class Lc0Engine implements ChessEngine {
     try {
       final fen = fenFromPositionCommand(positionCommand);
       final board = chess.Chess.fromFEN(fen);
-      final isBlack = board.turn == chess.Color.BLACK;
 
       // Get legal moves as UCI strings
-      final legalMoveObjs = board.moves({'asObjects': true}) as List;
+      final legalMoveObjs = board.moves({'asObjects': true});
       final legalMoves = <String>[];
       for (final m in legalMoveObjs) {
         String uci = '${m.fromAlgebraic}${m.toAlgebraic}';
@@ -178,7 +177,6 @@ class Lc0Engine implements ChessEngine {
     // Collect logits for legal moves, apply softmax over legal moves only
     double maxLogit = double.negativeInfinity;
     final legalLogits = <double>[];
-    final legalIndices = <int>[];
 
     for (final move in legalMoves) {
       // Mirror move for black (policy indices assume white's perspective)

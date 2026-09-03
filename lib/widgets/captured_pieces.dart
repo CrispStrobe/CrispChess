@@ -59,8 +59,6 @@ class CapturedPieces extends StatelessWidget {
     }
 
     // Material advantage
-    final opponentColor =
-        color == PieceColor.white ? PieceColor.black : PieceColor.white;
     int ourMaterial = 0;
     int theirMaterial = 0;
     for (final row in board) {

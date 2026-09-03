@@ -126,7 +126,7 @@ class Maia3DartEngine implements ChessEngine {
       // Build legal move mask
       final board = chess_lib.Chess.fromFEN(fen);
       final isBlack = fen.split(' ').length > 1 && fen.split(' ')[1] == 'b';
-      final legalMoves = board.moves({'asObjects': true}) as List;
+      final legalMoves = board.moves({'asObjects': true});
 
       final mask = Uint8List(moves.numMoves);
       final moveIndex = moves.getMoveToIndex();

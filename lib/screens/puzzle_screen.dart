@@ -25,7 +25,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   int? _selectedRow, _selectedCol;
   List<String> _validMoves = [];
   int _solvedCount = 0;
-  int _totalAttempted = 0;
   String _pieceTheme = 'chessnut';
   String _ratingFilter = 'all'; // 'all', '800-1200', '1200-1600', '1600-2000', '2000+'
 
@@ -226,7 +225,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         });
       }
     }
-    _totalAttempted++;
   }
 
   void _showSolution() {

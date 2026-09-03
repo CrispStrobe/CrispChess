@@ -26,6 +26,9 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
   String _engineName = 'Unknown';
   String _engineAuthor = '';
 
+  /// Author, as reported by the engine's `id author` line.
+  String get engineAuthor => _engineAuthor;
+
   /// UCI options advertised by the engine.
   final List<UciOption> options = [];
 

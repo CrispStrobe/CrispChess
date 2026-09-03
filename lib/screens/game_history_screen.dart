@@ -54,7 +54,6 @@ class _GameHistoryScreenState extends State<GameHistoryScreen> {
     final white = _extractHeader(pgn, 'White');
     final black = _extractHeader(pgn, 'Black');
     final result = _extractHeader(pgn, 'Result');
-    final date = _extractHeader(pgn, 'Date');
     if (white.isEmpty && black.isEmpty) {
       return result.isEmpty ? 'Game' : result;
     }

@@ -195,7 +195,6 @@ class _CoordinateTrainerScreenState extends State<CoordinateTrainerScreen> {
                       ? constraints.maxHeight
                       : constraints.maxWidth;
                   final boardSize = size * 0.95;
-                  final squareSize = boardSize / 8;
 
                   return SizedBox(
                     width: boardSize,
@@ -207,8 +206,6 @@ class _CoordinateTrainerScreenState extends State<CoordinateTrainerScreen> {
                             children: List.generate(8, (col) {
                               final isLight = (visualRow + col) % 2 == 0;
                               // Highlight target square
-                              final dataRow = 7 - visualRow;
-                              final isTarget = dataRow == _targetRow && col == _targetCol;
 
                               return Expanded(
                                 child: GestureDetector(

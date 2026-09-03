@@ -6,7 +6,6 @@
 library;
 
 import 'dart:math';
-import 'dart:typed_data';
 
 /// A node in the MCTS search tree.
 class MctsNode {

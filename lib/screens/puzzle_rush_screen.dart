@@ -29,7 +29,6 @@ class _PuzzleRushScreenState extends State<PuzzleRushScreen> {
   int _lives = 3;
   int _secondsLeft = 0;
   bool _running = false;
-  bool _gameOver = false;
   String _message = '';
   int? _selectedRow, _selectedCol;
   List<String> _validMoves = [];
@@ -74,7 +73,6 @@ class _PuzzleRushScreenState extends State<PuzzleRushScreen> {
       _lives = 3;
       _secondsLeft = widget.durationSeconds;
       _running = true;
-      _gameOver = false;
     });
     _loadNextPuzzle();
     _timer?.cancel();
@@ -91,7 +89,6 @@ class _PuzzleRushScreenState extends State<PuzzleRushScreen> {
     _timer?.cancel();
     setState(() {
       _running = false;
-      _gameOver = true;
     });
     _saveBest();
     _showResults();

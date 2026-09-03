@@ -1,7 +1,6 @@
 import 'dart:async';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import '../engines/chess_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_match_service.dart';
 import '../chess/chess_game.dart';
@@ -134,7 +133,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
             _currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
             _status = 'Round $round/$totalRounds: $white vs $black';
           });
-        case MatchMovePlayed(:final fen, :final move):
+        case MatchMovePlayed(:final fen):
           setState(() {
             _currentFen = fen;
             _currentMoveCount++;

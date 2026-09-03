@@ -94,40 +94,48 @@ void main() {
     // every clock tick. Both used to replay the whole game on each call, so the
     // per-rebuild cost climbed with every move — which is what made the app
     // (and, on web, the engine sharing its thread) crawl a few turns in.
-    test('does not grow with the length of the game', () {
-      final short = _gameWith(_opening);
-      final long = ChessGame();
-      // A long, quiet game: shuffle the knights back and forth.
+    test('costs a fraction of re-deriving it from the game', () {
+      // Pinned against the old implementation rather than a wall-clock
+      // constant: both are measured here, on the same machine, in the same
+      // run, so a loaded CI box cannot turn this red on its own. What it
+      // catches is a return to replaying the whole game per call.
+      final game = ChessGame();
+      final raw = chess.Chess();
       const shuffle = ['g1f3', 'g8f6', 'f3g1', 'f6g8'];
       for (var i = 0; i < 15; i++) {
         for (final m in shuffle) {
-          long.makeMove(m);
+          game.makeMove(m);
+          raw.move({'from': m.substring(0, 2), 'to': m.substring(2, 4)});
         }
       }
-      expect(long.moveHistory.length, 60);
+      expect(game.moveHistory.length, 60);
 
-      int cost(ChessGame game) {
-        // Warm up, then measure what one rebuild reads.
+      int cost(void Function() body) {
         for (var i = 0; i < 20; i++) {
-          game.moveHistorySan;
-          game.isGameOver;
+          body();
         }
         final sw = Stopwatch()..start();
-        for (var i = 0; i < 200; i++) {
-          game.moveHistorySan;
-          game.isGameOver;
+        for (var i = 0; i < 100; i++) {
+          body();
         }
         return sw.elapsedMicroseconds;
       }
 
-      final shortCost = cost(short);
-      final longCost = cost(long);
+      // What the screen used to do on every rebuild.
+      final replay = cost(() {
+        raw.pgn();
+        raw.game_over;
+      });
+      // What it does now.
+      final cached = cost(() {
+        game.moveHistorySan;
+        game.isGameOver;
+      });
 
-      // A 60-ply game reads a longer list than a 6-ply one, so some growth is
-      // expected — but nowhere near the order of magnitude a full replay costs.
-      expect(longCost, lessThan(shortCost * 10 + 20000),
-          reason: 'rebuild cost scales with game length: '
-              '${shortCost}us at 6 plies vs ${longCost}us at 60');
+      expect(cached * 10, lessThan(replay),
+          reason: 'reading the move list and game-over state should be at '
+              'least 10x cheaper than re-deriving them; measured '
+              '${cached}us vs ${replay}us per 100 reads');
     });
 
     test('game-over state is recomputed after the position changes', () {

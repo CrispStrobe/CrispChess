@@ -1,6 +1,5 @@
 /// PGN database — parse and browse files with multiple games.
 
-import 'pgn.dart';
 
 /// A single game entry in a PGN database.
 class PgnGameEntry {
