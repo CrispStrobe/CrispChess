@@ -19,8 +19,13 @@ on:
         description: "Apply tool/patches/lynx-wasm-time-control.patch"
         default: true
         type: boolean
+      variant:
+        description: "Which bundle to build"
+        default: both
+        type: choice
+        options: [both, aot, lite]
       open_pr:
-        description: "Open a PR with the rebuilt bundle (otherwise artifact only)"
+        description: "Push a branch with the rebuilt bundle (otherwise artifact only)"
         default: true
         type: boolean
 
@@ -56,8 +61,27 @@ jobs:
           cd third_party/lynx-chess
           git apply --verbose ../../tool/patches/lynx-wasm-time-control.patch
 
-      - name: Build
+      # Two bundles from the same source, because they are a real trade rather
+      # than a right answer: AOT is 10-15x faster and 6.1MB gzipped, the
+      # interpreter build is 2.3MB and slow. Which one a player wants depends
+      # on their connection, so the app offers both and this builds both.
+      - name: Build (AOT)
+        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
         run: bash scripts/build_lynx_wasm.sh
+
+      - name: Build (interpreter)
+        if: ${{ inputs.variant == 'both' || inputs.variant == 'lite' }}
+        run: |
+          set -e
+          LYNX_OUTPUT_DIR=web/lynx-lite \
+            bash scripts/build_lynx_wasm.sh -p:RunAOTCompilation=false
+          native_mb=$(( $(stat -c%s web/lynx-lite/_framework/dotnet.native.wasm) / 1024 / 1024 ))
+          echo "lite dotnet.native.wasm: ${native_mb} MB"
+          if [ "$native_mb" -ge 8 ]; then
+            echo "::error::the lite bundle is ${native_mb} MB — AOT ran when it should not have"
+            exit 1
+          fi
+          echo "lite bundle: $(du -sh web/lynx-lite | cut -f1)"
 
       # A non-AOT bundle builds and runs perfectly well — it is just slow — so
       # the size of the native wasm is the check that matters. AOT bakes the
@@ -66,6 +90,7 @@ jobs:
       # turned out to be nothing of the sort, because the wasm-tools workload
       # was still installing and the SDK fell back without saying so.
       - name: Check the bundle looks sane
+        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
         run: |
           set -e
           fw=web/lynx/_framework
@@ -86,6 +111,7 @@ jobs:
       # Drives the real engine through the repo's own UCI adapter: uciok,
       # readyok, and a legal-looking bestmove from a non-opening position.
       - name: Smoke-test the engine
+        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
         run: |
           set -e
           out=$(printf 'uci\nisready\nposition startpos moves e2e4 c7c5 g1f3\ngo movetime 500\n' \
@@ -99,7 +125,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: lynx-wasm-bundle
-          path: web/lynx/
+          path: |
+            web/lynx/
+            web/lynx-lite/
           retention-days: 30
 
       # Pushes a branch rather than opening a PR: creating PRs from Actions
@@ -110,7 +138,7 @@ jobs:
         if: ${{ inputs.open_pr }}
         run: |
           set -e
-          if git diff --quiet -- web/lynx; then
+          if git diff --quiet -- web/lynx web/lynx-lite && [ -z "$(git status --porcelain web/lynx-lite)" ]; then
             echo "### Lynx WASM bundle: no change" >> "$GITHUB_STEP_SUMMARY"
             echo "The rebuilt bundle is byte-identical to the committed one." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -120,7 +148,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$branch"
-          git add web/lynx
+          git add -A web/lynx web/lynx-lite
           git commit -m "chore(lynx): rebuild the WASM bundle
 
           Lynx ref: ${{ inputs.lynx_ref }}

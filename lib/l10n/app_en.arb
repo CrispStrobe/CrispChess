@@ -7,12 +7,24 @@
   "thinking": "Thinking...",
   "engineError": "Engine error",
   "loading": "Loading {engineName}...",
-  "@loading": { "placeholders": { "engineName": {} } },
+  "@loading": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "downloading": "Downloading & initializing...",
   "engineReady": "{engineName} ready",
-  "@engineReady": { "placeholders": { "engineName": {} } },
+  "@engineReady": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "engineThinking": "{engineName} is thinking...",
-  "@engineThinking": { "placeholders": { "engineName": {} } },
+  "@engineThinking": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "newGame": "New Game",
   "newGameConfirm": "Current game will be lost.",
   "settings": "Settings",
@@ -28,15 +40,27 @@
   "offerDraw": "Offer Draw",
   "resign": "Resign",
   "resignConfirm": "{engineName} wins by resignation.",
-  "@resignConfirm": { "placeholders": { "engineName": {} } },
+  "@resignConfirm": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "drawDeclined": "{engineName} declines the draw offer.",
-  "@drawDeclined": { "placeholders": { "engineName": {} } },
+  "@drawDeclined": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "drawAgreed": "Draw agreed",
   "youResigned": "You resigned",
   "gameResumed": "Game resumed",
   "resumeGame": "Resume game?",
   "savedGameMoves": "You have a saved game ({count} moves).",
-  "@savedGameMoves": { "placeholders": { "count": {} } },
+  "@savedGameMoves": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "discard": "Discard",
   "resume": "Resume",
   "cancel": "Cancel",
@@ -56,7 +80,11 @@
   "opponentStrength": "Opponent Strength",
   "hintDepth": "Hint Depth",
   "analysisDepth": "Analysis Depth: {depth}",
-  "@analysisDepth": { "placeholders": { "depth": {} } },
+  "@analysisDepth": {
+    "placeholders": {
+      "depth": {}
+    }
+  },
   "hintEngine": "Hint Engine",
   "sameAsOpponent": "Same as opponent",
   "game": "Game",
@@ -93,7 +121,11 @@
   "nextPuzzle": "Next Puzzle",
   "skip": "Skip",
   "wrongMove": "Wrong move. Try again. ({remaining} left)",
-  "@wrongMove": { "placeholders": { "remaining": {} } },
+  "@wrongMove": {
+    "placeholders": {
+      "remaining": {}
+    }
+  },
   "puzzleSolved": "Correct! Puzzle solved.",
   "findNextMove": "Correct! Find the next move.",
   "gameSummary": "Game Summary",
@@ -109,13 +141,21 @@
   "moves": "Moves",
   "tapToViewPosition": "Tap to view position",
   "moveN": "Move {n}",
-  "@moveN": { "placeholders": { "n": {} } },
+  "@moveN": {
+    "placeholders": {
+      "n": {}
+    }
+  },
   "welcome": "Welcome to CrispChess",
   "welcomeSubtitle": "Play chess against AI engines or a friend.",
   "letsPlay": "Let's play!",
   "switchToBuiltIn": "Switch to Built-in",
   "failedToInitialize": "{engineName}: failed to initialize",
-  "@failedToInitialize": { "placeholders": { "engineName": {} } },
+  "@failedToInitialize": {
+    "placeholders": {
+      "engineName": {}
+    }
+  },
   "checkmate": "Checkmate",
   "stalemate": "Stalemate",
   "drawThreefold": "Draw — threefold repetition",
@@ -149,20 +189,37 @@
   "configure": "Configure",
   "probingEngine": "Probing engine...",
   "engineAdded": "Added: {name}",
-  "@engineAdded": { "placeholders": { "name": {} } },
+  "@engineAdded": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "engineInitFailed": "Engine failed to initialize: {error}",
-  "@engineInitFailed": { "placeholders": { "error": {} } },
+  "@engineInitFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "loadingEngineOptions": "Loading engine options...",
   "noCustomEngines": "No custom engines added",
   "noCustomEnginesSubtitle": "Add any UCI-compatible chess engine\nby providing the path to its binary.",
   "removeEngine": "Remove Engine?",
   "removeEngineConfirm": "Remove \"{name}\" from your engine list?",
-  "@removeEngineConfirm": { "placeholders": { "name": {} } },
+  "@removeEngineConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "noConfigurableOptions": "No configurable options",
   "reset": "Reset",
   "run": "Run",
   "rangeMinMax": "Range: {min} – {max}",
-  "@rangeMinMax": { "placeholders": { "min": {}, "max": {} } },
+  "@rangeMinMax": {
+    "placeholders": {
+      "min": {},
+      "max": {}
+    }
+  },
   "positionEditor": "Position Editor",
   "startingPosition": "Starting position",
   "clearBoard": "Clear board",
@@ -182,7 +239,11 @@
   "load": "Load",
   "databaseStatistics": "Database Statistics",
   "nGames": "{count} games",
-  "@nGames": { "placeholders": { "count": {} } },
+  "@nGames": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "results": "Results",
   "whiteWins": "White wins",
   "blackWins": "Black wins",
@@ -204,7 +265,11 @@
   "selectTwoDifferent": "Select two different engines",
   "selectAtLeast3": "Select at least 3 engines",
   "selectEngines": "Select engines ({count} selected, min 3):",
-  "@selectEngines": { "placeholders": { "count": {} } },
+  "@selectEngines": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "depth": "Depth",
   "startMatch": "Start Match",
   "startTournament": "Start Tournament",
@@ -217,7 +282,11 @@
   "currentOpponent": "(current opponent)",
   "start": "Start",
   "multiEngineFailed": "Multi-engine failed: {error}",
-  "@multiEngineFailed": { "placeholders": { "error": {} } },
+  "@multiEngineFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "reAnalyze": "Re-analyze",
   "tapRefreshToAnalyze": "Tap refresh to analyze",
   "engineLoading": "Engine loading...",
@@ -226,26 +295,57 @@
   "positionRestored": "Position restored",
   "resignQuestion": "Resign?",
   "dailyLogin": "Daily login: +{xp} XP (streak: {streak})",
-  "@dailyLogin": { "placeholders": { "xp": {}, "streak": {} } },
+  "@dailyLogin": {
+    "placeholders": {
+      "xp": {},
+      "streak": {}
+    }
+  },
   "levelUp": "Level Up!",
   "youReached": "You reached {level}!",
-  "@youReached": { "placeholders": { "level": {} } },
+  "@youReached": {
+    "placeholders": {
+      "level": {}
+    }
+  },
   "continueButton": "Continue",
   "couldNotCaptureBoard": "Could not capture board",
   "boardCaptured": "Board captured ({size} KB)",
-  "@boardCaptured": { "placeholders": { "size": {} } },
+  "@boardCaptured": {
+    "placeholders": {
+      "size": {}
+    }
+  },
   "screenshotFailed": "Screenshot failed: {error}",
-  "@screenshotFailed": { "placeholders": { "error": {} } },
+  "@screenshotFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "illegalMove": "Illegal Move!",
   "premove": "Premove: {move}",
-  "@premove": { "placeholders": { "move": {} } },
+  "@premove": {
+    "placeholders": {
+      "move": {}
+    }
+  },
   "premoveIllegal": "Premove illegal — your turn",
   "drillComplete": "Drill Complete!",
   "correctOnFirstTry": "{correct} / {total} correct on first try",
-  "@correctOnFirstTry": { "placeholders": { "correct": {}, "total": {} } },
+  "@correctOnFirstTry": {
+    "placeholders": {
+      "correct": {},
+      "total": {}
+    }
+  },
   "done": "Done",
   "stepOf": "Step {current} of {total}",
-  "@stepOf": { "placeholders": { "current": {}, "total": {} } },
+  "@stepOf": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
   "next": "Next",
   "finish": "Finish",
   "findBestMove": "Find the best move.",
@@ -256,7 +356,11 @@
   "privacyNotice": "Your API key is stored locally on your device only. Game data (FEN/PGN) is sent directly to your chosen AI provider. CrispChess does not store, log, or transmit any data to its own servers. You can delete your API key at any time.",
   "enterApiKey": "Enter your API key to get started:",
   "keyConfigured": "{provider} key configured",
-  "@keyConfigured": { "placeholders": { "provider": {} } },
+  "@keyConfigured": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
   "removeKey": "Remove key",
   "noMistakesYet": "No mistakes tracked yet!",
   "noMistakesSubtitle": "Play games with analysis enabled to track blunders.",
@@ -274,6 +378,14 @@
   "hintsAndAnalysis": "Hints & Analysis",
   "maia3Model": "Maia3 Model",
   "stockfishVersion": "Stockfish Version",
+  "lynxBuild": "Lynx Build",
+  "@lynxBuild": {
+    "description": "Title of the Lynx WASM build picker"
+  },
+  "lynxBuildNote": "The engine loads once per page, so a change takes effect after a reload.",
+  "@lynxBuildNote": {
+    "description": "Note that switching Lynx builds needs a page reload"
+  },
   "maiaWeight": "Maia Weight (ELO level)",
   "gameMode": "Game Mode",
   "standard": "Standard",

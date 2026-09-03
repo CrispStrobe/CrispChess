@@ -17,7 +17,10 @@ LYNX_VERSION="wasm-browser"
 LYNX_REPO="https://github.com/CrispStrobe/lynx-chess.git"
 LYNX_DIR="$PROJECT_ROOT/third_party/lynx-chess"
 WASM_PROJECT="$LYNX_DIR/src/Lynx.Wasm"
-OUTPUT_DIR="$PROJECT_ROOT/web/lynx"
+# Overridable so the same script can produce both bundles the app offers: the
+# AOT one (default) and, with -p:RunAOTCompilation=false, the small interpreter
+# one. Any extra arguments are passed straight through to `dotnet publish`.
+OUTPUT_DIR="${LYNX_OUTPUT_DIR:-$PROJECT_ROOT/web/lynx}"
 
 # Colors
 RED='\033[0;31m'
@@ -70,8 +73,10 @@ fi
 echo -e "${GREEN}Building Lynx WASM (AOT)...${NC}"
 echo "  This may take several minutes on first build."
 
+case "$OUTPUT_DIR" in /*) ;; *) OUTPUT_DIR="$PROJECT_ROOT/$OUTPUT_DIR" ;; esac
+
 cd "$WASM_PROJECT"
-dotnet publish -c Release 2>&1 | grep -E '(error|warning|Generated|Compiling|Linking|AOT|took)' || true
+dotnet publish -c Release "$@" 2>&1 | grep -E '(error|warning|Generated|Compiling|Linking|AOT|took)' || true
 
 APPBUNDLE="$WASM_PROJECT/bin/Release/net10.0/browser-wasm/AppBundle"
 

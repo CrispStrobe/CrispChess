@@ -813,6 +813,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockfishVersion => 'Stockfish Version';
 
   @override
+  String get lynxBuild => 'Lynx Build';
+
+  @override
+  String get lynxBuildNote =>
+      'The engine loads once per page, so a change takes effect after a reload.';
+
+  @override
   String get maiaWeight => 'Maia Weight (ELO level)';
 
   @override

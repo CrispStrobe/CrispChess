@@ -1592,6 +1592,18 @@ abstract class AppLocalizations {
   /// **'Stockfish Version'**
   String get stockfishVersion;
 
+  /// Title of the Lynx WASM build picker
+  ///
+  /// In en, this message translates to:
+  /// **'Lynx Build'**
+  String get lynxBuild;
+
+  /// Note that switching Lynx builds needs a page reload
+  ///
+  /// In en, this message translates to:
+  /// **'The engine loads once per page, so a change takes effect after a reload.'**
+  String get lynxBuildNote;
+
   /// No description provided for @maiaWeight.
   ///
   /// In en, this message translates to:

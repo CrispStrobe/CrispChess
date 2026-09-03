@@ -45,7 +45,9 @@ ChessEngine createEngine(String name, {
     case 'Lc0':
       return Lc0Engine(variantId: maia3Variant); // GPL-3.0, downloaded separately
     case 'Lynx':
-      return LynxEngine(); // MIT, downloaded from GitHub Releases
+      // On web the id picks the WASM build (fast/AOT or small/interpreter);
+      // on native it is ignored.
+      return LynxEngine(variantId: maia3Variant); // MIT
     default:
       return DartEngine(); // MIT, built-in
   }

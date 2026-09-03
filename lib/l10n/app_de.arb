@@ -249,6 +249,14 @@
   "hintsAndAnalysis": "Hinweise & Analyse",
   "maia3Model": "Maia3-Modell",
   "stockfishVersion": "Stockfish-Version",
+  "lynxBuild": "Lynx-Variante",
+  "@lynxBuild": {
+    "description": "Title of the Lynx WASM build picker"
+  },
+  "lynxBuildNote": "Die Engine wird einmal pro Seite geladen; eine Änderung wirkt nach dem Neuladen.",
+  "@lynxBuildNote": {
+    "description": "Note that switching Lynx builds needs a page reload"
+  },
   "maiaWeight": "Maia-Gewicht (ELO-Stufe)",
   "gameMode": "Spielmodus",
   "standard": "Standard",

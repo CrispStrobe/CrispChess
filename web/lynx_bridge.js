@@ -7,14 +7,21 @@ let lynxInterop = null;
 let lynxLoaded = false;
 let lynxLoading = null;
 
-async function lynxLoad() {
+// Which bundle to load. 'lynx' is the AOT build — 10-15x faster, 6.1MB
+// gzipped; 'lynx-lite' is the interpreter build at 2.3MB. The .NET runtime can
+// only be created once per page, so switching takes a reload, which is why the
+// chosen directory is captured on the first load and reported back afterwards.
+let lynxBundleDir = 'lynx';
+
+async function lynxLoad(bundleDir) {
   if (lynxLoaded) return;
   if (lynxLoading) return lynxLoading;
+  if (bundleDir) lynxBundleDir = bundleDir;
 
   lynxLoading = (async () => {
     try {
-      console.log('[Lynx WASM] Loading .NET runtime...');
-      const { dotnet } = await import('./lynx/_framework/dotnet.js');
+      console.log('[Lynx WASM] Loading .NET runtime from ' + lynxBundleDir + '...');
+      const { dotnet } = await import(`./${lynxBundleDir}/_framework/dotnet.js`);
 
       const { getAssemblyExports, getConfig } = await dotnet
         .withDiagnosticTracing(false)
@@ -68,4 +75,5 @@ globalThis.lynxLoad = lynxLoad;
 globalThis.lynxSendUci = lynxSendUci;
 globalThis.lynxSearch = lynxSearch;
 globalThis.lynxIsLoaded = lynxIsLoaded;
+globalThis.lynxLoadedBundle = () => lynxBundleDir;
 globalThis.lynxDispose = lynxDispose;

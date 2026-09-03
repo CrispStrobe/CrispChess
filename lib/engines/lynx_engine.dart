@@ -48,6 +48,11 @@ const _lynxBaseUrl =
 
 /// Lynx chess engine — downloads and runs as a native UCI process.
 class LynxEngine with UciSearchCoordinator implements ChessEngine {
+  /// Accepted for API parity with the web build, which offers a choice of WASM
+  /// bundles. There is nothing to choose on native: it runs one downloaded
+  /// binary.
+  LynxEngine({String? variantId});
+
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   StreamSubscription? _stdoutSub;

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_clock.dart';
 import '../chess/board_theme.dart';
 import '../chess/game_state.dart' show ChessVariant;
+import '../engines/lynx_build.dart';
 import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -199,6 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool get _isMaiaEngine => _selectedEngine == 'Maia3 Dart';
   bool get _isStockfish => _selectedEngine == 'Stockfish';
   bool get _isLc0 => _selectedEngine == 'Lc0';
+  bool get _isLynx => _selectedEngine == 'Lynx';
 
   List<_EngineOption> get _availableEngines {
     final engines = <_EngineOption>[
@@ -455,6 +457,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     dense: true,
                   );
                 }).toList(),
+              ),
+            ),
+          ],
+
+          // Lynx WASM build selector — web only; the native build downloads a
+          // single binary and has nothing to choose.
+          if (_isLynx && kIsWeb) ...[
+            const SizedBox(height: 16),
+            Text(l?.lynxBuild ?? 'Lynx Build',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  for (final b in LynxBuild.values)
+                    RadioListTile<String>(
+                      value: b.id,
+                      groupValue: LynxBuild.fromId(_maia3Variant).id,
+                      onChanged: (value) =>
+                          setState(() => _maia3Variant = value!),
+                      title: Text(b.label,
+                          style: const TextStyle(fontSize: 14)),
+                      subtitle: Text('${b.downloadSize} — ${b.description}',
+                          style: const TextStyle(fontSize: 12)),
+                      dense: true,
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
+              child: Text(
+                l?.lynxBuildNote ??
+                    'The engine loads once per page, so a change takes effect '
+                        'after a reload.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Theme.of(context).hintColor),
               ),
             ),
           ],

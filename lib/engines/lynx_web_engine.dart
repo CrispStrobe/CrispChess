@@ -7,9 +7,13 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'lynx_build.dart';
 
 @JS('lynxLoad')
-external JSPromise<JSAny?> _lynxLoad();
+external JSPromise<JSAny?> _lynxLoad(JSString bundleDir);
+
+@JS('lynxLoadedBundle')
+external JSString _lynxLoadedBundle();
 
 @JS('lynxSendUci')
 external JSPromise<JSString> _lynxSendUci(JSString command);
@@ -34,6 +38,10 @@ final _multipvRegex = RegExp(r'multipv (\d+)');
 /// Async search — yields back to event loop during search.
 class LynxEngine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
+
+  /// Which WASM build to load. The .NET runtime can only be created once per
+  /// page, so a change takes effect on the next reload rather than immediately.
+  final LynxBuild build;
   final _evalController = StreamController<EvalInfo>.broadcast();
   bool _loaded = false;
   bool _stopping = false;
@@ -47,7 +55,7 @@ class LynxEngine implements ChessEngine {
   @override
   String get name => 'Lynx';
   @override
-  String get version => _version;
+  String get version => '$_version · ${build.label}';
   @override
   String get license => 'MIT';
   @override
@@ -56,6 +64,8 @@ class LynxEngine implements ChessEngine {
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
+
+  LynxEngine({String? variantId}) : build = LynxBuild.fromId(variantId);
 
   static bool get isAvailable => kIsWeb;
 
@@ -76,8 +86,15 @@ class LynxEngine implements ChessEngine {
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
     try {
-      debugPrint('[LynxWASM] Loading .NET WASM runtime + Lynx engine...');
-      await _lynxLoad().toDart;
+      debugPrint('[LynxWASM] Loading ${build.label} build (${build.directory})...');
+      await _lynxLoad(build.directory.toJS).toDart;
+      final loaded = _lynxLoadedBundle().toDart;
+      if (loaded != build.directory) {
+        // The runtime is a per-page singleton, so whichever build loaded first
+        // is the one running. Say so rather than reporting the wrong engine.
+        debugPrint('[LynxWASM] Note: $loaded is already loaded on this page; '
+            'reload to switch to ${build.directory}.');
+      }
 
       // Verify UCI handshake and parse version
       final uciResponse = (await _lynxSendUci('uci'.toJS).toDart).toDart;
