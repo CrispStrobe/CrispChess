@@ -91,6 +91,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   /// Multi-PV lines from engine analysis (index 0 = best line).
   final List<PvLine> _pvLines = [];
 
+  /// When the analysis panel last repainted, so a stream of `info` lines can be
+  /// coalesced instead of driving one screen rebuild each.
+  DateTime _lastAnalysisRepaint = DateTime.fromMillisecondsSinceEpoch(0);
+
   /// Key for board screenshot capture.
   final GlobalKey _boardKey = GlobalKey();
 
@@ -221,11 +225,18 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     });
   }
 
-  /// Apply user-configured Hash and Threads to the current engine.
+  /// Apply user-configured Hash and Threads to the current engine, plus the
+  /// variant flag the engine needs to read the position correctly.
   void _applyEngineOptions() {
     final engine = _engineService.engine;
     engine.setOption('Hash', '${_prefs.engineHashMb}');
     engine.setOption('Threads', '${_prefs.engineThreads}');
+    // A Chess960 game is handed to the engine as a FEN with the pieces on
+    // shuffled files. Without this flag the engine reads it as ordinary chess
+    // and misjudges castling rights. Set explicitly either way, so switching
+    // back to a standard game clears it.
+    engine.setOption('UCI_Chess960',
+        _prefs.chessVariant == ChessVariant.chess960 ? 'true' : 'false');
   }
 
   void _onEngineEvent(EngineEvent event) {
@@ -238,7 +249,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           _evalNotifier.value = eval;
           _depthNotifier.value = depth;
           // Track eval history for the chart (capped at 500 moves)
-          if (_evalHistory.length < _game.moveHistory.length && _evalHistory.length < 500) {
+          if (_evalHistory.length < _game.plyCount && _evalHistory.length < 500) {
             _evalHistory.add(eval);
           } else if (_evalHistory.isNotEmpty) {
             _evalHistory.last = eval;
@@ -259,9 +270,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         }
         if (bestMove.isNotEmpty) {
           _game.updateEvaluation(eval, bestMove, depth);
-          setState(() {
-            _state = _state.copyWith(currentBestMove: bestMove);
-          });
+          // A searching engine emits an `info` line several dozen times a
+          // second, and each one used to rebuild the whole screen — board,
+          // move list and all. The eval and depth readouts have their own
+          // notifiers, so a rebuild is only needed when the best move changes;
+          // while the analysis panel is open its PV list also has to refresh,
+          // but a few times a second is plenty.
+          final now = DateTime.now();
+          final movedOn = _state.currentBestMove != bestMove;
+          final pvDue = _state.analysisExpanded &&
+              now.difference(_lastAnalysisRepaint) >
+                  const Duration(milliseconds: 200);
+          if (movedOn || pvDue) {
+            _lastAnalysisRepaint = now;
+            setState(() {
+              _state = _state.copyWith(currentBestMove: bestMove);
+            });
+          }
         }
       case BestMoveEvent(:final move):
         debugPrint('[CrispChess] Best move: $move (awaiting=$_awaitingEngineMove, hint=${_state.waitingForHint}, analysis=${_state.analysisExpanded})');
@@ -391,53 +416,70 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _makeEngineMove(String uciMove) {
-    if (_game.makeMove(uciMove)) {
-      _playMoveSound(uciMove);
-      _clock?.switchTurn();
-      _autoSaveGame();
+    if (!_game.makeMove(uciMove)) {
+      // The engine answered with a move that isn't legal here. Don't leave the
+      // UI stuck on "thinking" — hand the turn back and say what happened.
+      debugPrint('[CrispChess] Engine returned illegal move "$uciMove" for '
+          '${_game.currentFEN} — ignoring');
       setState(() {
         _state = _state.copyWith(
-          lastMoveUci: uciMove,
-          lastMove: '${_engineService.engineName}: ${_game.moveHistorySan.isNotEmpty ? _game.moveHistorySan.last : uciMove}',
-          statusMessage:
-              _game.isGameOver ? 'Game Over!' : 'Your turn ($_playerColorName)',
           isThinking: false,
+          statusMessage: 'Engine returned an illegal move — your turn',
         );
       });
-      if (_game.isGameOver) {
-        _clock?.pause();
-        _showGameOverDialog();
-      } else if (_premove != null) {
-        // Execute queued premove
-        final premove = _premove!;
-        _premove = null;
-        // Small delay so the engine's move animation is visible
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (!mounted) return;
-          if (_game.getLegalMoves().any((m) => m.startsWith(premove))) {
-            // Simulate the move via _onMove coordinates
-            final fromCol = premove.codeUnitAt(0) - 97;
-            final fromRow = 8 - int.parse(premove[1]);
-            final toCol = premove.codeUnitAt(2) - 97;
-            final toRow = 8 - int.parse(premove[3]);
-            _onMove(fromRow, fromCol, toRow, toCol);
-          } else {
-            // Premove no longer legal
-            setState(() {
-              _state = _state.copyWith(statusMessage: 'Premove illegal — your turn');
-            });
+      return;
+    }
+    _playMoveSound(uciMove);
+    _clock?.switchTurn();
+    _autoSaveGame();
+    final san = _game.moveHistorySan;
+    setState(() {
+      _state = _state.copyWith(
+        lastMoveUci: uciMove,
+        lastMove: '${_engineService.engineName}: ${san.isNotEmpty ? san.last : uciMove}',
+        statusMessage:
+            _game.isGameOver ? 'Game Over!' : 'Your turn ($_playerColorName)',
+        isThinking: false,
+      );
+    });
+    if (_game.isGameOver) {
+      _clock?.pause();
+      _showGameOverDialog();
+    } else if (_premove != null) {
+      // Execute queued premove
+      final premove = _premove!;
+      _premove = null;
+      // Small delay so the engine's move animation is visible
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted) return;
+        if (_game.getLegalMoves().any((m) => m.startsWith(premove))) {
+          // Simulate the move via _onMove coordinates
+          final fromCol = premove.codeUnitAt(0) - 97;
+          final fromRow = 8 - int.parse(premove[1]);
+          final toCol = premove.codeUnitAt(2) - 97;
+          final toRow = 8 - int.parse(premove[3]);
+          _onMove(fromRow, fromCol, toRow, toCol);
+        } else {
+          // Premove no longer legal
+          setState(() {
+            _state = _state.copyWith(statusMessage: 'Premove illegal — your turn');
+          });
+          if (_engineService.engine.canPonder) {
             _engineService.requestAnalysis(
-              _game.positionCommand, depth: _state.hintDepth);
+                _game.positionCommand, depth: _state.hintDepth);
           }
-        });
-      } else {
-        // Pondering: light background analysis while waiting for player.
-        // Use reduced depth to limit CPU/memory usage.
-        _engineService.requestAnalysis(
-          _game.positionCommand,
-          depth: (_state.hintDepth ~/ 2).clamp(6, 12),
-        );
-      }
+        }
+      });
+    } else if (_engineService.engine.canPonder) {
+      // Pondering: light background analysis while waiting for the player.
+      // Only for engines that search off the UI thread and honour `stop` —
+      // the WASM and FFI engines run the search as one blocking call, so a
+      // background `go` froze the app for its whole duration, and that
+      // duration grew every move as the position opened up.
+      _engineService.requestAnalysis(
+        _game.positionCommand,
+        depth: (_state.hintDepth ~/ 2).clamp(6, 12),
+      );
     }
   }
 
@@ -687,7 +729,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _undoMove() {
-    if (_game.moveHistory.length < 2) return;
+    if (_game.plyCount < 2) return;
     if (_state.isThinking) _engineService.stop();
 
     setState(() {
@@ -719,7 +761,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ? _prefs.customIncrementSeconds
             : null,
       );
-      _clock!.addListener(() { if (mounted) setState(() {}); });
+      // No screen-wide setState here: the clock ticks 10x a second, and the
+      // only thing that changes is the two clock bars — which subscribe to the
+      // clock themselves (see _buildClockBar call sites). Rebuilding the whole
+      // screen instead meant re-running the board's 64 squares, the captured
+      // pieces, the move list and the game-over check ten times a second, all
+      // of which get more expensive the longer the game runs.
       _clock!.start();
     } else {
       _clock = null;
@@ -727,6 +774,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
     // Set the variant on the game object
     _game.variant = _prefs.chessVariant;
+    // The engine has to be told too — the variant can change between games.
+    _applyEngineOptions();
 
     setState(() {
       if (_prefs.chessVariant == ChessVariant.chess960) {
@@ -1656,7 +1705,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _confirmNewGame() {
-    if (_game.moveHistory.isEmpty) {
+    if (!_game.hasMoves) {
       _showSidePicker();
       return;
     }
@@ -1797,7 +1846,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _autoSaveGame() {
-    if (_game.moveHistory.isNotEmpty && !_game.isGameOver) {
+    if (_game.hasMoves && !_game.isGameOver) {
       _prefs.saveGame(_game.currentFEN, _game.moveHistory);
     } else {
       _prefs.clearSavedGame();
@@ -2358,9 +2407,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ),
           // Opponent clock (top)
           if (_clock != null)
-            _buildClockBar(
-              _state.playAsBlack ? _clock!.white : _clock!.black,
-              isOpponent: true,
+            ListenableBuilder(
+              listenable: _clock!,
+              builder: (context, _) => _buildClockBar(
+                _state.playAsBlack ? _clock!.white : _clock!.black,
+                isOpponent: true,
+              ),
             ),
           // Opponent's captured pieces (pieces we captured from them)
           ListenableBuilder(
@@ -2468,9 +2520,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ),
           // Player clock (bottom)
           if (_clock != null)
-            _buildClockBar(
-              _state.playAsBlack ? _clock!.black : _clock!.white,
-              isOpponent: false,
+            ListenableBuilder(
+              listenable: _clock!,
+              builder: (context, _) => _buildClockBar(
+                _state.playAsBlack ? _clock!.black : _clock!.white,
+                isOpponent: false,
+              ),
             ),
           // Analysis panel (compact toggle)
           if (_state.analysisExpanded)
@@ -2516,7 +2571,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final currentNode = _game.currentNode;
 
     return GestureDetector(
-      onLongPress: _game.moveHistorySan.isNotEmpty ? () {
+      onLongPress: _game.hasMoves ? () {
         _exportPgn();
       } : null,
       child: Container(
