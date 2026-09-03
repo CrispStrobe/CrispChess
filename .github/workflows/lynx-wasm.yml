@@ -60,14 +60,27 @@ jobs:
         run: bash scripts/build_lynx_wasm.sh
 
       # A non-AOT bundle builds and runs perfectly well — it is just slow — so
-      # check for the AOT relink rather than trusting the build to have failed.
+      # the size of the native wasm is the check that matters. AOT bakes the
+      # compiled assemblies into it: ~16 MB here against ~1.5 MB without. That
+      # is not hypothetical, it is how a local "AOT rebuild" of this bundle
+      # turned out to be nothing of the sort, because the wasm-tools workload
+      # was still installing and the SDK fell back without saying so.
       - name: Check the bundle looks sane
         run: |
           set -e
           fw=web/lynx/_framework
-          for f in dotnet.js dotnet.native.wasm Lynx.wasm dotnet.native.js.symbols; do
+          for f in dotnet.js dotnet.native.wasm Lynx.wasm; do
             test -s "$fw/$f" || { echo "missing or empty: $fw/$f"; exit 1; }
           done
+
+          native_mb=$(( $(stat -c%s "$fw/dotnet.native.wasm") / 1024 / 1024 ))
+          echo "dotnet.native.wasm: ${native_mb} MB"
+          if [ "$native_mb" -lt 8 ]; then
+            echo "::error::dotnet.native.wasm is ${native_mb} MB — AOT did not run."
+            echo "An AOT bundle is ~16 MB; ~1.5 MB means the SDK fell back to the"
+            echo "interpreter, which builds and runs but is far slower."
+            exit 1
+          fi
           echo "bundle: $(du -sh web/lynx | cut -f1), $(find web/lynx -type f | wc -l) files"
 
       # Drives the real engine through the repo's own UCI adapter: uciok,
