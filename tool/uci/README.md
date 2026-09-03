@@ -36,32 +36,41 @@ an *unrelated* position it reaches depth 8 (10,574 nodes) in the same second.
 Both this adapter and `lynx_web_engine.dart` now spend one short search up front
 so the first real move is not the weak one.
 
-**It overshoots `movetime`.** In the tournament: a median of 608 ms against a
-300 ms budget, and one search that ran past 40 s, which ends the game.
+**It overshot `movetime` badly — median 608 ms against a 300 ms budget, and one
+search past 40 s — and the cause was that the shipped bundle was never
+AOT-compiled.**
 
-Lynx enforces its hard limit with `CancellationTokenSource.CancelAfter`, which
-schedules the cancellation on a timer. The search checks its token at every
-node, so whenever that callback is late the budget is not enforced until the
-search ends on its own. `tool/patches/lynx-wasm-time-control.patch` adds a
-direct clock check every 2048 nodes, which depends on nothing being scheduled.
-Measured A/B over ten warmed searches at a 300 ms budget: median overshoot
-1.3-1.7x with the patch against 1.8-2.8x without, and p90 1.9-2.5x against
-4.7-6.8x.
+`Lynx.Wasm.csproj` asks for `RunAOTCompilation`, but the SDK falls back to the
+interpreter, without complaining, when the `wasm-tools` workload is missing.
+The tell is the size of `dotnet.native.wasm`: AOT bakes the compiled assemblies
+into it, so it is ~16 MB, and the committed bundle's was 1.5 MB. Rebuilt
+properly on CI, the same fixed-depth search runs **10-15x faster**:
 
-It does not remove the tail — about one search in ten still takes 5-6 s in
-*both* builds, so that has another cause — and the 40 s figure above does not
-reproduce outside the tournament, where eight engines were playing at once on a
-loaded box. Treat the budget as tight-ish rather than hard.
+```
+  depth-8 searches, same position, warmed
+  non-AOT   4873 ms, 1028 ms, 1614 ms
+  AOT        542 ms,   91 ms,  108 ms
+```
 
-The patch is not in the shipped `web/lynx` bundle: that needs an AOT rebuild,
-which is memory-hungry enough to matter on a shared machine. See
-`tool/patches/README.md`.
+At ten times the speed a single search iteration is ten times shorter, so the
+overshoot shrinks with it. Ten warmed searches at a 300 ms budget:
 
-Two things this rules out, both of which looked plausible first: it is not an
-interpreter-vs-AOT problem (the bundle was rebuilt with .NET 10 + `wasm-tools`
-and performs the same as the artifact it replaced), and driving it with
-`go depth` instead does not help — a fixed depth is what made it slow in the
-first place.
+```
+  non-AOT, unpatched   median 577 ms   max 6695 ms   (outliers at 3.2 s, 6.7 s)
+  AOT + time patch     median 402 ms   max  548 ms   (every search within 1.8x)
+```
+
+The tail is gone. `tool/patches/lynx-wasm-time-control.patch` adds a direct
+clock check every 2048 nodes — Lynx otherwise relies on a timer callback, which
+is enforced late whenever the callback runs late — and it accounts for part of
+the improvement, but the AOT build is the larger half.
+
+The cost is download size: 2.3 MB gzipped to 6.1 MB. That is a real trade for a
+web app and is the user's call, not a foregone conclusion.
+
+Rebuild with `gh workflow run "Lynx WASM bundle"` — it is a 16 GB job that took
+a 7.7 GB dev box to the OOM cliff, so it belongs on a runner. The workflow
+asserts the native wasm's size precisely so a silent fallback cannot ship again.
 
 ## `stockfish_js_uci.mjs`
 

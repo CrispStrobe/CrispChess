@@ -100,9 +100,11 @@ Three entries need reading with context:
   search, so the time budget does not apply to them — their latency columns are
   inference cost. Both imitate human play, so losing to real engines at equal
   time is the expected result rather than a defect.
-- **Lynx WASM** overshoots its time budget, and one search here ran past 40 s,
-  which ends its games. Note the conditions: eight engines playing at once on a
-  loaded shared box, so that number is as likely to be CPU starvation as
-  anything in the engine. Lynx's own overshoot is real but smaller, and a patch
-  that tightens it roughly twofold is in `tool/patches/` awaiting a bundle
-  rebuild. See `tool/uci/README.md`.
+- **Lynx WASM** overshot its budget here and one search ran past 40 s, which
+  ends its games. The cause has since been found and fixed: the committed
+  bundle was never AOT-compiled — the SDK falls back to the interpreter without
+  complaining when the `wasm-tools` workload is missing — so the engine was
+  running roughly 10-15x slower than it should. Rebuilt properly, with the
+  time-control patch, ten searches at a 300 ms budget come back with a median
+  of 402 ms and a **max of 548 ms**, against a max of 6695 ms before. These
+  tournament figures predate that fix. See `tool/uci/README.md`.

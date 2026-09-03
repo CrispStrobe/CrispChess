@@ -23,33 +23,22 @@ being scheduled, so it catches the cases the timer misses; where the timer does
 fire it simply agrees with it. The cost is one `ElapsedMilliseconds` read every
 few thousand nodes.
 
-### What it measurably does, and what it does not
+### What it measurably does
 
-Ten warmed searches at a 300 ms budget, patched build against the shipped one,
-same harness and positions, three repetitions:
+Ten warmed searches at a 300 ms budget, patched against unpatched, same harness
+and positions, three repetitions on an otherwise identical non-AOT build:
 
 ```
-                 median overshoot        p90 overshoot      worst
-  patched          1.3-1.7x               1.9-2.5x          ~5.5s
-  unpatched        1.8-2.8x               4.7-6.8x          ~6.7s
+                 median overshoot        p90 overshoot
+  patched          1.3-1.7x               1.9-2.5x
+  unpatched        1.8-2.8x               4.7-6.8x
 ```
 
-The patched build is consistently tighter, and it is the *non-AOT* build — a
-slower engine per node, which should overshoot more, not less. So the effect is
-real.
-
-Two honest limits:
-
-- **It does not remove the tail.** Roughly one search in ten still runs 5-6 s
-  against a 300 ms budget, in both builds. Whatever causes that is not the
-  cancellation path — most likely the runtime itself (GC, or tiering
-  recompilation) stalling between node checks.
-- **The 40 s search seen in the tournament does not reproduce here.** That run
-  had eight engines playing concurrently on a loaded shared box, so CPU
-  starvation is the more likely explanation for that particular number than
-  anything in Lynx. An earlier version of this note asserted the timer "can
-  never fire" in browser WASM; the A/B above shows the budget is partly
-  enforced without the patch, so that claim was too strong.
+Real, and consistent. But it is the smaller half of the story: the bundle those
+numbers came from was not AOT-compiled, and that turned out to be the dominant
+problem — see `tool/uci/README.md`. With a proper AOT build *and* this patch,
+the same ten searches come back with a median of 402 ms and a max of 548 ms,
+where the old bundle's worst was 6695 ms.
 
 The patch is cut against `CrispStrobe/lynx-chess` branch `wasm-browser`, which
 is what `scripts/build_lynx_wasm.sh` clones.
