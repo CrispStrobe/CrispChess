@@ -130,17 +130,28 @@ String gameResult(chess.Chess game) {
 
 String _escape(String s) => s.replaceAll('"', '\\"');
 
-/// Export a game tree to PGN with RAV (Recursive Annotation Variation).
+/// The standard initial position, in the FEN form `package:chess` produces.
+const String standardStartFen =
+    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+/// Export the game as it currently stands on the board, from the game tree.
 ///
-/// Variations are encoded in parentheses per the PGN spec:
-/// `1. e4 e5 (1... c5 2. Nf3 d6) 2. Nf3 Nc6`
-String exportPgnWithVariations({
+/// The tree is the app's record of the game: it survives a takeback (which
+/// reloads `chess.Chess` from a FEN and so clears *its* history), it knows the
+/// real starting position, and it holds the SAN, comments and variations. An
+/// export driven by `chess.Chess` instead produced an empty move list after any
+/// undo.
+///
+/// The moves written are the ones that led to the position on the board — the
+/// current path — so a takeback removes the move from the export too. Sidelines
+/// branching off that path are written as RAV variations.
+String exportPgnFromTree({
   required GameTree tree,
   PgnHeaders headers = const PgnHeaders(),
 }) {
   final sb = StringBuffer();
+  final startFen = tree.root.fen;
 
-  // Headers
   sb.writeln('[Event "${_escape(headers.event)}"]');
   sb.writeln('[Site "${_escape(headers.site)}"]');
   sb.writeln('[Date "${headers.date}"]');
@@ -148,65 +159,77 @@ String exportPgnWithVariations({
   sb.writeln('[White "${_escape(headers.white)}"]');
   sb.writeln('[Black "${_escape(headers.black)}"]');
   sb.writeln('[Result "${headers.result}"]');
+  // A game that did not start from the initial position is unreadable without
+  // these two tags — Chess960, a puzzle, or a position loaded from FEN.
+  if (startFen != standardStartFen) {
+    sb.writeln('[SetUp "1"]');
+    sb.writeln('[FEN "$startFen"]');
+  }
   for (final entry in headers.extra.entries) {
     sb.writeln('[${entry.key} "${_escape(entry.value)}"]');
   }
   sb.writeln();
 
-  // Move text with variations
-  _writeNode(sb, tree.root, true, 1);
-  sb.write(' ${headers.result}');
-  sb.writeln();
+  var (moveNumber, whiteToMove) = _startCounters(startFen);
+  var needsNumber = true; // the very first move always carries its number
 
+  for (final node in tree.currentPath) {
+    _writeMove(sb, node, moveNumber, whiteToMove, needsNumber);
+
+    // Sidelines at this point: the siblings this move was chosen over.
+    final siblings = node.parent?.children ?? const <GameTreeNode>[];
+    var wroteVariation = false;
+    for (final sibling in siblings) {
+      if (identical(sibling, node)) continue;
+      sb.write('(');
+      var vNumber = moveNumber;
+      var vWhite = whiteToMove;
+      var vNeedsNumber = true;
+      GameTreeNode? v = sibling;
+      while (v != null) {
+        _writeMove(sb, v, vNumber, vWhite, vNeedsNumber);
+        vNeedsNumber = false;
+        if (!vWhite) vNumber++;
+        vWhite = !vWhite;
+        v = v.children.isEmpty ? null : v.children.first;
+      }
+      sb.write(') ');
+      wroteVariation = true;
+    }
+
+    // After a variation, black's move needs its "12..." prefix again.
+    needsNumber = wroteVariation;
+    if (!whiteToMove) moveNumber++;
+    whiteToMove = !whiteToMove;
+  }
+
+  sb.write(headers.result);
+  sb.writeln();
   return sb.toString();
 }
 
-void _writeNode(StringBuffer sb, GameTreeNode node, bool isWhite, int moveNum) {
-  if (node.children.isEmpty) return;
-
-  final mainChild = node.children.first;
-
-  // Write main line move
-  if (isWhite) {
-    sb.write('$moveNum. ');
-  } else if (node.children.length > 1 || node == node) {
-    // Only write black move number after a variation
+void _writeMove(StringBuffer sb, GameTreeNode node, int moveNumber,
+    bool whiteToMove, bool needsNumber) {
+  if (whiteToMove) {
+    sb.write('$moveNumber. ');
+  } else if (needsNumber) {
+    sb.write('$moveNumber... ');
   }
-  sb.write(mainChild.san ?? mainChild.move ?? '?');
-
-  // Write comment if present
-  if (mainChild.comment != null && mainChild.comment!.isNotEmpty) {
-    sb.write(' {${mainChild.comment}}');
+  sb.write(node.san ?? node.move ?? '?');
+  if (node.nag != null) sb.write(' \$${node.nag}');
+  if (node.comment != null && node.comment!.isNotEmpty) {
+    sb.write(' {${node.comment}}');
   }
-
-  // Write NAG
-  if (mainChild.nag != null) {
-    sb.write(' \$${mainChild.nag}');
-  }
-
   sb.write(' ');
+}
 
-  // Write variations (children 1+)
-  for (int i = 1; i < node.children.length; i++) {
-    final variation = node.children[i];
-    sb.write('(');
-    if (isWhite) {
-      sb.write('$moveNum. ');
-    } else {
-      sb.write('$moveNum... ');
-    }
-    sb.write(variation.san ?? variation.move ?? '?');
-    if (variation.comment != null) sb.write(' {${variation.comment}}');
-    sb.write(' ');
-    // Recurse into variation
-    _writeNode(sb, variation, !isWhite,
-        isWhite ? moveNum : moveNum + 1);
-    sb.write(') ');
-  }
-
-  // Recurse into main line
-  _writeNode(sb, mainChild, !isWhite,
-      isWhite ? moveNum : moveNum + 1);
+/// Move number and side to move at the start of [fen].
+(int, bool) _startCounters(String fen) {
+  final fields = fen.split(' ');
+  final whiteToMove = fields.length < 2 || fields[1] == 'w';
+  final moveNumber =
+      fields.length >= 6 ? (int.tryParse(fields[5]) ?? 1) : 1;
+  return (moveNumber, whiteToMove);
 }
 
 /// Import PGN with RAV variations into a game tree.

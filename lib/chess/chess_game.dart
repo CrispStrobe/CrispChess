@@ -37,6 +37,30 @@ class ChessGame with ChangeNotifier {
   List<String>? _cachedLegalMoves;
   List<List<ChessPiece?>>? _cachedBoard;
 
+  /// Game-over state for the current position.
+  ///
+  /// Cached because `package:chess`'s `game_over` reaches
+  /// `in_threefold_repetition`, which undoes the entire game and regenerates a
+  /// FEN for every ply (the package documents it as "costly"). The game screen
+  /// asks for it from `build()`, and the screen rebuilds on every clock tick —
+  /// so an uncached call replayed the whole game ten times a second, costing
+  /// more with every move played.
+  bool? _cachedGameOver;
+  String? _cachedGameOverReason;
+
+  /// FEN of the current position. `chess.Chess.fen` rebuilds it from the board
+  /// on every read, and the screen asks for it several times per rebuild
+  /// (opening lookup, board, bookmarks).
+  String? _cachedFen;
+
+  void _invalidatePositionCaches() {
+    _cachedLegalMoves = null;
+    _cachedBoard = null;
+    _cachedGameOver = null;
+    _cachedGameOverReason = null;
+    _cachedFen = null;
+  }
+
   double? _lastEvaluation;
   int? _lastDepth;
 
@@ -55,7 +79,7 @@ class ChessGame with ChangeNotifier {
   }
 
   bool get inCheck => _game.in_check;
-  String get currentFEN => _game.fen;
+  String get currentFEN => _cachedFen ??= _game.fen;
   bool get whiteToMove => _game.turn == chess.Color.WHITE;
 
   String squareToAlgebraic(int row, int col) {
@@ -103,19 +127,46 @@ class ChessGame with ChangeNotifier {
     }
   }
   
-  List<String> get moveHistory => _game.history
-      .map((m) => '${m.move.fromAlgebraic}${m.move.toAlgebraic}${m.move.promotion?.name ?? ""}')
-      .toList();
-  
+  /// UCI moves from the start of the game to the current position.
+  ///
+  /// Read from the game tree, not `chess.Chess.history`: undoing a move
+  /// reloads the board from a FEN, and `load()` clears that history. Sourcing
+  /// the move list from it meant that after an undo the app told the engine
+  /// `position startpos` — the *initial* position — while the board showed
+  /// something else entirely. The engine then answered with a move that was
+  /// illegal on the real board, `makeMove` rejected it, and the UI sat on
+  /// "thinking" forever.
+  List<String> get moveHistory => _tree.moveHistory;
+
+  /// Number of half-moves played to reach the current position.
+  ///
+  /// Cheaper than `moveHistory.length`, which builds the whole list of UCI
+  /// strings. Callers on hot paths — the eval-update handler fires several
+  /// times a second while the engine searches — only want the count.
+  int get plyCount => _tree.current.ply;
+
+  /// Whether any move has been played from the starting position.
+  bool get hasMoves => plyCount > 0;
+
   List<MoveAnnotation> get annotations => _annotations;
   MoveAnnotation? get lastAnnotation => _annotations.isEmpty ? null : _annotations.last;
-  
+
+  /// The UCI `position` command for the current position.
+  ///
+  /// Anchored to the tree's starting FEN, so games that did not start from the
+  /// initial position — Chess960, a position loaded from FEN, a puzzle — are
+  /// described correctly instead of being passed off as `startpos`.
   String get positionCommand {
-    final cmd = moveHistory.isEmpty 
-        ? 'position startpos' 
-        : 'position startpos moves ${moveHistory.join(' ')}';
-    return cmd;
+    final moves = moveHistory;
+    final start = _tree.root.fen;
+    final base = start == _standardStartFen
+        ? 'position startpos'
+        : 'position fen $start';
+    return moves.isEmpty ? base : '$base moves ${moves.join(' ')}';
   }
+
+  static const String _standardStartFen =
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   
   List<String> getLegalMoves() {
     _cachedLegalMoves ??= _game.generate_moves()
@@ -154,6 +205,11 @@ class ChessGame with ChangeNotifier {
   final evalBefore = _lastEvaluation ?? 0.0;
   final whiteToMove = _game.turn == chess.Color.WHITE;  // ADD THIS
   
+  // SAN has to be produced from the position *before* the move (that is what
+  // disambiguates it), so take it here rather than re-deriving the whole game's
+  // notation afterwards.
+  final san = _sanForUci(from, to, promotion) ?? uciMove;
+
   // Make the move in the main game
   bool success = _game.move({
     'from': from, 
@@ -162,8 +218,7 @@ class ChessGame with ChangeNotifier {
   });
   
   if (success) {
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
 
     // Track three-check counts
     if (variant == ChessVariant.threeCheck && _game.in_check) {
@@ -171,10 +226,6 @@ class ChessGame with ChangeNotifier {
       if (whiteToMove) whiteChecks++;
       else blackChecks++;
     }
-
-    // Get SAN from the last move in the chess history
-    final sanList = moveHistorySan;
-    final san = sanList.isNotEmpty ? sanList.last : uciMove;
 
     // Update game tree — adds as child or navigates into existing
     final node = _tree.addMove(uci: uciMove, san: san, fen: _game.fen);
@@ -241,15 +292,20 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   int whiteChecks = 0;
   int blackChecks = 0;
 
-  bool get isGameOver {
-    if (_game.game_over || _resigned || _drawAgreed) return true;
+  bool get isGameOver => _cachedGameOver ??= _computeGameOver();
+
+  bool _computeGameOver() {
+    if (_resigned || _drawAgreed) return true;
+    if (_game.game_over) return true;
     // Variant win conditions
     if (variant == ChessVariant.kingOfTheHill && checkKothWin(_game.fen)) return true;
     if (variant == ChessVariant.threeCheck && checkThreeCheckWin(whiteChecks, blackChecks)) return true;
     return false;
   }
 
-  String get gameOverReason {
+  String get gameOverReason => _cachedGameOverReason ??= _computeGameOverReason();
+
+  String _computeGameOverReason() {
     if (_resigned) return 'Resignation';
     if (_drawAgreed) return 'Draw by agreement';
     if (variant == ChessVariant.kingOfTheHill && checkKothWin(_game.fen)) {
@@ -302,35 +358,49 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   /// Player resigns.
   void resign() {
     _resigned = true;
+    _invalidatePositionCaches();
     notifyListeners();
   }
 
   /// Agree to a draw.
   void agreeToDraw() {
     _drawAgreed = true;
+    _invalidatePositionCaches();
     notifyListeners();
   }
 
   /// Get move history in SAN notation (e.g., "e4", "Nf3", "O-O").
-  List<String> get moveHistorySan {
-    final pgn = _game.pgn();
-    if (pgn.isEmpty) return [];
-    // PGN format: "1. e4 e5 2. Nf3 Nc6 *"
-    final results = {'1-0', '0-1', '1/2-1/2', '*'};
-    return pgn
-        .replaceAll(RegExp(r'\d+\.+\s*'), '')
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((s) => s.isNotEmpty && !results.contains(s))
-        .toList();
-  }
+  ///
+  /// Read from the tree, where each node's SAN was computed once when the move
+  /// was played. It used to re-derive the whole list from `chess.pgn()` on
+  /// every call — which undoes and replays the entire game, generating legal
+  /// moves several times per ply for disambiguation and check marks. The game
+  /// screen calls this from `build()`, so that cost was paid on every rebuild
+  /// and grew with every move played. It was also wrong after an undo: `load()`
+  /// leaves PGN headers behind, which the regex parsed as "moves".
+  List<String> get moveHistorySan => _tree.currentPath
+      .map((n) => n.san ?? n.move ?? '')
+      .where((s) => s.isNotEmpty)
+      .toList();
   
+  /// SAN for a move about to be played from the current position, or null if
+  /// no legal move matches.
+  String? _sanForUci(String from, String to, String? promotion) {
+    for (final m in _game.generate_moves()) {
+      if (m.fromAlgebraic == from &&
+          m.toAlgebraic == to &&
+          (promotion == null || m.promotion?.name == promotion)) {
+        return _game.move_to_san(m);
+      }
+    }
+    return null;
+  }
+
   void undoMove() {
     if (_tree.atStart) return;
     _tree.goBack();
     _game.load(_tree.current.fen);
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     if (_annotations.isNotEmpty) {
       _annotations.removeLast();
     }
@@ -342,8 +412,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     if (_tree.atEnd) return false;
     _tree.goForward();
     _game.load(_tree.current.fen);
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     notifyListeners();
     return true;
   }
@@ -359,8 +428,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   void goToNode(GameTreeNode node) {
     _game.load(node.fen);
     _tree.goTo(node);
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     notifyListeners();
   }
 
@@ -369,8 +437,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     if (_tree.atEnd) return false;
     _tree.goForward();
     _game.load(_tree.current.fen);
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     notifyListeners();
     return true;
   }
@@ -379,8 +446,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   bool enterVariation(int index) {
     if (!_tree.enterVariation(index)) return false;
     _game.load(_tree.current.fen);
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     notifyListeners();
     return true;
   }
@@ -397,13 +463,11 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
       result: gameResult(_game),
     );
 
-    // Use RAV export if tree has any variations
-    final hasVariations = _tree.root.mainLine.any((n) => n.parent?.hasVariations ?? false);
-    if (hasVariations) {
-      return exportPgnWithVariations(tree: _tree, headers: headers);
-    }
-
-    return exportPgn(game: _game, headers: headers);
+    // Exported from the tree, not from `chess.Chess`: the latter's history is
+    // cleared by every takeback (undo reloads the board from a FEN), so an
+    // export after an undo produced headers and no moves at all. The tree also
+    // carries the real starting position and any variations.
+    return exportPgnFromTree(tree: _tree, headers: headers);
   }
 
   /// Load a game from PGN. Returns true on success.
@@ -411,8 +475,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     final loaded = importPgn(pgnText);
     if (loaded == null) return false;
 
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     // Replace the game state — chess package doesn't support direct assignment
     // so we reset and replay
     _game.reset();
@@ -429,8 +492,24 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
       _game.load_pgn(moveText);
     }
 
-    _cachedBoard = null;
-    _cachedLegalMoves = null;
+    // Rebuild the tree from what was loaded. The tree is the source of truth
+    // for the move list, the notation and the engine's position command, so
+    // leaving it pointing at the previous game would describe the wrong game
+    // to the engine. Replaying through makeMove also fills in SAN and
+    // annotations exactly as if the moves had been played.
+    final replay = _game.history
+        .map((h) =>
+            '${h.move.fromAlgebraic}${h.move.toAlgebraic}${h.move.promotion?.name ?? ''}')
+        .toList();
+    _game.reset();
+    _invalidatePositionCaches();
+    _tree = GameTree(startFen: _game.fen);
+    _annotations.clear();
+    for (final uci in replay) {
+      makeMove(uci);
+    }
+
+    _invalidatePositionCaches();
     notifyListeners();
     return true;
   }
@@ -440,8 +519,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     final ok = _game.load(fen);
     if (!ok) return false;
 
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     _annotations.clear();
     _lastEvaluation = null;
     _lastDepth = null;
@@ -455,8 +533,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   }
 
   void reset() {
-    _cachedLegalMoves = null;
-    _cachedBoard = null;
+    _invalidatePositionCaches();
     _game.reset();
     _annotations.clear();
     _lastEvaluation = null;
