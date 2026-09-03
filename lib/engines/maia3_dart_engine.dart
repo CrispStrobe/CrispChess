@@ -58,6 +58,11 @@ class Maia3DartEngine implements ChessEngine {
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
+  // One forward pass of a small network, no tree search — nothing to ponder,
+  // and inference on the UI isolate should not run while the player thinks.
+  @override
+  bool get canPonder => false;
+
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
@@ -67,11 +72,27 @@ class Maia3DartEngine implements ChessEngine {
           ? Maia3DartOnnxModel(variant: variant)
           : Maia3OnnxRuntimeBackend(variant: variant);
       await _model!.load();
+      await _warmUp();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Maia3Dart] Ready (${variant.displayName})');
     } catch (e) {
       debugPrint('[Maia3Dart] Init failed: $e');
       _stateNotifier.value = EngineState.error;
+    }
+  }
+
+  /// Run one throwaway inference while the app is still showing "Loading".
+  ///
+  /// The first forward pass of a session pays for the isolate pool spinning up
+  /// and for every buffer the graph allocates, so it is far slower than the
+  /// ones after it — slow enough that the engine's first move used to look
+  /// like a hang. Spending it here costs the player nothing.
+  Future<void> _warmUp() async {
+    try {
+      final boards = resolveHistory(_historyInput(_historyFor('position startpos')));
+      await _model!.infer(buildHistoryTokens(boards), 1500, 1500);
+    } catch (e) {
+      debugPrint('[Maia3Dart] Warm-up skipped: $e');
     }
   }
 

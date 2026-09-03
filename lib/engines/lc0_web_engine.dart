@@ -61,6 +61,11 @@ class Lc0Engine implements ChessEngine {
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
+  // MCTS drives ONNX inference on the UI thread; running it in the background
+  // competes with the very frames it would be hiding behind.
+  @override
+  bool get canPonder => false;
+
   @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;

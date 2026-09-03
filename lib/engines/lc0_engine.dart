@@ -1,139 +1,242 @@
-// Leela Chess Zero engine wrapper.
-//
-// Lc0 uses neural networks + MCTS instead of alpha-beta + NNUE.
-// Plays more "human-like" especially with Maia weights.
-//
-// On native (iOS/Android): uses the leela_chess_zero Flutter package
-//   which compiles lc0 C++ via NDK/CocoaPods (GPL-3.0 linked binary).
-// On web: not available — no upstream WASM build of lc0 exists.
-// The only attempt (frpays/lc0-js, 2019) is abandoned and uses
-// outdated TF.js APIs. Blocked until lczero.org provides WASM support.
-//
-// The lc0 package is an OPTIONAL dependency — only add it to pubspec.yaml
-// when you want a GPL build flavor. Without it, this file provides a stub.
-//
-// Neural network weights are downloaded separately (data, not code):
-//   - Maia-1100 to Maia-1900: human-like play at specific ELO levels
-//   - T80/T82: strongest lc0 nets (~3300+ ELO)
-//   - Weights from: lczero.org/play/networks/ or maiachess.com
+/// Lc0 engine — native version.
+///
+/// The same engine the web build runs, with the one platform-specific piece
+/// swapped out: lc0-style 112-plane board encoding, Maia neural-network weights
+/// and MCTS, with inference on the pure-Dart ONNX interpreter
+/// (`package:onnx_runtime_dart`) instead of onnxruntime-web.
+///
+/// This replaces a stub that had reported `isAvailable => false` since the
+/// engine was first added: the original plan was to link the `leela_chess_zero`
+/// package, which compiles lc0's C++ and would have made the whole app
+/// GPL-3.0. Nothing needs linking — the search here is this app's own Dart
+/// MCTS, and the weights are downloaded at run time as data, the same
+/// arrangement the Stockfish builds use. See THIRD_PARTY_LICENSES.md for the
+/// provenance of the policy-map table and the weights.
+library;
 
 import 'dart:async';
+import 'dart:math';
+
+import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
+import 'package:onnx_runtime_dart/onnx_runtime_dart.dart';
+
 import 'chess_engine.dart';
+import 'lc0_dart/encoding.dart';
+import 'lc0_dart/mcts.dart';
+import 'lc0_dart/policy_map.dart' as policy;
+import 'lc0_dart/variants.dart';
+import 'maia3_dart/onnx/model_fetch.dart';
+import 'uci_position.dart';
 
-/// Available Lc0 neural network weight files.
-class Lc0Weights {
-  final String name;
-  final String url;
-  final int estimatedElo;
-  final String description;
-  final int sizeBytes;
-
-  const Lc0Weights({
-    required this.name,
-    required this.url,
-    required this.estimatedElo,
-    required this.description,
-    required this.sizeBytes,
-  });
-
-  /// Bundled Maia-1900 weights (human-like, ~1900 ELO)
-  static const maia1900 = Lc0Weights(
-    name: 'Maia-1900',
-    url: 'bundled',
-    estimatedElo: 1900,
-    description: 'Human-like play at ~1900 ELO (trained on human games)',
-    sizeBytes: 1200000,
-  );
-
-  /// Available weight options for download
-  static const available = [
-    Lc0Weights(
-      name: 'Maia-1100',
-      url: 'https://github.com/CSSLab/maia-chess/raw/main/maia_weights/maia-1100.pb.gz',
-      estimatedElo: 1100,
-      description: 'Beginner-level human play',
-      sizeBytes: 1200000,
-    ),
-    Lc0Weights(
-      name: 'Maia-1500',
-      url: 'https://github.com/CSSLab/maia-chess/raw/main/maia_weights/maia-1500.pb.gz',
-      estimatedElo: 1500,
-      description: 'Intermediate human play',
-      sizeBytes: 1200000,
-    ),
-    maia1900,
-    Lc0Weights(
-      name: 'Maia-1900',
-      url: 'https://github.com/CSSLab/maia-chess/raw/main/maia_weights/maia-1900.pb.gz',
-      estimatedElo: 1900,
-      description: 'Advanced human play',
-      sizeBytes: 1200000,
-    ),
-  ];
-}
-
-/// Stub Lc0 engine — available when leela_chess_zero package is added.
-///
-/// To enable native lc0:
-/// 1. Add the leela_chess_zero Flutter package to pubspec.yaml
-/// 2. Replace this stub with the real Lc0Engine implementation
-/// 3. Note: this makes the binary GPL-3.0 licensed
-///
-/// On iOS, the same downloadable JS approach as Stockfish could work
-/// if an Emscripten/WASM build of lc0 becomes available.
+/// Lc0 for native platforms — MCTS over a Maia network.
 class Lc0Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
-  final Lc0Weights weights;
-  final String? variantId;
+  final String variantId;
 
-  Lc0Engine({this.weights = Lc0Weights.maia1900, this.variantId});
+  /// The positions leading up to the current one; the encoding feeds the last
+  /// seven to the network as history planes.
+  final List<String> _fenHistory = [];
+
+  /// Isolate workers for the matmul pool. The network is small, so a handful is
+  /// plenty; 0 or 1 disables the pool.
+  final int isolateWorkers;
+
+  OnnxModel? _model;
+
+  Lc0Engine({String? variantId, this.isolateWorkers = 4})
+      : variantId = variantId ?? defaultLc0Variant;
 
   @override
-  String get name => 'Lc0 (${weights.name})';
+  String get name {
+    final v = getLc0Variant(variantId);
+    return 'Lc0 (${v.displayName})';
+  }
+
   @override
-  String get version => '0.31';
+  String get version => '1.0';
   @override
-  String get license => 'GPL-3.0';
+  String get license => 'GPL-3.0 weights (downloaded, not linked)';
   @override
-  int get estimatedElo => weights.estimatedElo;
+  int get estimatedElo => getLc0Variant(variantId).estimatedElo;
   @override
   EngineState get state => _stateNotifier.value;
   @override
   ValueNotifier<EngineState> get stateNotifier => _stateNotifier;
 
-  static bool get isAvailable {
-    // Available when leela_chess_zero package is in pubspec.yaml
-    // For now, returns false (stub)
-    return false;
-  }
+  // Inference runs on the calling isolate (with a matmul pool behind it), so a
+  // background search would compete with the frames it is meant to hide behind.
+  @override
+  bool get canPonder => false;
+
+  static bool get isAvailable => !kIsWeb;
 
   @override
   Future<void> initialize() async {
-    _stateNotifier.value = EngineState.error;
-    debugPrint('[Lc0] Not available — add leela_chess_zero package to pubspec.yaml');
+    _stateNotifier.value = EngineState.initializing;
+    try {
+      final variant = getLc0Variant(variantId);
+      debugPrint('[Lc0] Loading ${variant.displayName} from ${variant.url}');
+      final bytes = await fetchModelBytes(variant.url, '${variant.id}.onnx');
+      final model = OnnxModel.fromBytes(bytes);
+      if (isolateWorkers > 1) {
+        await model.parallelize(workers: isolateWorkers);
+      }
+      _model = model;
+      _stateNotifier.value = EngineState.ready;
+      debugPrint('[Lc0] Ready (${variant.displayName}, '
+          '~${variant.estimatedElo} ELO)');
+    } catch (e) {
+      debugPrint('[Lc0] Init failed: $e');
+      _stateNotifier.value = EngineState.error;
+    }
   }
 
   @override
-  Future<String> bestMove(String positionCommand, {
-    int? depth, Duration? moveTime, int? skillLevel,
+  Future<String> bestMove(
+    String positionCommand, {
+    int? depth,
+    Duration? moveTime,
+    int? skillLevel,
   }) async {
-    throw UnsupportedError('Lc0 not available');
+    if (_model == null) throw StateError('Not initialized');
+    _stateNotifier.value = EngineState.thinking;
+
+    try {
+      final fen = fenFromPositionCommand(positionCommand);
+      final board = chess.Chess.fromFEN(fen);
+      final legalMoves = _legalMoves(board);
+
+      if (legalMoves.isEmpty) {
+        _stateNotifier.value = EngineState.ready;
+        throw StateError('No legal moves');
+      }
+      if (legalMoves.length == 1) {
+        _rememberPosition(fen);
+        _stateNotifier.value = EngineState.ready;
+        return legalMoves.first;
+      }
+
+      final config = MctsConfig(
+        maxNodes: skillLevel != null
+            ? (50 + skillLevel * skillLevel * 2).clamp(50, 800)
+            : 200,
+        maxTime: moveTime ?? const Duration(seconds: 5),
+        cpuct: skillLevel != null ? 2.5 + (20 - skillLevel) * 0.2 : 2.5,
+      );
+
+      final best = await mctsSearch(
+        fen: fen,
+        legalMoves: legalMoves,
+        evaluate: _evaluatePosition,
+        config: config,
+      );
+
+      _rememberPosition(fen);
+      _stateNotifier.value = EngineState.ready;
+      return best;
+    } catch (e) {
+      debugPrint('[Lc0] bestMove failed: $e');
+      _stateNotifier.value = EngineState.ready;
+      rethrow;
+    }
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
-    return const Stream.empty();
+  Stream<EvalInfo> analyze(String positionCommand,
+      {int? depth, bool infinite = false}) async* {
+    if (_model == null) return;
+    _stateNotifier.value = EngineState.thinking;
+    try {
+      final fen = fenFromPositionCommand(positionCommand);
+      final board = chess.Chess.fromFEN(fen);
+      final legalMoves = _legalMoves(board);
+      if (legalMoves.isEmpty) return;
+
+      final eval = await _evaluatePosition(fen, legalMoves);
+      // The network reports a win probability, not centipawns. Map it onto a
+      // pawn-ish scale so the eval bar means roughly the same thing it does for
+      // the search engines.
+      final best = eval.policy.entries
+          .reduce((a, b) => a.value >= b.value ? a : b)
+          .key;
+      yield EvalInfo(score: eval.value * 5.0, depth: 1, bestMove: best);
+    } catch (e) {
+      debugPrint('[Lc0] analyze failed: $e');
+    } finally {
+      _stateNotifier.value = EngineState.ready;
+    }
+  }
+
+  List<String> _legalMoves(chess.Chess board) => [
+        for (final m in board.generate_moves())
+          '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+      ];
+
+  void _rememberPosition(String fen) {
+    _fenHistory.add(fen);
+    if (_fenHistory.length > 8) _fenHistory.removeAt(0);
+  }
+
+  /// One network evaluation: policy over the legal moves plus a value in
+  /// [-1, 1] from the side to move's perspective.
+  Future<NnEval> _evaluatePosition(String fen, List<String> legalMoves) async {
+    final model = _model!;
+    final board = chess.Chess.fromFEN(fen);
+    final isBlack = board.turn == chess.Color.BLACK;
+
+    final planes = encodePosition(fen, historyFens: _fenHistory);
+    final out = await model.runAsync(
+      {'/input/planes': Tensor.float(planes, [1, 112, 8, 8])},
+      ['/output/policy', '/output/wdl'],
+    );
+
+    // lc0's own exporter emits the policy already in move-vocabulary order and
+    // the WDL already as a distribution, so neither needs post-processing here.
+    final policyLogits = out['/output/policy']!.f!;
+    final wdl = out['/output/wdl']!.f!;
+    final value = wdl[0] - wdl[2]; // win - loss
+
+    // Softmax over the legal moves only.
+    final moveToIndex = policy.getMoveToIndex();
+    final logits = <double>[];
+    var maxLogit = double.negativeInfinity;
+    for (final move in legalMoves) {
+      // Policy indices are always from white's point of view.
+      final lookup = isBlack ? policy.mirrorMove(move) : move;
+      final idx = moveToIndex[lookup];
+      final logit = idx != null ? policyLogits[idx].toDouble() : -100.0;
+      logits.add(logit);
+      if (logit > maxLogit) maxLogit = logit;
+    }
+
+    var sum = 0.0;
+    final weights = <double>[];
+    for (final logit in logits) {
+      final w = exp(logit - maxLogit);
+      weights.add(w);
+      sum += w;
+    }
+
+    final probabilities = <String, double>{};
+    for (var i = 0; i < legalMoves.length; i++) {
+      probabilities[legalMoves[i]] = weights[i] / sum;
+    }
+    return NnEval(policy: probabilities, value: value);
   }
 
   @override
-  void stop() {}
+  void stop() {
+    _stateNotifier.value = EngineState.ready;
+  }
 
   @override
   void setOption(String name, String value) {}
 
   @override
   void dispose() {
+    _model?.dispose();
+    _model = null;
     _stateNotifier.value = EngineState.disposed;
   }
 }

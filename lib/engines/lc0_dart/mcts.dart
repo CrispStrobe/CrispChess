@@ -50,13 +50,17 @@ class MctsNode {
   }
 
   /// Get the best move after search (most visited child).
+  ///
+  /// Ties break on the network's prior. Without that, children that were never
+  /// visited all look equal and the *first* one generated wins — which is a
+  /// move ordered by the move generator, not by chess.
   MctsNode? bestChild() {
     if (children.isEmpty) return null;
     MctsNode? best;
-    int bestVisits = -1;
     for (final child in children) {
-      if (child.visits > bestVisits) {
-        bestVisits = child.visits;
+      if (best == null ||
+          child.visits > best.visits ||
+          (child.visits == best.visits && child.prior > best.prior)) {
         best = child;
       }
     }
@@ -184,7 +188,15 @@ Future<String> mctsSearch({
     node.backpropagate(-value); // Negate because value is from root's POV
   }
 
-  // Pick best move (most visited)
+  // Pick best move (most visited, prior as the tie-break).
+  //
+  // The root evaluation above is the expensive part — one network forward pass
+  // — so on a tight budget, or the first (cold) call of a session, the loop can
+  // run no simulations at all. Every child then has zero visits, and before the
+  // tie-break was added this returned `children.first`: the first move out of
+  // the move generator, a2a3 from the starting position, no matter what the
+  // network thought. Falling back to the highest prior returns the network's
+  // own choice, which is the best answer available without simulations.
   final best = root.bestChild();
   return best?.move ?? legalMoves.first;
 }

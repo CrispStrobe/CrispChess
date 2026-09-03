@@ -1,11 +1,17 @@
 /// Lc0 neural network weight variants.
 ///
-/// Pre-converted ONNX models (opset 15) of Maia chess weights,
-/// hosted on GitHub releases for browser compatibility.
+/// ONNX exports of the Maia weights, produced with lc0's own converter
+/// (`lc0 leela2onnx`, v0.32.1) and hosted on Hugging Face.
 ///
-/// Input:  [1, 112, 8, 8] float32 (lc0 board encoding)
-/// Policy: [1, 5120] float32 (convolutional, apply policy map for 1858)
-/// Value:  [1, 3] float32 (WDL: win, draw, loss)
+/// Input:  `/input/planes`  [1, 112, 8, 8] float32 (lc0 board encoding)
+/// Policy: `/output/policy` [1, 1858] float32 (already in move-vocabulary
+///         order — no policy map needed)
+/// Value:  `/output/wdl`    [1, 3] float32 (win, draw, loss; sums to 1)
+///
+/// These replace an earlier `-opset15` set that was mis-converted: it returned
+/// a saturated WDL and policy logits in the hundreds of thousands, and did so
+/// even for an all-zeros input, so its highest-scoring outputs were moves that
+/// were not legal in the position. The engine was fine; the weights were not.
 library;
 
 const String _releaseBase =
@@ -37,7 +43,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1100',
     displayName: 'Maia 1100',
-    url: '$_releaseBase/maia-1100-opset15.onnx',
+    url: '$_releaseBase/maia-1100.onnx',
     estimatedElo: 1100,
     sizeBytes: 3490000,
     description: 'Beginner-level human play',
@@ -45,7 +51,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1200',
     displayName: 'Maia 1200',
-    url: '$_releaseBase/maia-1200-opset15.onnx',
+    url: '$_releaseBase/maia-1200.onnx',
     estimatedElo: 1200,
     sizeBytes: 3490000,
     description: 'Beginner human play',
@@ -53,7 +59,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1300',
     displayName: 'Maia 1300',
-    url: '$_releaseBase/maia-1300-opset15.onnx',
+    url: '$_releaseBase/maia-1300.onnx',
     estimatedElo: 1300,
     sizeBytes: 3490000,
     description: 'Casual human play',
@@ -61,7 +67,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1500',
     displayName: 'Maia 1500',
-    url: '$_releaseBase/maia-1500-opset15.onnx',
+    url: '$_releaseBase/maia-1500.onnx',
     estimatedElo: 1500,
     sizeBytes: 3497000,
     description: 'Intermediate human play',
@@ -69,7 +75,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1600',
     displayName: 'Maia 1600',
-    url: '$_releaseBase/maia-1600-opset15.onnx',
+    url: '$_releaseBase/maia-1600.onnx',
     estimatedElo: 1600,
     sizeBytes: 3490000,
     description: 'Intermediate-advanced human play',
@@ -77,7 +83,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1700',
     displayName: 'Maia 1700',
-    url: '$_releaseBase/maia-1700-opset15.onnx',
+    url: '$_releaseBase/maia-1700.onnx',
     estimatedElo: 1700,
     sizeBytes: 3490000,
     description: 'Advanced human play',
@@ -85,7 +91,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1800',
     displayName: 'Maia 1800',
-    url: '$_releaseBase/maia-1800-opset15.onnx',
+    url: '$_releaseBase/maia-1800.onnx',
     estimatedElo: 1800,
     sizeBytes: 3490000,
     description: 'Strong club player',
@@ -93,7 +99,7 @@ const List<Lc0Variant> lc0Variants = [
   Lc0Variant(
     id: '1900',
     displayName: 'Maia 1900',
-    url: '$_releaseBase/maia-1900-opset15.onnx',
+    url: '$_releaseBase/maia-1900.onnx',
     estimatedElo: 1900,
     sizeBytes: 3490000,
     description: 'Strong human play',
