@@ -60,3 +60,12 @@ CLAUDE.md
 # App Store Connect API key — secret, never commit
 .appstoreconnect/
 *.p8
+
+# Rust build output. The wasm-bindgen output in web/ is committed (like
+# web/lynx) because the web build needs it; the intermediate target/ dirs and
+# the native shared libraries are not.
+native/frozenight/target/
+native/frozenight-wasm/target/
+linux/*.so
+macos/*.dylib
+ios/*.a
