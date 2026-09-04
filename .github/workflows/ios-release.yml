@@ -16,6 +16,7 @@ name: iOS Release (App Store)
 #   DIST_CERT_P12_BASE64   base64 of the "Apple Distribution" .p12 (cert + key)
 #   DIST_CERT_PASSWORD     password for that .p12
 #   ASC_PROFILE_BASE64     base64 of the IOS_APP_STORE .mobileprovision
+#   BETA_CONTACT_*         FIRST_NAME/LAST_NAME/EMAIL/PHONE for Beta App Review
 #
 # Uploading only reaches *internal* testers. Reaching external ones means
 # attaching the build to an external group and submitting it for Apple's Beta
@@ -191,6 +192,12 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          # Apple's beta reviewer contacts a person. Per app, starts empty, and
+          # not derivable from anything — hence secrets rather than defaults.
+          BETA_CONTACT_FIRST_NAME: ${{ secrets.BETA_CONTACT_FIRST_NAME }}
+          BETA_CONTACT_LAST_NAME: ${{ secrets.BETA_CONTACT_LAST_NAME }}
+          BETA_CONTACT_EMAIL: ${{ secrets.BETA_CONTACT_EMAIL }}
+          BETA_CONTACT_PHONE: ${{ secrets.BETA_CONTACT_PHONE }}
         run: |
           set -euo pipefail
           python3 -m pip install --quiet pyjwt cryptography
