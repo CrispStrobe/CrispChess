@@ -10,8 +10,8 @@ import 'dart:math';
 
 /// A node in the MCTS search tree.
 class MctsNode {
-  final String? move; // UCI move that led to this node (null for root)
-  final MctsNode? parent;
+  String? move; // UCI move that led to this node (null for root)
+  MctsNode? parent;
   final List<MctsNode> children = [];
 
   int visits = 0;
@@ -130,6 +130,27 @@ class MctsNode {
       node = node.parent;
     }
     return path.reversed.toList();
+  }
+
+  /// Finds an already explored descendant and makes it an independent root.
+  /// Returns null when any move is absent from the retained tree.
+  MctsNode? detachAt(List<String> moves) {
+    MctsNode node = this;
+    for (final move in moves) {
+      MctsNode? next;
+      for (final child in node.children) {
+        if (child.move == move) {
+          next = child;
+          break;
+        }
+      }
+      if (next == null) return null;
+      node = next;
+    }
+    node
+      ..parent = null
+      ..move = null;
+    return node;
   }
 }
 
@@ -359,20 +380,60 @@ Future<String> mctsSearch({
   List<String> historyFens = const [],
   MctsPositionResolver? positionAt,
   MctsConfig config = const MctsConfig(),
+}) async =>
+    (await mctsSearchWithTree(
+      fen: fen,
+      legalMoves: legalMoves,
+      evaluate: evaluate,
+      evaluateBatch: evaluateBatch,
+      batchSize: batchSize,
+      estimatedEvaluationMicros: estimatedEvaluationMicros,
+      historyFens: historyFens,
+      positionAt: positionAt,
+      config: config,
+    ))
+        .move;
+
+/// The selected move plus the explored tree, which can be advanced and reused
+/// when the next position follows a line searched here.
+class MctsSearchResult {
+  final String move;
+  final MctsNode root;
+
+  const MctsSearchResult(this.move, this.root);
+}
+
+Future<MctsSearchResult> mctsSearchWithTree({
+  required String fen,
+  required List<String> legalMoves,
+  required NnEvaluator evaluate,
+  NnBatchEvaluator? evaluateBatch,
+  int batchSize = 1,
+  int? estimatedEvaluationMicros,
+  List<String> historyFens = const [],
+  MctsPositionResolver? positionAt,
+  MctsNode? initialRoot,
+  MctsConfig config = const MctsConfig(),
 }) async {
   if (legalMoves.isEmpty) throw StateError('No legal moves');
-  if (legalMoves.length == 1) return legalMoves.first;
+  if (legalMoves.length == 1) {
+    return MctsSearchResult(legalMoves.first, initialRoot ?? MctsNode());
+  }
 
-  final root = MctsNode();
+  final root = initialRoot ?? MctsNode();
   final stopwatch = Stopwatch()..start();
 
-  // Initial expansion of root
-  final rootEval = await evaluate(fen, legalMoves, historyFens);
-  for (final move in legalMoves) {
-    final prior = rootEval.policy[move] ?? (1.0 / legalMoves.length);
-    root.children.add(MctsNode(move: move, parent: root, prior: prior));
+  // An advanced subtree is already expanded and retains both neural priors
+  // and simulation statistics. A fresh/unexpanded root still needs its first
+  // network evaluation.
+  if (!root.expanded) {
+    final rootEval = await evaluate(fen, legalMoves, historyFens);
+    for (final move in legalMoves) {
+      final prior = rootEval.policy[move] ?? (1.0 / legalMoves.length);
+      root.children.add(MctsNode(move: move, parent: root, prior: prior));
+    }
+    root.expanded = true;
   }
-  root.expanded = true;
   final rootEvaluationMicros =
       max(1, estimatedEvaluationMicros ?? stopwatch.elapsedMicroseconds);
 
@@ -380,7 +441,10 @@ Future<String> mctsSearch({
   // Without a resolver there is no position to evaluate below the root, so
   // there is no tree to build: return the network's own preference rather than
   // spending the budget looking busy.
-  if (positionAt == null) return root.bestChild()?.move ?? legalMoves.first;
+  if (positionAt == null) {
+    return MctsSearchResult(
+        root.bestChild()?.move ?? legalMoves.first, root);
+  }
 
   var simulations = 0;
   while (simulations < config.maxNodes) {
@@ -482,5 +546,5 @@ Future<String> mctsSearch({
   // network thought. Falling back to the highest prior returns the network's
   // own choice, which is the best answer available without simulations.
   final best = root.bestChild();
-  return best?.move ?? legalMoves.first;
+  return MctsSearchResult(best?.move ?? legalMoves.first, root);
 }

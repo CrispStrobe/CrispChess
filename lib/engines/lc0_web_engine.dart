@@ -46,6 +46,9 @@ class Lc0Engine implements ChessEngine {
   bool _modelLoaded = false;
   final NnEvalCache _evaluationCache = NnEvalCache();
   int? _estimatedEvaluationMicros;
+  MctsNode? _searchRoot;
+  String? _searchBaseFen;
+  List<String> _searchMoves = const [];
 
   Lc0Engine({String? variantId}) : variantId = variantId ?? defaultLc0Variant;
 
@@ -113,6 +116,7 @@ class Lc0Engine implements ChessEngine {
     try {
       final played =
           fenHistoryFromPositionCommand(positionCommand, limit: _historyLimit);
+      final parsed = parsePositionCommand(positionCommand);
       final fen = played.last;
       final history = played.sublist(0, played.length - 1);
       final board = chess.Chess.fromFEN(fen);
@@ -148,7 +152,8 @@ class Lc0Engine implements ChessEngine {
       );
 
       // Run MCTS search with neural network evaluation
-      final bestUci = await mctsSearch(
+      final retained = _advancedTree(parsed.baseFen, parsed.moves);
+      final search = await mctsSearchWithTree(
         fen: fen,
         legalMoves: legalMoves,
         evaluate: _evaluateCached,
@@ -157,16 +162,30 @@ class Lc0Engine implements ChessEngine {
         estimatedEvaluationMicros: _estimatedEvaluationMicros,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
+        initialRoot: retained,
         config: config,
       );
+      _searchRoot = search.root;
+      _searchBaseFen = parsed.baseFen;
+      _searchMoves = List.of(parsed.moves);
 
       _stateNotifier.value = EngineState.ready;
-      return bestUci;
+      return search.move;
     } catch (e) {
       debugPrint('[Lc0/Web] bestMove failed: $e');
       _stateNotifier.value = EngineState.ready;
       rethrow;
     }
+  }
+
+  MctsNode? _advancedTree(String baseFen, List<String> moves) {
+    final root = _searchRoot;
+    if (root == null || baseFen != _searchBaseFen) return null;
+    if (moves.length < _searchMoves.length) return null;
+    for (var i = 0; i < _searchMoves.length; i++) {
+      if (moves[i] != _searchMoves[i]) return null;
+    }
+    return root.detachAt(moves.sublist(_searchMoves.length));
   }
 
   /// Resolves the position a line of play reaches, so MCTS can evaluate more
@@ -396,6 +415,7 @@ class Lc0Engine implements ChessEngine {
   @override
   void dispose() {
     _evaluationCache.clear();
+    _searchRoot = null;
     _modelLoaded = false;
     try {
       _jsLc0Close().toDart;

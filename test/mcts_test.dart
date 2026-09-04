@@ -171,6 +171,47 @@ void main() {
       root.children.first.visits = 1;
       expect(root.bestChild()!.move, 'a2a3');
     });
+
+    test('detachAt advances a retained subtree into an independent root', () {
+      final root = MctsNode()..expanded = true;
+      final ours = MctsNode(move: 'e2e4', parent: root)..expanded = true;
+      final theirs = MctsNode(move: 'e7e5', parent: ours)
+        ..expanded = true
+        ..visits = 7;
+      root.children.add(ours);
+      ours.children.add(theirs);
+
+      final advanced = root.detachAt(const ['e2e4', 'e7e5']);
+      expect(identical(advanced, theirs), isTrue);
+      expect(advanced!.parent, isNull);
+      expect(advanced.move, isNull);
+      expect(advanced.visits, 7);
+      expect(root.detachAt(const ['d2d4']), isNull);
+    });
+
+    test('an expanded retained root skips the root network evaluation',
+        () async {
+      final retained = MctsNode()..expanded = true;
+      retained.children.addAll([
+        MctsNode(move: 'e2e4', parent: retained, prior: 0.8),
+        MctsNode(move: 'd2d4', parent: retained, prior: 0.2),
+      ]);
+      var evaluations = 0;
+      final result = await mctsSearchWithTree(
+        fen: chess.Chess().fen,
+        legalMoves: const ['e2e4', 'd2d4'],
+        initialRoot: retained,
+        evaluate: (_, __, ___) async {
+          evaluations++;
+          return _eval();
+        },
+        config: const MctsConfig(maxNodes: 0),
+      );
+
+      expect(result.move, 'e2e4');
+      expect(identical(result.root, retained), isTrue);
+      expect(evaluations, 0);
+    });
   });
 
   group('mctsSearch simulations', () {
