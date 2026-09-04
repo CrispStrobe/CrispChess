@@ -21,6 +21,12 @@ on:
         description: Fail the run on any mismatch
         type: boolean
         default: true
+      games:
+        description: Head-to-head games against lc0 (0 to skip)
+        default: '10'
+      nodes:
+        description: Node budget per move, both sides
+        default: '100'
   pull_request:
     paths:
       - 'lib/engines/lc0_dart/**'
@@ -131,6 +137,36 @@ jobs:
             --weights "build/oracle/$VARIANT.pb.gz" \
             | tee build/oracle/report.txt
         continue-on-error: ${{ inputs.strict == false }}
+
+      # Playing lc0 is the check the per-evaluation comparison cannot make:
+      # it exercises the search — tree building, backup signs, and whether a
+      # leaf is described to the network as the position it actually is.
+      # Same weights and the same node budget on both sides, so this measures
+      # the implementation and not the speed of the runtime under it.
+      - name: Agree with lc0 on a move, at rising node budgets
+        run: |
+          set -o pipefail
+          python3 tool/oracle/match.py agreement \
+            --ours "$(which dart) run tool/oracle/uci_engine.dart --model build/oracle/$VARIANT.onnx" \
+            --lc0 build/oracle/lc0 \
+            --weights "build/oracle/$VARIANT.pb.gz" \
+            --budgets 1,10,100 \
+            | tee -a build/oracle/report.txt
+        continue-on-error: true
+
+      - name: Play lc0
+        if: ${{ (inputs.games || '10') != '0' }}
+        run: |
+          set -o pipefail
+          python3 tool/oracle/match.py match \
+            --ours "$(which dart) run tool/oracle/uci_engine.dart --model build/oracle/$VARIANT.onnx" \
+            --lc0 build/oracle/lc0 \
+            --weights "build/oracle/$VARIANT.pb.gz" \
+            --games ${{ inputs.games || '10' }} \
+            --nodes ${{ inputs.nodes || '100' }} \
+            --ply-cap 160 \
+            | tee -a build/oracle/report.txt
+        continue-on-error: true
 
       - uses: actions/upload-artifact@v4
         if: always()

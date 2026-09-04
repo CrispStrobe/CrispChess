@@ -137,7 +137,11 @@ class Lc0Engine implements ChessEngine {
       );
 
       _fenHistory.add(fen);
-      if (_fenHistory.length > 8) _fenHistory.removeAt(0);
+      // Eight of these become history planes, but the repetition plane asks
+      // whether a position had occurred *before*, and a repetition can be up
+      // to a hundred plies apart under the fifty-move rule. Keeping only the
+      // eight the planes use answers that question wrong.
+      if (_fenHistory.length > 128) _fenHistory.removeAt(0);
 
       _stateNotifier.value = EngineState.ready;
       return bestUci;
