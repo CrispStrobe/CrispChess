@@ -182,7 +182,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload to App Store Connect
-        if: ${{ !inputs.submit_only && github.event_name == 'push' || inputs.dry_run == false }}
+        if: ${{ !inputs.submit_only && (github.event_name == 'push' || inputs.dry_run == false) }}
         run: |
           set -euo pipefail
           VER=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
