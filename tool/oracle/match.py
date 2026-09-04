@@ -32,9 +32,10 @@ import chess
 class Uci:
     def __init__(self, command, name):
         self.name = name
+        self.recent = []
         self.proc = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, bufsize=1)
+            stderr=subprocess.STDOUT, text=True, bufsize=1)
         self.send("uci")
         self.wait("uciok")
 
@@ -46,7 +47,10 @@ class Uci:
         while True:
             line = self.proc.stdout.readline()
             if not line:
-                raise RuntimeError(f"{self.name} exited waiting for {token!r}")
+                raise RuntimeError(
+                    f"{self.name} exited waiting for {token!r}; last output:\n"
+                    + "\n".join(self.recent[-8:]))
+            self.recent.append(line.rstrip())
             if line.split(" ")[0].strip() == token:
                 return line.strip()
 
@@ -177,13 +181,17 @@ def main():
     ap.add_argument("--nodes", type=int, default=100)
     ap.add_argument("--ply-cap", type=int, default=200)
     ap.add_argument("--budgets", default="1,10,100,800")
+    ap.add_argument("--cpuct", default="2.5")
     args = ap.parse_args()
 
     ours = Uci(shlex.split(args.ours), "ours")
+    # cpuct matches the app's MctsConfig default, so the two searches are
+    # exploring on the same terms; without that, divergence in move choice
+    # says more about the constant than about either implementation.
     theirs = Uci([args.lc0, f"--weights={args.weights}",
                   f"--backend={args.backend}", "--policy-softmax-temp=1.0",
                   "--minibatch-size=1", "--threads=1",
-                  "--no-smart-pruning"], "lc0")
+                  f"--cpuct={args.cpuct}"], "lc0")
     try:
         if args.mode == "agreement":
             agreement(ours, theirs, read_positions(args.positions),

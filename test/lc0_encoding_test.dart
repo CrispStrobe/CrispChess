@@ -6,6 +6,7 @@ import 'package:crispchess/engines/lc0_dart/encoding.dart';
 import 'package:crispchess/engines/lc0_dart/policy_map.dart';
 import 'package:crispchess/engines/lc0_dart/mcts.dart';
 import 'package:crispchess/engines/lc0_dart/variants.dart';
+import 'package:crispchess/engines/uci_position.dart';
 
 void main() {
   group('Lc0 Board Encoding', () {
@@ -329,6 +330,47 @@ void main() {
       expect(planes[(5 * 13 + 12) * 64], 0.0);
       expect(planes[(6 * 13 + 12) * 64], 0.0);
       expect(planes[(7 * 13 + 12) * 64], 0.0);
+    });
+  });
+
+  // The history the network is shown has to be the game, ply by ply.
+  //
+  // Both Lc0 engines used to build it by appending the root position on each
+  // `bestMove` call. That only happens on the engine's own turns, so the
+  // network was handed every *other* ply: a game in which the opponent never
+  // moved and every piece teleported. It is invisible in a single-position
+  // check — the current position is right, only the seven behind it are
+  // wrong — and invisible in the opening, where there is no history yet.
+  // `fenHistoryFromPositionCommand` replays the move list instead, which is
+  // what the sibling Maia3 engine had already switched to.
+  group('Lc0 network history', () {
+    test('is every ply of the game, not every other one', () {
+      const command = 'position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6';
+      final fens = fenHistoryFromPositionCommand(command, limit: 129);
+
+      expect(fens.length, 7, reason: 'the start position plus six moves');
+      expect(fens.first, startsWith('rnbqkbnr/pppppppp'));
+      expect(fens.last, startsWith('r1bqkbnr/1ppp1ppp'));
+
+      // Consecutive plies alternate the side to move. Every other ply would
+      // give the same side throughout.
+      final sides = [for (final fen in fens) fen.split(' ')[1]];
+      expect(sides, ['w', 'b', 'w', 'b', 'w', 'b', 'w']);
+    });
+
+    test('reaches far enough back to see a repetition', () {
+      // Knights out and back three times: the repetition is 8 plies deep,
+      // further than the eight positions the history planes themselves use.
+      const moves = 'g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8';
+      final fens =
+          fenHistoryFromPositionCommand('position startpos moves $moves',
+              limit: 129);
+      expect(fens.length, 9);
+
+      final planes = encodePosition(fens.last,
+          historyFens: fens.sublist(0, fens.length - 1));
+      expect(planes[(0 * 13 + 12) * 64], 1.0,
+          reason: 'the current position has stood on the board before');
     });
   });
 }

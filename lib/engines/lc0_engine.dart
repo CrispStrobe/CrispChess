@@ -34,9 +34,11 @@ class Lc0Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final String variantId;
 
-  /// The positions leading up to the current one; the encoding feeds the last
-  /// seven to the network as history planes.
-  final List<String> _fenHistory = [];
+  /// How much of the game to replay for the network. Eight positions become
+  /// history planes; the rest are there so the repetition plane can tell
+  /// whether a position had occurred before, which under the fifty-move rule
+  /// can be a hundred plies back.
+  static const int _historyLimit = 129;
 
   /// Isolate workers for the matmul pool. The network is small, so a handful is
   /// plenty; 0 or 1 disables the pool.
@@ -103,7 +105,10 @@ class Lc0Engine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      final fen = fenFromPositionCommand(positionCommand);
+      final played =
+          fenHistoryFromPositionCommand(positionCommand, limit: _historyLimit);
+      final fen = played.last;
+      final history = played.sublist(0, played.length - 1);
       final board = chess.Chess.fromFEN(fen);
       final legalMoves = _legalMoves(board);
 
@@ -112,7 +117,6 @@ class Lc0Engine implements ChessEngine {
         throw StateError('No legal moves');
       }
       if (legalMoves.length == 1) {
-        _rememberPosition(fen);
         _stateNotifier.value = EngineState.ready;
         return legalMoves.first;
       }
@@ -128,12 +132,12 @@ class Lc0Engine implements ChessEngine {
       final best = await mctsSearch(
         fen: fen,
         legalMoves: legalMoves,
-        evaluate: _evaluatePosition,
+        evaluate: (leafFen, leafMoves) =>
+            _evaluatePosition(leafFen, leafMoves, history),
         positionAt: (moves) => _positionAt(fen, moves),
         config: config,
       );
 
-      _rememberPosition(fen);
       _stateNotifier.value = EngineState.ready;
       return best;
     } catch (e) {
@@ -149,12 +153,15 @@ class Lc0Engine implements ChessEngine {
     if (_model == null) return;
     _stateNotifier.value = EngineState.thinking;
     try {
-      final fen = fenFromPositionCommand(positionCommand);
+      final played =
+          fenHistoryFromPositionCommand(positionCommand, limit: _historyLimit);
+      final fen = played.last;
       final board = chess.Chess.fromFEN(fen);
       final legalMoves = _legalMoves(board);
       if (legalMoves.isEmpty) return;
 
-      final eval = await _evaluatePosition(fen, legalMoves);
+      final eval = await _evaluatePosition(
+          fen, legalMoves, played.sublist(0, played.length - 1));
       // The network reports a win probability, not centipawns. Map it onto a
       // pawn-ish scale so the eval bar means roughly the same thing it does for
       // the search engines.
@@ -205,23 +212,15 @@ class Lc0Engine implements ChessEngine {
           '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
       ];
 
-  void _rememberPosition(String fen) {
-    _fenHistory.add(fen);
-    // Eight of these become history planes, but the repetition plane asks
-    // whether a position had occurred *before*, and a repetition can be up
-    // to a hundred plies apart under the fifty-move rule. Keeping only the
-    // eight the planes use answers that question wrong.
-    if (_fenHistory.length > 128) _fenHistory.removeAt(0);
-  }
-
   /// One network evaluation: policy over the legal moves plus a value in
   /// [-1, 1] from the side to move's perspective.
-  Future<NnEval> _evaluatePosition(String fen, List<String> legalMoves) async {
+  Future<NnEval> _evaluatePosition(
+      String fen, List<String> legalMoves, List<String> history) async {
     final model = _model!;
     final board = chess.Chess.fromFEN(fen);
     final isBlack = board.turn == chess.Color.BLACK;
 
-    final planes = encodePosition(fen, historyFens: _fenHistory);
+    final planes = encodePosition(fen, historyFens: history);
     final out = await model.runAsync(
       {'/input/planes': Tensor.float(planes, [1, 112, 8, 8])},
       ['/output/policy', '/output/wdl'],

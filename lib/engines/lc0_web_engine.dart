@@ -36,7 +36,11 @@ external JSPromise<JSAny?> _jsLc0Close();
 class Lc0Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final String variantId;
-  final List<String> _fenHistory = [];
+  /// How much of the game to replay for the network. Eight positions become
+  /// history planes; the rest are there so the repetition plane can tell
+  /// whether a position had occurred before, which under the fifty-move rule
+  /// can be a hundred plies back.
+  static const int _historyLimit = 129;
 
   bool _modelLoaded = false;
 
@@ -92,7 +96,10 @@ class Lc0Engine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      final fen = fenFromPositionCommand(positionCommand);
+      final played =
+          fenHistoryFromPositionCommand(positionCommand, limit: _historyLimit);
+      final fen = played.last;
+      final history = played.sublist(0, played.length - 1);
       final board = chess.Chess.fromFEN(fen);
 
       // Get legal moves as UCI strings
@@ -112,7 +119,6 @@ class Lc0Engine implements ChessEngine {
       }
 
       if (legalMoves.length == 1) {
-        _fenHistory.add(fen);
         _stateNotifier.value = EngineState.ready;
         return legalMoves.first;
       }
@@ -131,17 +137,11 @@ class Lc0Engine implements ChessEngine {
         fen: fen,
         legalMoves: legalMoves,
         evaluate: (evalFen, evalLegalMoves) =>
-            _evaluatePosition(evalFen, evalLegalMoves),
+            _evaluatePosition(evalFen, evalLegalMoves, history),
         positionAt: (moves) => _positionAt(fen, moves),
         config: config,
       );
 
-      _fenHistory.add(fen);
-      // Eight of these become history planes, but the repetition plane asks
-      // whether a position had occurred *before*, and a repetition can be up
-      // to a hundred plies apart under the fifty-move rule. Keeping only the
-      // eight the planes use answers that question wrong.
-      if (_fenHistory.length > 128) _fenHistory.removeAt(0);
 
       _stateNotifier.value = EngineState.ready;
       return bestUci;
@@ -186,12 +186,12 @@ class Lc0Engine implements ChessEngine {
   /// Evaluate a position using the neural network.
   /// Returns policy probabilities for legal moves and a value estimate.
   Future<NnEval> _evaluatePosition(
-      String fen, List<String> legalMoves) async {
+      String fen, List<String> legalMoves, List<String> history) async {
     final board = chess.Chess.fromFEN(fen);
     final isBlack = board.turn == chess.Color.BLACK;
 
     // Encode position into 112 planes
-    final inputPlanes = encodePosition(fen, historyFens: _fenHistory);
+    final inputPlanes = encodePosition(fen, historyFens: history);
 
     // Run ONNX inference
     final combined = (await _jsLc0Infer(inputPlanes.toJS).toDart).toDart;
@@ -263,12 +263,15 @@ class Lc0Engine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      final fen = fenFromPositionCommand(positionCommand);
+      final played =
+          fenHistoryFromPositionCommand(positionCommand, limit: _historyLimit);
+      final fen = played.last;
       final board = chess.Chess.fromFEN(fen);
       final isBlack = board.turn == chess.Color.BLACK;
 
       // Encode and run inference
-      final inputPlanes = encodePosition(fen, historyFens: _fenHistory);
+      final inputPlanes = encodePosition(fen,
+          historyFens: played.sublist(0, played.length - 1));
       final combined = (await _jsLc0Infer(inputPlanes.toJS).toDart).toDart;
 
       final wdl = Float32List.sublistView(combined, 1858, 1861);
@@ -298,7 +301,6 @@ class Lc0Engine implements ChessEngine {
   @override
   void dispose() {
     _modelLoaded = false;
-    _fenHistory.clear();
     try {
       _jsLc0Close().toDart;
     } catch (_) {}
