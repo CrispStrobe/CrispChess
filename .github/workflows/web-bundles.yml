@@ -1,12 +1,17 @@
-# Rebuild the Lynx WASM bundle.
+# Rebuilds the engine bundles that are committed under web/.
 #
-# This is a .NET AOT build: it peaked around 950 MB locally and took a shared
-# 7.7 GB box to the OOM cliff, which is why it does not belong on a dev
-# machine. A GitHub runner has 16 GB and four cores and does it in minutes.
+# These are the artifacts a browser actually downloads, and every one of them
+# used to be produced by hand on somebody's machine — which is how the shipped
+# Lynx bundle ended up neither AOT-compiled nor built from the branch the build
+# script clones. Building them here means the committed bytes have a run behind
+# them.
 #
-# Manual by design — it produces a committed binary artifact, so running it
-# should be a decision rather than a side effect of pushing.
-name: Lynx WASM bundle
+# It also keeps a heavy build off dev machines: the Lynx AOT step peaked around
+# 950 MB and took a shared 7.7 GB box to the OOM cliff. A runner has 16 GB.
+#
+# Manual by design — these are committed binaries, so rebuilding one should be
+# a decision rather than a side effect of pushing.
+name: Web engine bundles
 
 on:
   workflow_dispatch:
@@ -19,11 +24,11 @@ on:
         description: "Apply tool/patches/lynx-wasm-time-control.patch"
         default: true
         type: boolean
-      variant:
-        description: "Which bundle to build"
-        default: both
+      target:
+        description: "Which bundles to rebuild"
+        default: all
         type: choice
-        options: [both, aot, lite]
+        options: [all, lynx, lynx-aot, lynx-lite, frozenight]
       open_pr:
         description: "Push a branch with the rebuilt bundle (otherwise artifact only)"
         default: true
@@ -40,6 +45,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up .NET 10
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot","lynx-lite"]'), inputs.target) }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -47,16 +53,18 @@ jobs:
       # AOT silently falls back to a non-AOT build when this workload is
       # missing, so a bundle can look fine and be slow.
       - name: Install wasm-tools
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot","lynx-lite"]'), inputs.target) }}
         run: dotnet workload install wasm-tools --skip-sign-check
 
       - name: Clone Lynx (${{ inputs.lynx_ref }})
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot","lynx-lite"]'), inputs.target) }}
         run: |
           rm -rf third_party/lynx-chess
           git clone --depth 1 --branch "${{ inputs.lynx_ref }}" \
             https://github.com/CrispStrobe/lynx-chess.git third_party/lynx-chess
 
       - name: Apply the time-control patch
-        if: ${{ inputs.apply_patch }}
+        if: ${{ inputs.apply_patch && contains(fromJSON('["all","lynx","lynx-aot","lynx-lite"]'), inputs.target) }}
         run: |
           cd third_party/lynx-chess
           git apply --verbose ../../tool/patches/lynx-wasm-time-control.patch
@@ -66,11 +74,11 @@ jobs:
       # interpreter build is 2.3MB and slow. Which one a player wants depends
       # on their connection, so the app offers both and this builds both.
       - name: Build (AOT)
-        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot"]'), inputs.target) }}
         run: bash scripts/build_lynx_wasm.sh
 
       - name: Build (interpreter)
-        if: ${{ inputs.variant == 'both' || inputs.variant == 'lite' }}
+        if: ${{ contains(fromJSON('["all","lynx","lynx-lite"]'), inputs.target) }}
         run: |
           set -e
           LYNX_OUTPUT_DIR=web/lynx-lite \
@@ -90,7 +98,7 @@ jobs:
       # turned out to be nothing of the sort, because the wasm-tools workload
       # was still installing and the SDK fell back without saying so.
       - name: Check the bundle looks sane
-        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot"]'), inputs.target) }}
         run: |
           set -e
           fw=web/lynx/_framework
@@ -111,7 +119,7 @@ jobs:
       # Drives the real engine through the repo's own UCI adapter: uciok,
       # readyok, and a legal-looking bestmove from a non-opening position.
       - name: Smoke-test the engine
-        if: ${{ inputs.variant == 'both' || inputs.variant == 'aot' }}
+        if: ${{ contains(fromJSON('["all","lynx","lynx-aot"]'), inputs.target) }}
         run: |
           set -e
           out=$(printf 'uci\nisready\nposition startpos moves e2e4 c7c5 g1f3\ngo movetime 500\n' \
@@ -122,12 +130,47 @@ jobs:
             || { echo "no bestmove"; echo "$out"; exit 1; }
           echo "$out" | grep '^bestmove'
 
+      # The CI job that already builds this only uploads an artifact, so the
+      # copy committed under web/ has never had a build behind it — it was
+      # produced by hand. Same toolchain, landed where the app loads it from.
+      - name: Build Frozenight WASM
+        if: ${{ contains(fromJSON('["all","frozenight"]'), inputs.target) }}
+        run: |
+          set -e
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-bindgen-cli --version 0.2.127 --locked
+          cd native/frozenight-wasm
+          cargo build --release --target wasm32-unknown-unknown
+          wasm-bindgen target/wasm32-unknown-unknown/release/frozenight_wasm.wasm \
+            --out-dir ../../web --target web
+          cd ../..
+          test -s web/frozenight_wasm.js
+          test -s web/frozenight_wasm_bg.wasm
+          echo "frozenight_wasm_bg.wasm: $(du -h web/frozenight_wasm_bg.wasm | cut -f1)"
+
+      # Loads the module the way the app's bridge does and plays a move, so a
+      # bundle that builds but cannot search does not reach a commit.
+      - name: Smoke-test Frozenight WASM
+        if: ${{ contains(fromJSON('["all","frozenight"]'), inputs.target) }}
+        run: |
+          set -e
+          out=$(printf 'uci\nisready\nposition startpos moves e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 d2d3 f8c5 e1g1\ngo movetime 300\nquit\n' \
+            | node tool/uci/frozenight_wasm_uci.mjs 2>/dev/null)
+          echo "$out" | grep -q uciok || { echo "no uciok"; echo "$out"; exit 1; }
+          # Black can castle here; this is the move that used to come back as
+          # e8h8 and be rejected as illegal.
+          echo "$out" | grep -q '^bestmove e8g8' \
+            || { echo "expected bestmove e8g8"; echo "$out"; exit 1; }
+          echo "$out" | grep '^bestmove'
+
       - uses: actions/upload-artifact@v4
         with:
-          name: lynx-wasm-bundle
+          name: web-engine-bundles
           path: |
             web/lynx/
             web/lynx-lite/
+            web/frozenight_wasm.js
+            web/frozenight_wasm_bg.wasm
           retention-days: 30
 
       # Pushes a branch rather than opening a PR: creating PRs from Actions
@@ -138,18 +181,18 @@ jobs:
         if: ${{ inputs.open_pr }}
         run: |
           set -e
-          if git diff --quiet -- web/lynx web/lynx-lite && [ -z "$(git status --porcelain web/lynx-lite)" ]; then
-            echo "### Lynx WASM bundle: no change" >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- web && [ -z "$(git status --porcelain web)" ]; then
+            echo "### Web engine bundles: no change" >> "$GITHUB_STEP_SUMMARY"
             echo "The rebuilt bundle is byte-identical to the committed one." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          branch=lynx-wasm-rebuild
+          branch=web-bundles-rebuild
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$branch"
-          git add -A web/lynx web/lynx-lite
-          git commit -m "chore(lynx): rebuild the WASM bundle
+          git add -A web
+          git commit -m "chore(web): rebuild the engine bundles
 
           Lynx ref: ${{ inputs.lynx_ref }}
           Time-control patch applied: ${{ inputs.apply_patch }}
@@ -158,7 +201,7 @@ jobs:
 
           repo="${{ github.server_url }}/${{ github.repository }}"
           {
-            echo "### Lynx WASM bundle rebuilt"
+            echo "### Web engine bundles rebuilt"
             echo
             echo "- Lynx ref: \`${{ inputs.lynx_ref }}\`"
             echo "- Time-control patch: \`${{ inputs.apply_patch }}\`"
