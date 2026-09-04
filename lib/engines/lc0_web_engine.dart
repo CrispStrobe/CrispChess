@@ -36,6 +36,7 @@ external JSPromise<JSAny?> _jsLc0Close();
 class Lc0Engine implements ChessEngine {
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   final String variantId;
+
   /// How much of the game to replay for the network. Eight positions become
   /// history planes; the rest are there so the repetition plane can tell
   /// whether a position had occurred before, which under the fifty-move rule
@@ -43,9 +44,9 @@ class Lc0Engine implements ChessEngine {
   static const int _historyLimit = 129;
 
   bool _modelLoaded = false;
+  final NnEvalCache _evaluationCache = NnEvalCache();
 
-  Lc0Engine({String? variantId})
-      : variantId = variantId ?? defaultLc0Variant;
+  Lc0Engine({String? variantId}) : variantId = variantId ?? defaultLc0Variant;
 
   @override
   String get name {
@@ -74,7 +75,8 @@ class Lc0Engine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
     try {
       final variant = getLc0Variant(variantId);
-      debugPrint('[Lc0/Web] Loading ${variant.displayName} from ${variant.url}');
+      debugPrint(
+          '[Lc0/Web] Loading ${variant.displayName} from ${variant.url}');
       await _jsLc0Load(variant.url.toJS).toDart;
       _modelLoaded = true;
       _stateNotifier.value = EngineState.ready;
@@ -136,12 +138,11 @@ class Lc0Engine implements ChessEngine {
       final bestUci = await mctsSearch(
         fen: fen,
         legalMoves: legalMoves,
-        evaluate: _evaluatePosition,
+        evaluate: _evaluateCached,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
       );
-
 
       _stateNotifier.value = EngineState.ready;
       return bestUci;
@@ -240,7 +241,8 @@ class Lc0Engine implements ChessEngine {
       } else {
         // Move not in policy map (shouldn't happen for standard chess)
         logit = -100.0;
-        debugPrint('[Lc0/Web] Move not in policy map: $move (lookup: $lookupMove)');
+        debugPrint(
+            '[Lc0/Web] Move not in policy map: $move (lookup: $lookupMove)');
       }
 
       legalLogits.add(logit);
@@ -263,10 +265,15 @@ class Lc0Engine implements ChessEngine {
     return NnEval(policy: policyMap, value: value);
   }
 
+  Future<NnEval> _evaluateCached(
+          String fen, List<String> legalMoves, List<String> history) =>
+      _evaluationCache.evaluate(fen, legalMoves, history, _evaluatePosition);
+
   /// Softmax for 3 values, returns [p0, p1, p2].
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
+  Stream<EvalInfo> analyze(String positionCommand,
+      {int? depth, bool infinite = false}) async* {
     if (!_modelLoaded) return;
     _stateNotifier.value = EngineState.thinking;
 
@@ -307,6 +314,7 @@ class Lc0Engine implements ChessEngine {
 
   @override
   void dispose() {
+    _evaluationCache.clear();
     _modelLoaded = false;
     try {
       _jsLc0Close().toDart;

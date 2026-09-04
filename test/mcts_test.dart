@@ -28,6 +28,78 @@ NnEval _eval() => NnEval(
     );
 
 void main() {
+  group('NnEvalCache', () {
+    test('reuses an evaluation with the same position and history', () async {
+      final cache = NnEvalCache();
+      var evaluations = 0;
+      Future<NnEval> evaluate(
+          String _, List<String> __, List<String> ___) async {
+        evaluations++;
+        return _eval();
+      }
+
+      final first =
+          await cache.evaluate('fen', _legal, const ['old'], evaluate);
+      final second =
+          await cache.evaluate('fen', _legal, const ['old'], evaluate);
+
+      expect(identical(first, second), isTrue);
+      expect(evaluations, 1);
+    });
+
+    test('history and legal moves are part of the cache key', () async {
+      final cache = NnEvalCache();
+      var evaluations = 0;
+      Future<NnEval> evaluate(
+          String _, List<String> __, List<String> ___) async {
+        evaluations++;
+        return _eval();
+      }
+
+      await cache.evaluate('fen', _legal, const ['line-a'], evaluate);
+      await cache.evaluate('fen', _legal, const ['line-b'], evaluate);
+      await cache.evaluate('fen', const ['e2e4'], const ['line-b'], evaluate);
+
+      expect(evaluations, 3);
+    });
+
+    test('evicts the least recently used evaluation', () async {
+      final cache = NnEvalCache(capacity: 2);
+      var evaluations = 0;
+      Future<NnEval> evaluate(
+          String _, List<String> __, List<String> ___) async {
+        evaluations++;
+        return _eval();
+      }
+
+      await cache.evaluate('a', _legal, const [], evaluate);
+      await cache.evaluate('b', _legal, const [], evaluate);
+      await cache.evaluate('a', _legal, const [], evaluate); // Touch a.
+      await cache.evaluate('c', _legal, const [], evaluate); // Evicts b.
+      await cache.evaluate('b', _legal, const [], evaluate);
+
+      expect(evaluations, 4);
+      expect(cache.length, 2);
+    });
+
+    test('does not retain failed evaluations', () async {
+      final cache = NnEvalCache();
+      var evaluations = 0;
+      Future<NnEval> evaluate(
+          String _, List<String> __, List<String> ___) async {
+        evaluations++;
+        if (evaluations == 1) throw StateError('transient');
+        return _eval();
+      }
+
+      await expectLater(
+          cache.evaluate('fen', _legal, const [], evaluate), throwsStateError);
+      await cache.evaluate('fen', _legal, const [], evaluate);
+
+      expect(evaluations, 2);
+    });
+  });
+
   group('mctsSearch', () {
     test('returns the network\'s choice when no simulation had time to run',
         () async {
@@ -117,7 +189,8 @@ void main() {
         positionAt: (moves) {
           final board = chess.Chess();
           for (final uci in moves) {
-            board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+            board
+                .move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
           }
           return MctsPosition(
             fen: board.fen,
@@ -256,7 +329,8 @@ void main() {
         positionAt: (moves) {
           final board = chess.Chess();
           for (final uci in moves) {
-            board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+            board
+                .move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
           }
           return MctsPosition(
             fen: board.fen,

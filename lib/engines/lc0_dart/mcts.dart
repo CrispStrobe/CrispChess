@@ -5,6 +5,7 @@
 /// and value outputs.
 library;
 
+import 'dart:collection';
 import 'dart:math';
 
 /// A node in the MCTS search tree.
@@ -19,6 +20,7 @@ class MctsNode {
 
   // Set after expansion
   bool expanded = false;
+
   /// Set when the game ends here, from the side-to-move's point of view:
   /// -1 for being mated, 0 for a draw. Negated into [backpropagate].
   double? terminalValue;
@@ -127,6 +129,71 @@ class NnEval {
 /// different game from the one it is in.
 typedef NnEvaluator = Future<NnEval> Function(
     String fen, List<String> legalMoves, List<String> historyFens);
+
+/// A bounded least-recently-used cache for network evaluations.
+///
+/// MCTS trees are deliberately rebuilt for each move, but the opponent often
+/// chooses a reply that the previous search already evaluated. Keeping the
+/// network result lets the next search spend that forward pass on a new leaf.
+/// The complete history is part of the key because repetition and the seven
+/// historical board slots are network inputs, not merely search metadata.
+class NnEvalCache {
+  final int capacity;
+  final LinkedHashMap<String, Future<NnEval>> _entries = LinkedHashMap();
+
+  NnEvalCache({this.capacity = 512}) {
+    if (capacity <= 0) {
+      throw ArgumentError.value(capacity, 'capacity', 'must be positive');
+    }
+  }
+
+  int get length => _entries.length;
+
+  Future<NnEval> evaluate(
+    String fen,
+    List<String> legalMoves,
+    List<String> historyFens,
+    NnEvaluator evaluator,
+  ) {
+    final key = _key(fen, legalMoves, historyFens);
+    final cached = _entries.remove(key);
+    if (cached != null) {
+      _entries[key] = cached; // Touch: newest entries are evicted last.
+      return cached;
+    }
+
+    late final Future<NnEval> result;
+    result = Future.sync(() => evaluator(fen, legalMoves, historyFens)).then(
+      (value) => value,
+      onError: (Object error, StackTrace stackTrace) {
+        // A transient inference failure must not poison future searches.
+        if (identical(_entries[key], result)) _entries.remove(key);
+        Error.throwWithStackTrace(error, stackTrace);
+      },
+    );
+    _entries[key] = result;
+    if (_entries.length > capacity) {
+      _entries.remove(_entries.keys.first);
+    }
+    return result;
+  }
+
+  void clear() => _entries.clear();
+
+  String _key(String fen, List<String> legalMoves, List<String> historyFens) {
+    final buffer = StringBuffer();
+    for (final historyFen in historyFens) {
+      buffer
+        ..write(historyFen)
+        ..write('\n');
+    }
+    buffer
+      ..write(fen)
+      ..write('\n')
+      ..writeAll(legalMoves, ',');
+    return buffer.toString();
+  }
+}
 
 /// A position reached by playing [moves] from the root.
 class MctsPosition {
@@ -259,11 +326,10 @@ Future<String> mctsSearch({
       continue;
     }
 
-    final leafEval = await evaluate(
-        position.fen, position.legalMoves, position.historyFens);
+    final leafEval =
+        await evaluate(position.fen, position.legalMoves, position.historyFens);
     for (final move in position.legalMoves) {
-      final prior =
-          leafEval.policy[move] ?? (1.0 / position.legalMoves.length);
+      final prior = leafEval.policy[move] ?? (1.0 / position.legalMoves.length);
       node.children.add(MctsNode(move: move, parent: node, prior: prior));
     }
     node.expanded = true;

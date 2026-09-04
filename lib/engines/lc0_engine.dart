@@ -45,6 +45,7 @@ class Lc0Engine implements ChessEngine {
   final int isolateWorkers;
 
   OnnxModel? _model;
+  final NnEvalCache _evaluationCache = NnEvalCache();
 
   Lc0Engine({String? variantId, this.isolateWorkers = 4})
       : variantId = variantId ?? defaultLc0Variant;
@@ -132,7 +133,7 @@ class Lc0Engine implements ChessEngine {
       final best = await mctsSearch(
         fen: fen,
         legalMoves: legalMoves,
-        evaluate: _evaluatePosition,
+        evaluate: _evaluateCached,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
@@ -160,14 +161,13 @@ class Lc0Engine implements ChessEngine {
       final legalMoves = _legalMoves(board);
       if (legalMoves.isEmpty) return;
 
-      final eval = await _evaluatePosition(
+      final eval = await _evaluateCached(
           fen, legalMoves, played.sublist(0, played.length - 1));
       // The network reports a win probability, not centipawns. Map it onto a
       // pawn-ish scale so the eval bar means roughly the same thing it does for
       // the search engines.
-      final best = eval.policy.entries
-          .reduce((a, b) => a.value >= b.value ? a : b)
-          .key;
+      final best =
+          eval.policy.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
       yield EvalInfo(score: eval.value * 5.0, depth: 1, bestMove: best);
     } catch (e) {
       debugPrint('[Lc0] analyze failed: $e');
@@ -175,7 +175,6 @@ class Lc0Engine implements ChessEngine {
       _stateNotifier.value = EngineState.ready;
     }
   }
-
 
   /// Resolves the position a line of play reaches, so MCTS can evaluate more
   /// than the root. Replays from the search root each time: the lines are a
@@ -236,7 +235,9 @@ class Lc0Engine implements ChessEngine {
 
     final planes = encodePosition(fen, historyFens: history);
     final out = await model.runAsync(
-      {'/input/planes': Tensor.float(planes, [1, 112, 8, 8])},
+      {
+        '/input/planes': Tensor.float(planes, [1, 112, 8, 8])
+      },
       ['/output/policy', '/output/wdl'],
     );
 
@@ -274,6 +275,10 @@ class Lc0Engine implements ChessEngine {
     return NnEval(policy: probabilities, value: value);
   }
 
+  Future<NnEval> _evaluateCached(
+          String fen, List<String> legalMoves, List<String> history) =>
+      _evaluationCache.evaluate(fen, legalMoves, history, _evaluatePosition);
+
   @override
   void stop() {
     _stateNotifier.value = EngineState.ready;
@@ -284,6 +289,7 @@ class Lc0Engine implements ChessEngine {
 
   @override
   void dispose() {
+    _evaluationCache.clear();
     _model?.dispose();
     _model = null;
     _stateNotifier.value = EngineState.disposed;
