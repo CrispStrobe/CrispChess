@@ -98,6 +98,15 @@ void main() {
       expect(mirrorMove('a1a8'), 'a8a1');
       expect(mirrorMove('e7e8q'), 'e2e1q');
     });
+
+    test('mirrored lookup matches per-move mirroring', () {
+      final white = getMoveToIndex();
+      final black = getMirroredMoveToIndex();
+      expect(black.length, white.length);
+      for (final entry in white.entries) {
+        expect(black[mirrorMove(entry.key)], entry.value);
+      }
+    });
   });
 
   group('Lc0 MCTS', () {

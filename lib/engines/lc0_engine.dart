@@ -308,18 +308,20 @@ class Lc0Engine implements ChessEngine {
 
   NnEval _decodeEvaluation(String fen, List<String> legalMoves,
       Float32List policyLogits, Float32List wdl) {
-    final board = chess.Chess.fromFEN(fen);
-    final isBlack = board.turn == chess.Color.BLACK;
+    // FEN's second field is the side to move. Building a complete 0x88 board
+    // here solely to read it adds one redundant parse to every MCTS leaf.
+    final isBlack = _isBlackToMove(fen);
     final value = wdl[0] - wdl[2]; // win - loss
 
     // Softmax over the legal moves only.
-    final moveToIndex = policy.getMoveToIndex();
+    final moveToIndex = isBlack
+        ? policy.getMirroredMoveToIndex()
+        : policy.getMoveToIndex();
     final logits = <double>[];
     var maxLogit = double.negativeInfinity;
     for (final move in legalMoves) {
       // Policy indices are always from white's point of view.
-      final lookup = isBlack ? policy.mirrorMove(move) : move;
-      final idx = moveToIndex[lookup];
+      final idx = moveToIndex[move];
       final logit = idx != null ? policyLogits[idx].toDouble() : -100.0;
       logits.add(logit);
       if (logit > maxLogit) maxLogit = logit;
@@ -338,6 +340,13 @@ class Lc0Engine implements ChessEngine {
       probabilities[legalMoves[i]] = weights[i] / sum;
     }
     return NnEval(policy: probabilities, value: value);
+  }
+
+  bool _isBlackToMove(String fen) {
+    final separator = fen.indexOf(' ');
+    return separator >= 0 &&
+        separator + 1 < fen.length &&
+        fen.codeUnitAt(separator + 1) == 98; // ASCII 'b'
   }
 
   void _recordEvaluationCost(int micros) {

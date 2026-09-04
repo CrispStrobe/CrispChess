@@ -204,6 +204,7 @@ const int numPolicyOutputs = 1858;
 
 /// Lazily built map: UCI move string → policy index.
 Map<String, int>? _moveToIndex;
+Map<String, int>? _mirroredMoveToIndex;
 
 /// Get the UCI → index lookup map (built once, cached).
 Map<String, int> getMoveToIndex() {
@@ -213,6 +214,19 @@ Map<String, int> getMoveToIndex() {
     _moveToIndex![lc0Moves[i]] = i;
   }
   return _moveToIndex!;
+}
+
+/// UCI → policy index when Black is to move.
+///
+/// Building this once avoids allocating two substrings and parsing two ranks
+/// for every legal move of every neural-network evaluation.
+Map<String, int> getMirroredMoveToIndex() {
+  if (_mirroredMoveToIndex != null) return _mirroredMoveToIndex!;
+  _mirroredMoveToIndex = <String, int>{};
+  for (int i = 0; i < lc0Moves.length; i++) {
+    _mirroredMoveToIndex![mirrorMove(lc0Moves[i])] = i;
+  }
+  return _mirroredMoveToIndex!;
 }
 
 /// Get the UCI move string for a policy index.

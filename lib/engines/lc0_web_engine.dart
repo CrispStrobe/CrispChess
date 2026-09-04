@@ -279,8 +279,9 @@ class Lc0Engine implements ChessEngine {
 
   NnEval _decodeEvaluation(String fen, List<String> legalMoves,
       Float32List policyLogits, Float32List wdl) {
-    final board = chess.Chess.fromFEN(fen);
-    final isBlack = board.turn == chess.Color.BLACK;
+    // FEN's second field is the side to move. Building a complete board here
+    // solely to read it adds one redundant parse to every MCTS leaf.
+    final isBlack = _isBlackToMove(fen);
 
     // WDL order: [win, draw, loss], already probabilities — the exported
     // graph ends in a Softmax feeding /output/wdl. Running another softmax
@@ -290,7 +291,9 @@ class Lc0Engine implements ChessEngine {
     final value = wdl[0] - wdl[2]; // win - loss
 
     // Build policy map for legal moves
-    final moveToIndex = policy.getMoveToIndex();
+    final moveToIndex = isBlack
+        ? policy.getMirroredMoveToIndex()
+        : policy.getMoveToIndex();
     final policyMap = <String, double>{};
 
     // Collect logits for legal moves, apply softmax over legal moves only
@@ -299,8 +302,7 @@ class Lc0Engine implements ChessEngine {
 
     for (final move in legalMoves) {
       // Mirror move for black (policy indices assume white's perspective)
-      final lookupMove = isBlack ? policy.mirrorMove(move) : move;
-      final idx = moveToIndex[lookupMove];
+      final idx = moveToIndex[move];
 
       double logit;
       if (idx != null) {
@@ -308,8 +310,7 @@ class Lc0Engine implements ChessEngine {
       } else {
         // Move not in policy map (shouldn't happen for standard chess)
         logit = -100.0;
-        debugPrint(
-            '[Lc0/Web] Move not in policy map: $move (lookup: $lookupMove)');
+        debugPrint('[Lc0/Web] Move not in policy map: $move');
       }
 
       legalLogits.add(logit);
@@ -330,6 +331,13 @@ class Lc0Engine implements ChessEngine {
     }
 
     return NnEval(policy: policyMap, value: value);
+  }
+
+  bool _isBlackToMove(String fen) {
+    final separator = fen.indexOf(' ');
+    return separator >= 0 &&
+        separator + 1 < fen.length &&
+        fen.codeUnitAt(separator + 1) == 98; // ASCII 'b'
   }
 
   void _recordEvaluationCost(int micros) {
