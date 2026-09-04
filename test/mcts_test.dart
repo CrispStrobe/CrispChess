@@ -98,6 +98,26 @@ void main() {
 
       expect(evaluations, 2);
     });
+
+    test('snapshots caller-owned key lists', () async {
+      final cache = NnEvalCache();
+      final legal = ['e2e4'];
+      final history = ['old'];
+      var evaluations = 0;
+      Future<NnEval> evaluate(
+          String _, List<String> __, List<String> ___) async {
+        evaluations++;
+        return _eval();
+      }
+
+      await cache.evaluate('fen', legal, history, evaluate);
+      legal.add('d2d4');
+      history.add('new');
+      await cache.evaluate('fen', const ['e2e4'], const ['old'], evaluate);
+
+      expect(evaluations, 1,
+          reason: 'later caller mutations must not alter a retained key');
+    });
   });
 
   group('mctsSearch', () {

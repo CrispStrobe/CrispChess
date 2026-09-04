@@ -167,7 +167,7 @@ typedef NnBatchEvaluator = Future<List<NnEval>> Function(
 /// historical board slots are network inputs, not merely search metadata.
 class NnEvalCache {
   final int capacity;
-  final LinkedHashMap<String, Future<NnEval>> _entries = LinkedHashMap();
+  final LinkedHashMap<_NnEvalKey, Future<NnEval>> _entries = LinkedHashMap();
 
   NnEvalCache({this.capacity = 512}) {
     if (capacity <= 0) {
@@ -183,12 +183,12 @@ class NnEvalCache {
     List<String> historyFens,
     NnEvaluator evaluator,
   ) {
-    final cached = lookup(fen, legalMoves, historyFens);
+    final key = _NnEvalKey.snapshot(fen, legalMoves, historyFens);
+    final cached = _lookup(key);
     if (cached != null) {
       return cached;
     }
 
-    final key = _key(fen, legalMoves, historyFens);
     late final Future<NnEval> result;
     result = Future.sync(() => evaluator(fen, legalMoves, historyFens)).then(
       (value) => value,
@@ -204,7 +204,13 @@ class NnEvalCache {
 
   Future<NnEval>? lookup(
       String fen, List<String> legalMoves, List<String> historyFens) {
-    final key = _key(fen, legalMoves, historyFens);
+    // This key may become the one reinserted at the MRU end, so snapshot the
+    // caller-owned lists before it can be retained by the cache.
+    final key = _NnEvalKey.snapshot(fen, legalMoves, historyFens);
+    return _lookup(key);
+  }
+
+  Future<NnEval>? _lookup(_NnEvalKey key) {
     final cached = _entries.remove(key);
     if (cached != null) _entries[key] = cached;
     return cached;
@@ -212,29 +218,56 @@ class NnEvalCache {
 
   void store(String fen, List<String> legalMoves, List<String> historyFens,
       NnEval evaluation) {
-    _insert(_key(fen, legalMoves, historyFens), Future.value(evaluation));
+    _insert(_NnEvalKey.snapshot(fen, legalMoves, historyFens),
+        Future.value(evaluation));
   }
 
   void clear() => _entries.clear();
 
-  void _insert(String key, Future<NnEval> value) {
+  void _insert(_NnEvalKey key, Future<NnEval> value) {
     _entries.remove(key);
     _entries[key] = value;
     if (_entries.length > capacity) _entries.remove(_entries.keys.first);
   }
 
-  String _key(String fen, List<String> legalMoves, List<String> historyFens) {
-    final buffer = StringBuffer();
-    for (final historyFen in historyFens) {
-      buffer
-        ..write(historyFen)
-        ..write('\n');
+}
+
+/// Exact cache key without serializing the full game into a temporary string.
+///
+/// String hashes are cached by Dart, and this object's combined hash is
+/// computed once. Equality still compares every field, so a hash collision
+/// can never return an evaluation for a different network input.
+class _NnEvalKey {
+  final String fen;
+  final List<String> legalMoves;
+  final List<String> historyFens;
+  late final int _hashCode = Object.hash(
+      fen, Object.hashAll(legalMoves), Object.hashAll(historyFens));
+
+  _NnEvalKey(this.fen, this.legalMoves, this.historyFens);
+
+  _NnEvalKey.snapshot(String fen, List<String> legalMoves,
+      List<String> historyFens)
+      : this(fen, List.of(legalMoves), List.of(historyFens));
+
+  @override
+  int get hashCode => _hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _NnEvalKey &&
+          fen == other.fen &&
+          _sameStrings(legalMoves, other.legalMoves) &&
+          _sameStrings(historyFens, other.historyFens);
+
+  static bool _sameStrings(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
     }
-    buffer
-      ..write(fen)
-      ..write('\n')
-      ..writeAll(legalMoves, ',');
-    return buffer.toString();
+    return true;
   }
 }
 
