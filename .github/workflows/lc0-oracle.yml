@@ -1,0 +1,139 @@
+# Check the Lc0 engine against lc0 itself.
+#
+# The app reimplements lc0's input encoding, runs the Maia weights through a
+# re-export and a pure-Dart ONNX runtime, and searches with its own MCTS. Each
+# of those can be wrong on its own, and a game result cannot say which — the
+# engine scored 0/28 in the strength tournament while making sensible-looking
+# moves in the positions anyone would spot-check.
+#
+# So this compares layer by layer against the real thing. It needs an lc0
+# binary, and upstream ships none for Linux, so it builds one — pinned to the
+# version that produced the ONNX export the app downloads.
+name: Lc0 oracle
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: Maia network to check
+        default: maia-1900
+      strict:
+        description: Fail the run on any mismatch
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - 'lib/engines/lc0_dart/**'
+      - 'lib/engines/lc0_engine.dart'
+      - 'tool/oracle/**'
+      - '.github/workflows/lc0-oracle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VARIANT: ${{ inputs.variant || 'maia-1900' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+
+      - name: Install the reference runtime
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet \
+            onnxruntime numpy chess
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      # The move vocabulary the networks were trained against. Fetched rather
+      # than vendored so the check cannot pass by agreeing with a stale copy.
+      - name: Fetch the canonical policy index
+        run: |
+          mkdir -p build/oracle
+          curl -sSLf --retry 3 -o build/oracle/policy_index.py \
+            https://raw.githubusercontent.com/LeelaChessZero/lczero-training/master/tf/policy_index.py
+          grep -c '"' build/oracle/policy_index.py
+
+      - name: Check the vendored policy map against it
+        run: |
+          python3 - <<'EOF'
+          import re
+          ns = {}
+          exec(open('build/oracle/policy_index.py').read(), ns)
+          truth = ns['policy_index']
+          body = open('lib/engines/lc0_dart/policy_map.dart').read()
+          body = body.split('const lc0Moves = [', 1)[1].split('];', 1)[0]
+          ours = re.findall(r"'([a-h][1-8][a-h][1-8][qrbn]?)'", body)
+          assert ours == truth, next(
+              f'index {i}: lc0 has {t!r}, we have {o!r}'
+              for i, (t, o) in enumerate(zip(truth, ours)) if t != o)
+          print(f'policy map matches lc0 on all {len(truth)} indices')
+          EOF
+
+      - name: Cache the lc0 build
+        id: lc0-cache
+        uses: actions/cache@v4
+        with:
+          path: build/oracle/lc0
+          key: lc0-v0.32.1-${{ runner.os }}
+
+      # v0.32.1 is the version whose `leela2onnx` produced the weights the app
+      # downloads, so the comparison is against the exporter's own engine.
+      - name: Build lc0
+        if: steps.lc0-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build libeigen3-dev
+          git clone -q --depth 1 -b v0.32.1 --recurse-submodules \
+            https://github.com/LeelaChessZero/lc0.git "$RUNNER_TEMP/lc0"
+          cd "$RUNNER_TEMP/lc0"
+          CC=gcc CXX=g++ ./build.sh -Dgtest=false -Dpython_bindings=false
+          mkdir -p "$GITHUB_WORKSPACE/build/oracle"
+          cp build/release/lc0 "$GITHUB_WORKSPACE/build/oracle/lc0"
+
+      - name: Fetch the weights, both forms
+        run: |
+          cd build/oracle
+          curl -sSLf --retry 3 -o "$VARIANT.pb.gz" \
+            "https://github.com/CSSLab/maia-chess/raw/master/maia_weights/$VARIANT.pb.gz"
+          curl -sSLf --retry 3 -o "$VARIANT.onnx" \
+            "https://huggingface.co/cstr/maia-chess-onnx-opset15/resolve/main/$VARIANT.onnx"
+          ls -la "$VARIANT.pb.gz" "$VARIANT.onnx"
+          ./lc0 --help >/dev/null 2>&1 || true
+          ./lc0 --version || true
+
+      - name: Run the app's pipeline
+        run: |
+          dart run tool/oracle/dump.dart \
+            --model "build/oracle/$VARIANT.onnx" \
+            --positions tool/oracle/positions.txt \
+            --out build/oracle/dart.json
+
+      - name: Compare the input encoding against lc0's
+        run: python3 tool/oracle/compare_planes.py build/oracle/dart.json
+
+      - name: Compare the policy against lc0's, layer by layer
+        run: |
+          set -o pipefail
+          python3 tool/oracle/compare_network.py \
+            --dart build/oracle/dart.json \
+            --onnx "build/oracle/$VARIANT.onnx" \
+            --policy-index build/oracle/policy_index.py \
+            --lc0 build/oracle/lc0 \
+            --weights "build/oracle/$VARIANT.pb.gz" \
+            | tee build/oracle/report.txt
+        continue-on-error: ${{ inputs.strict == false }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lc0-oracle-${{ env.VARIANT }}
+          path: build/oracle/*.txt

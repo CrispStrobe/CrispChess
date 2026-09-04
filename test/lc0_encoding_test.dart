@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crispchess/engines/lc0_dart/encoding.dart';
 import 'package:crispchess/engines/lc0_dart/policy_map.dart';
@@ -223,6 +226,109 @@ void main() {
       expect(lc0VariantFromMaia3('23m'), '1700');
       expect(lc0VariantFromMaia3('79m'), '1900');
       expect(lc0VariantFromMaia3('unknown'), defaultLc0Variant);
+    });
+  });
+
+  // The auxiliary planes, pinned to lc0's own encoder
+  // (src/neural/encoder.cc, INPUT_CLASSICAL_112_PLANE). Two of these were
+  // wrong for as long as the engine existed, and no test could see it: the
+  // start position sets all four castling planes and has a rule-50 count of
+  // zero, so a kingside/queenside swap and a factor of 100 both vanish there.
+  // Every case below is therefore asymmetric or mid-game on purpose.
+  group('Lc0 auxiliary planes', () {
+    double planeValue(Float32List planes, int plane) => planes[plane * 64];
+
+    bool planeIsConstant(Float32List planes, int plane) {
+      final first = planes[plane * 64];
+      for (var i = 1; i < 64; i++) {
+        if (planes[plane * 64 + i] != first) return false;
+      }
+      return true;
+    }
+
+    // White may castle queenside only, Black kingside only — so each of the
+    // four planes carries a different answer from its neighbour.
+    const asymmetric =
+        '1rbqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKBR1 w Qk - 4 3';
+
+    test('castling planes are queenside first, for both sides', () {
+      final planes = encodePosition(asymmetric);
+      expect(planeValue(planes, 104), 1.0, reason: 'we can castle queenside');
+      expect(planeValue(planes, 105), 0.0, reason: 'we cannot castle kingside');
+      expect(planeValue(planes, 106), 0.0,
+          reason: 'they cannot castle queenside');
+      expect(planeValue(planes, 107), 1.0, reason: 'they can castle kingside');
+    });
+
+    test('castling planes follow the side to move, not the colour', () {
+      // Same rights, Black to move: "us" and "them" change places.
+      final planes = encodePosition(
+          '1rbqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKBR1 b Qk - 4 3');
+      expect(planeValue(planes, 104), 0.0, reason: 'Black has no queenside');
+      expect(planeValue(planes, 105), 1.0, reason: 'Black has kingside');
+      expect(planeValue(planes, 106), 1.0, reason: 'White has queenside');
+      expect(planeValue(planes, 107), 0.0, reason: 'White has no kingside');
+    });
+
+    test('the rule-50 plane is a raw ply count, not a fraction', () {
+      // Dividing by 100 is the "hectoplies" input format; the Maia networks
+      // are classical, and are handed the count itself.
+      expect(planeValue(encodePosition(asymmetric), 109), 4.0);
+      expect(
+          planeValue(
+              encodePosition(
+                  'r1bqkbnr/pppppppp/8/1N4N1/1n6/8/PPPPPPPP/R1BQKB1R w KQkq - 16 9'),
+              109),
+          16.0);
+      expect(planeIsConstant(encodePosition(asymmetric), 109), isTrue);
+    });
+
+    test('side to move and the bias plane', () {
+      final white = encodePosition(asymmetric);
+      expect(planeValue(white, 108), 0.0);
+      expect(planeValue(white, 111), 1.0);
+      expect(planeValue(white, 110), 0.0, reason: 'the old move counter');
+      final black = encodePosition(
+          '1rbqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKBR1 b Qk - 4 3');
+      expect(planeValue(black, 108), 1.0);
+    });
+  });
+
+  group('Lc0 repetition planes', () {
+    // A slot's repetition plane describes the position in *that* slot at the
+    // point it was played. Counting occurrences inside the eight-slot window
+    // instead marks early slots as repetitions of positions that had not
+    // happened yet.
+    const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+    test('a fresh position repeats nothing', () {
+      final planes = encodePosition(start);
+      for (var slot = 0; slot < 8; slot++) {
+        expect(planes[(slot * 13 + 12) * 64], 0.0, reason: 'slot $slot');
+      }
+    });
+
+    test('only the slots that had already occurred are marked', () {
+      // Knights out and back twice: the current position is the third time
+      // the start position has stood on the board, and the position four
+      // plies ago was the second — but the first two slots of history are
+      // first-time positions.
+      final history = <String>[];
+      final board = chess.Chess();
+      for (final uci in 'g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8'.split(' ')) {
+        history.add(board.fen);
+        board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+      }
+      final planes = encodePosition(board.fen, historyFens: history);
+
+      // Slot 0 is the current position, seen twice before.
+      expect(planes[(0 * 13 + 12) * 64], 1.0);
+      // Slot 4 is the same position one cycle earlier, seen once before.
+      expect(planes[(4 * 13 + 12) * 64], 1.0);
+      // The oldest slots are the first time those positions appeared.
+      expect(planes[(5 * 13 + 12) * 64], 0.0);
+      expect(planes[(6 * 13 + 12) * 64], 0.0);
+      expect(planes[(7 * 13 + 12) * 64], 0.0);
     });
   });
 }

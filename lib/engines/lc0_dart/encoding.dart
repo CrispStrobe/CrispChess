@@ -14,13 +14,17 @@
 ///   - When black to move: board is flipped vertically
 ///     (a8 maps to index 0, h1 maps to index 63, and colors swap)
 ///
-/// Auxiliary planes (104-111):
-///   104: castling — our kingside
-///   105: castling — our queenside
-///   106: castling — their kingside
-///   107: castling — their queenside
+/// Auxiliary planes (104-111), following lc0's INPUT_CLASSICAL_112_PLANE.
+/// Queenside comes first, and the rule-50 plane carries a raw ply count — the
+/// division by 100 belongs to the "hectoplies" input formats, which the Maia
+/// networks are not. Both were the other way round here until a diff against
+/// lc0's own encoder (src/neural/encoder.cc) showed it:
+///   104: castling — our queenside
+///   105: castling — our kingside
+///   106: castling — their queenside
+///   107: castling — their kingside
 ///   108: is black to move (all 1s if black, else 0)
-///   109: rule-50 count / 100
+///   109: rule-50 ply count, unscaled
 ///   110: zeros (unused / move count)
 ///   111: all ones (bias plane)
 library;
@@ -36,34 +40,32 @@ import 'package:chess/chess.dart' as chess;
 Float32List encodePosition(String fen, {List<String>? historyFens}) {
   final planes = Float32List(112 * 8 * 8); // 7168
 
-  // Build list of FENs: current + up to 7 history positions
-  final fens = <String>[fen];
-  if (historyFens != null) {
-    // Take up to 7 most recent history positions
-    final start =
-        historyFens.length > 7 ? historyFens.length - 7 : 0;
-    for (int i = historyFens.length - 1; i >= start; i--) {
-      fens.add(historyFens[i]);
-    }
-  }
+  // The game so far, oldest first, with the current position last.
+  final played = <String>[...?historyFens, fen];
 
   final currentBoard = chess.Chess.fromFEN(fen);
   final isBlack = currentBoard.turn == chess.Color.BLACK;
 
-  // Count board positions for repetition detection
-  final positionCounts = <String, int>{};
-  for (final f in fens) {
-    // Use just piece placement + side to move for repetition
-    final key = _boardKey(f);
-    positionCounts[key] = (positionCounts[key] ?? 0) + 1;
+  // A slot's repetition plane says whether *that* position had already
+  // occurred earlier in the game, so it has to be counted over the whole game
+  // and attributed per position. Counting occurrences inside the eight-slot
+  // window instead marks the older slots as repetitions of positions that had
+  // not happened yet when they were played.
+  final seen = <String, int>{};
+  final repeatedBefore = List<bool>.filled(played.length, false);
+  for (int i = 0; i < played.length; i++) {
+    final key = _boardKey(played[i]);
+    repeatedBefore[i] = (seen[key] ?? 0) >= 1;
+    seen[key] = (seen[key] ?? 0) + 1;
   }
 
-  // Encode each history slot (0 = current, 1..7 = older)
+  // Encode each history slot (0 = current, 1..7 = older). Slots beyond the
+  // start of the game stay zero.
   for (int slot = 0; slot < 8; slot++) {
-    if (slot < fens.length) {
-      _encodeHistorySlot(planes, slot, fens[slot], isBlack, positionCounts);
-    }
-    // Slots beyond available history remain zeros
+    final index = played.length - 1 - slot;
+    if (index < 0) break;
+    _encodeHistorySlot(planes, slot, played[index], isBlack,
+        repeatedBefore[index]);
   }
 
   // Encode auxiliary planes (planes 104-111)
@@ -78,7 +80,7 @@ void _encodeHistorySlot(
   int slot,
   String fen,
   bool isBlackToMove,
-  Map<String, int> positionCounts,
+  bool wasRepetition,
 ) {
   final board = chess.Chess.fromFEN(fen);
   final basePlane = slot * 13;
@@ -124,9 +126,7 @@ void _encodeHistorySlot(
   }
 
   // Repetition plane (plane 12 of this slot)
-  final key = _boardKey(fen);
-  final reps = positionCounts[key] ?? 1;
-  if (reps > 1) {
+  if (wasRepetition) {
     final repPlane = basePlane + 12;
     for (int i = 0; i < 64; i++) {
       planes[repPlane * 64 + i] = 1.0;
@@ -155,16 +155,17 @@ void _encodeAuxPlanes(Float32List planes, String fen, bool isBlack) {
     theirQueenside = castling.contains('q');
   }
 
-  _fillPlane(planes, 104, ourKingside ? 1.0 : 0.0);
-  _fillPlane(planes, 105, ourQueenside ? 1.0 : 0.0);
-  _fillPlane(planes, 106, theirKingside ? 1.0 : 0.0);
-  _fillPlane(planes, 107, theirQueenside ? 1.0 : 0.0);
+  // Queenside first — see the plane list above.
+  _fillPlane(planes, 104, ourQueenside ? 1.0 : 0.0);
+  _fillPlane(planes, 105, ourKingside ? 1.0 : 0.0);
+  _fillPlane(planes, 106, theirQueenside ? 1.0 : 0.0);
+  _fillPlane(planes, 107, theirKingside ? 1.0 : 0.0);
 
   // Plane 108: is black to move
   _fillPlane(planes, 108, isBlack ? 1.0 : 0.0);
 
-  // Plane 109: rule-50 counter (normalized)
-  _fillPlane(planes, 109, halfmoveClock / 100.0);
+  // Plane 109: rule-50 counter, as a raw ply count.
+  _fillPlane(planes, 109, halfmoveClock.toDouble());
 
   // Plane 110: zeros (unused)
   // Already zero

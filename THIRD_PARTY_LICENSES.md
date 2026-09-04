@@ -176,3 +176,22 @@ All from Lichess (https://github.com/lichess-org/lila):
 - kiwen-suwi: CC-BY 4.0
 - totoy: CC-BY 4.0
 - papercut: CC-BY 4.0
+
+## Lc0 oracle test data
+
+`tool/oracle/` checks this app's Lc0 implementation against lc0 itself. It
+fetches, at run time and only in CI:
+
+- the move vocabulary from
+  [lczero-training](https://github.com/LeelaChessZero/lczero-training)
+  (`tf/policy_index.py`, GPL-3.0), used as the reference the vendored copy in
+  `lib/engines/lc0_dart/policy_map.dart` is compared against;
+- [lc0](https://github.com/LeelaChessZero/lc0) v0.32.1 (GPL-3.0), built from
+  source and run as a separate process;
+- the original Maia weights from
+  [CSSLab/maia-chess](https://github.com/CSSLab/maia-chess) (GPL-3.0).
+
+None of it is redistributed with the app, and none is linked into it.
+`tool/oracle/reference_encoder.py` is a transcription of the classical branch
+of lc0's `src/neural/encoder.cc` and is therefore GPL-3.0; it is a test fixture
+and ships in no build.
