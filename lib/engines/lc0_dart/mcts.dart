@@ -29,8 +29,17 @@ class MctsNode {
   double get q => visits > 0 ? totalValue / visits : 0.0;
 
   /// PUCT score for selection: Q + c_puct * P * sqrt(parent_N) / (1 + N)
+  ///
+  /// The parent's visit count is floored at one. The root has not been visited
+  /// when the first simulation picks a move from it, and `sqrt(0)` cancels the
+  /// exploration term for *every* child at once — so they all score zero, the
+  /// first one generated wins the comparison, and the network's policy is
+  /// ignored precisely on the smallest budgets, where it is the only thing
+  /// there is to go on. Against lc0 at one node this agreed on 4 positions
+  /// out of 40, answering a2a3 from the start position; at ten nodes, where
+  /// the flaw has washed out, it agreed on 37.
   double puctScore(double cpuct) {
-    final parentVisits = parent?.visits ?? 1;
+    final parentVisits = max(1, parent?.visits ?? 1);
     final exploration = cpuct * prior * sqrt(parentVisits) / (1 + visits);
     return q + exploration;
   }
@@ -111,13 +120,23 @@ class NnEval {
 }
 
 /// Callback type for neural network evaluation.
+///
+/// [historyFens] is the game that led to [fen], oldest first and excluding
+/// [fen] itself. Lc0-style networks read the previous plies as input planes,
+/// so a leaf evaluated with the root's history is being asked about a
+/// different game from the one it is in.
 typedef NnEvaluator = Future<NnEval> Function(
-    String fen, List<String> legalMoves);
+    String fen, List<String> legalMoves, List<String> historyFens);
 
 /// A position reached by playing [moves] from the root.
 class MctsPosition {
   final String fen;
   final List<String> legalMoves;
+
+  /// The positions before this one, oldest first: the root's own history plus
+  /// every position along the line that reached it. Only a resolver can
+  /// produce these, because only it replays the moves.
+  final List<String> historyFens;
 
   /// Set when the game ends here, from the side-to-move's point of view:
   /// -1 for checkmate (they are mated), 0 for a draw.
@@ -126,6 +145,7 @@ class MctsPosition {
   const MctsPosition({
     required this.fen,
     required this.legalMoves,
+    this.historyFens = const [],
     this.terminalValue,
   });
 }
@@ -190,6 +210,7 @@ Future<String> mctsSearch({
   required String fen,
   required List<String> legalMoves,
   required NnEvaluator evaluate,
+  List<String> historyFens = const [],
   MctsPositionResolver? positionAt,
   MctsConfig config = const MctsConfig(),
 }) async {
@@ -200,7 +221,7 @@ Future<String> mctsSearch({
   final stopwatch = Stopwatch()..start();
 
   // Initial expansion of root
-  final rootEval = await evaluate(fen, legalMoves);
+  final rootEval = await evaluate(fen, legalMoves, historyFens);
   for (final move in legalMoves) {
     final prior = rootEval.policy[move] ?? (1.0 / legalMoves.length);
     root.children.add(MctsNode(move: move, parent: root, prior: prior));
@@ -238,7 +259,8 @@ Future<String> mctsSearch({
       continue;
     }
 
-    final leafEval = await evaluate(position.fen, position.legalMoves);
+    final leafEval = await evaluate(
+        position.fen, position.legalMoves, position.historyFens);
     for (final move in position.legalMoves) {
       final prior =
           leafEval.policy[move] ?? (1.0 / position.legalMoves.length);

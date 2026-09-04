@@ -132,9 +132,9 @@ class Lc0Engine implements ChessEngine {
       final best = await mctsSearch(
         fen: fen,
         legalMoves: legalMoves,
-        evaluate: (leafFen, leafMoves) =>
-            _evaluatePosition(leafFen, leafMoves, history),
-        positionAt: (moves) => _positionAt(fen, moves),
+        evaluate: _evaluatePosition,
+        historyFens: history,
+        positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
       );
 
@@ -181,28 +181,42 @@ class Lc0Engine implements ChessEngine {
   /// than the root. Replays from the search root each time: the lines are a
   /// handful of plies and this runs once per simulation, against a network
   /// evaluation that costs orders of magnitude more.
-  MctsPosition _positionAt(String rootFen, List<String> moves) {
+  MctsPosition _positionAt(
+      String rootFen, List<String> rootHistory, List<String> moves) {
     final board = chess.Chess.fromFEN(rootFen);
+    // The network reads the previous plies, so a leaf needs the line that
+    // reached it — the root's own history, then the root, then each position
+    // along the way. Handing every leaf the root's history instead describes
+    // a game that diverged several moves ago.
+    final history = <String>[...rootHistory, rootFen];
     for (final uci in moves) {
       board.move({
         'from': uci.substring(0, 2),
         'to': uci.substring(2, 4),
         if (uci.length > 4) 'promotion': uci.substring(4, 5),
       });
+      history.add(board.fen);
     }
+    history.removeLast(); // the leaf itself is not part of its own history
     final legal = _legalMovesOf(board);
     if (legal.isEmpty) {
       // Mate is a loss for the side to move; stalemate is a draw.
       return MctsPosition(
         fen: board.fen,
         legalMoves: const [],
+        historyFens: history,
         terminalValue: board.in_check ? -1.0 : 0.0,
       );
     }
     if (board.in_draw || board.in_threefold_repetition) {
-      return MctsPosition(fen: board.fen, legalMoves: legal, terminalValue: 0.0);
+      return MctsPosition(
+          fen: board.fen,
+          legalMoves: legal,
+          historyFens: history,
+          terminalValue: 0.0);
     }
-    return MctsPosition(fen: board.fen, legalMoves: legal);
+    return MctsPosition(
+        fen: board.fen, legalMoves: legal, historyFens: history);
   }
 
   List<String> _legalMovesOf(chess.Chess board) => _legalMoves(board);

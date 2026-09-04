@@ -166,7 +166,8 @@ void main() {
     test('mctsSearch returns a legal move', () async {
       final moves = ['e2e4', 'd2d4', 'g1f3', 'b1c3'];
 
-      Future<NnEval> mockEval(String fen, List<String> legalMoves) async {
+      Future<NnEval> mockEval(String fen, List<String> legalMoves,
+          List<String> history) async {
         final policy = <String, double>{};
         for (final m in legalMoves) {
           policy[m] = 1.0 / legalMoves.length;
@@ -185,7 +186,8 @@ void main() {
     });
 
     test('mctsSearch with single move returns it immediately', () async {
-      Future<NnEval> mockEval(String fen, List<String> legalMoves) async {
+      Future<NnEval> mockEval(String fen, List<String> legalMoves,
+          List<String> history) async {
         return NnEval(policy: {'e2e4': 1.0}, value: 0.5);
       }
 

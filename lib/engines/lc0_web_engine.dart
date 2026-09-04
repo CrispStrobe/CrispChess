@@ -136,9 +136,9 @@ class Lc0Engine implements ChessEngine {
       final bestUci = await mctsSearch(
         fen: fen,
         legalMoves: legalMoves,
-        evaluate: (evalFen, evalLegalMoves) =>
-            _evaluatePosition(evalFen, evalLegalMoves, history),
-        positionAt: (moves) => _positionAt(fen, moves),
+        evaluate: _evaluatePosition,
+        historyFens: history,
+        positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
       );
 
@@ -156,15 +156,23 @@ class Lc0Engine implements ChessEngine {
   /// than the root. Replays from the search root each time: the lines are a
   /// handful of plies and this runs once per simulation, against a network
   /// evaluation that costs orders of magnitude more.
-  MctsPosition _positionAt(String rootFen, List<String> moves) {
+  MctsPosition _positionAt(
+      String rootFen, List<String> rootHistory, List<String> moves) {
     final board = chess.Chess.fromFEN(rootFen);
+    // The network reads the previous plies, so a leaf needs the line that
+    // reached it — the root's own history, then the root, then each position
+    // along the way. Handing every leaf the root's history instead describes
+    // a game that diverged several moves ago.
+    final history = <String>[...rootHistory, rootFen];
     for (final uci in moves) {
       board.move({
         'from': uci.substring(0, 2),
         'to': uci.substring(2, 4),
         if (uci.length > 4) 'promotion': uci.substring(4, 5),
       });
+      history.add(board.fen);
     }
+    history.removeLast(); // the leaf itself is not part of its own history
     final legal = [
       for (final m in board.generate_moves())
         '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
@@ -174,13 +182,19 @@ class Lc0Engine implements ChessEngine {
       return MctsPosition(
         fen: board.fen,
         legalMoves: const [],
+        historyFens: history,
         terminalValue: board.in_check ? -1.0 : 0.0,
       );
     }
     if (board.in_draw || board.in_threefold_repetition) {
-      return MctsPosition(fen: board.fen, legalMoves: legal, terminalValue: 0.0);
+      return MctsPosition(
+          fen: board.fen,
+          legalMoves: legal,
+          historyFens: history,
+          terminalValue: 0.0);
     }
-    return MctsPosition(fen: board.fen, legalMoves: legal);
+    return MctsPosition(
+        fen: board.fen, legalMoves: legal, historyFens: history);
   }
 
   /// Evaluate a position using the neural network.
@@ -200,10 +214,12 @@ class Lc0Engine implements ChessEngine {
     final policyLogits = Float32List.sublistView(combined, 0, 1858);
     final wdl = Float32List.sublistView(combined, 1858, 1861);
 
-    // Convert WDL to value [-1, 1] from current player's perspective
-    // WDL order: [win, draw, loss]
-    final wdlSum = _softmax3(wdl[0], wdl[1], wdl[2]);
-    final value = wdlSum[0] - wdlSum[2]; // win - loss
+    // WDL order: [win, draw, loss], already probabilities — the exported
+    // graph ends in a Softmax feeding /output/wdl. Running another softmax
+    // over three numbers that already sum to one squeezes the value from
+    // [-1, 1] into about [-0.36, 0.36], so a certain win read as a small
+    // edge and the search was very nearly value-blind.
+    final value = wdl[0] - wdl[2]; // win - loss
 
     // Build policy map for legal moves
     final moveToIndex = policy.getMoveToIndex();
@@ -248,14 +264,6 @@ class Lc0Engine implements ChessEngine {
   }
 
   /// Softmax for 3 values, returns [p0, p1, p2].
-  List<double> _softmax3(double a, double b, double c) {
-    final m = [a, b, c].reduce(max);
-    final ea = exp(a - m);
-    final eb = exp(b - m);
-    final ec = exp(c - m);
-    final s = ea + eb + ec;
-    return [ea / s, eb / s, ec / s];
-  }
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
@@ -275,11 +283,10 @@ class Lc0Engine implements ChessEngine {
       final combined = (await _jsLc0Infer(inputPlanes.toJS).toDart).toDart;
 
       final wdl = Float32List.sublistView(combined, 1858, 1861);
-      final wdlProbs = _softmax3(wdl[0], wdl[1], wdl[2]);
-
+      // Already probabilities; see _evaluatePosition.
       // Value from white's perspective for display
-      double whiteWinProb = isBlack ? wdlProbs[2] : wdlProbs[0];
-      double whiteLossProb = isBlack ? wdlProbs[0] : wdlProbs[2];
+      double whiteWinProb = isBlack ? wdl[2] : wdl[0];
+      double whiteLossProb = isBlack ? wdl[0] : wdl[2];
       final score = (whiteWinProb - whiteLossProb) * 5.0; // Scale to ~pawns
 
       yield EvalInfo(score: score, depth: 1, bestMove: null);

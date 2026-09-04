@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+### Lc0 was not playing the game it was given
+
+The engine scored zero out of twenty-four in the strength tournament while
+making reasonable-looking moves in every position anyone spot-checked. Both
+things were true, and for the same reason: the checks people run are opening
+positions, and the opening position is where each of these is invisible.
+
+Found by comparing against lc0 itself — the input planes against its encoder,
+the policy against its own network output, and finally by playing it. The
+harness lives in `tool/oracle/` and runs in CI.
+
+- Two of the network's input planes were wrong. Castling rights had kingside
+  and queenside swapped, for both sides; in the start position all four rights
+  are set, so all four planes look identical either way. The rule-50 counter
+  was divided by 100 — a scale that belongs to a different lc0 input format —
+  so the network saw 0.16 where it expected 16.
+- The history planes were built from every *other* ply. They were accumulated
+  when the engine was asked to move, and that only happens on its own turns,
+  so the network was shown a game in which the opponent never moved.
+- Positions inside the search were described with the history of the position
+  the search started from, so a line three moves deep was presented as a
+  different game.
+- One simulation used to be worse than none: the first one scored every move
+  identically and picked whichever the move generator produced first, which is
+  a2a3 from the start position.
+- On the web, the value head had a softmax applied to numbers that were
+  already probabilities, which squeezed the evaluation from ±1 into about
+  ±0.36 and left the search close to value-blind.
+
+Against lc0 on the same weights, the engine now picks the same move in 40 of
+40 test positions, and its policy agrees to within 0.06%.
+
 ## 2.1.0
 
 Engines. Most of this release is one theme: several of them were not playing

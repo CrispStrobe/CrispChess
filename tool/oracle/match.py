@@ -108,14 +108,28 @@ def agreement(ours, theirs, positions, budgets):
         print(f"{nodes:>6}  {same:>5}/{total:<6}  {'; '.join(examples)}")
 
 
-def play(ours, theirs, games, nodes, ply_cap):
+def play(ours, theirs, games, nodes, ply_cap, openings):
+    """Play `games`, alternating colours and openings.
+
+    Both engines are deterministic, so without an opening line every game is
+    the same game: six games from the start position produce one result
+    repeated six times and look like evidence. Each opening is played twice,
+    once with each colour.
+    """
     results = {"win": 0, "draw": 0, "loss": 0}
     for game in range(games):
         ours_is_white = game % 2 == 0
+        opening = openings[(game // 2) % len(openings)] if openings else []
         ours.new_game()
         theirs.new_game()
         board = chess.Board()
         moves = []
+        for uci in opening:
+            move = chess.Move.from_uci(uci)
+            if move not in board.legal_moves:
+                break
+            board.push(move)
+            moves.append(uci)
         reason = "ply cap"
         while len(moves) < ply_cap:
             if board.is_game_over(claim_draw=True):
@@ -150,7 +164,7 @@ def play(ours, theirs, games, nodes, ply_cap):
             tag = "win" if we_won else "loss"
         print(f"  game {game + 1:>2}/{games}  ours as "
               f"{'white' if ours_is_white else 'black'}  {len(moves):>3} plies"
-              f"  {tag}")
+              f"  opening {' '.join(opening) or '(none)':<24}  {tag}")
 
     played = sum(results.values())
     score = results["win"] + 0.5 * results["draw"]
@@ -182,6 +196,8 @@ def main():
     ap.add_argument("--ply-cap", type=int, default=200)
     ap.add_argument("--budgets", default="1,10,100,800")
     ap.add_argument("--cpuct", default="2.5")
+    ap.add_argument("--opening-plies", type=int, default=4,
+                    help="plies of opening taken from --positions per game")
     args = ap.parse_args()
 
     ours = Uci(shlex.split(args.ours), "ours")
@@ -197,7 +213,14 @@ def main():
             agreement(ours, theirs, read_positions(args.positions),
                       [int(b) for b in args.budgets.split(",")])
         else:
-            play(ours, theirs, args.games, args.nodes, args.ply_cap)
+            # Openings come from the same generated file the rest of the
+            # oracle uses, trimmed to a few plies so the games diverge early
+            # without handing either side a decided position.
+            openings = [moves[:args.opening_plies]
+                        for name, moves in read_positions(args.positions)
+                        if name.startswith("random-")
+                        and len(moves) >= args.opening_plies]
+            play(ours, theirs, args.games, args.nodes, args.ply_cap, openings)
     finally:
         ours.close()
         theirs.close()

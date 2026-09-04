@@ -34,7 +34,7 @@ void main() {
       final move = await mctsSearch(
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         legalMoves: _legal,
-        evaluate: (_, __) async => _eval(),
+        evaluate: (_, __, ___) async => _eval(),
         // Zero budget: the root evaluation happens, the loop does not.
         config: const MctsConfig(maxNodes: 800, maxTime: Duration.zero),
       );
@@ -47,7 +47,7 @@ void main() {
       final move = await mctsSearch(
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         legalMoves: _legal,
-        evaluate: (_, __) async => _eval(),
+        evaluate: (_, __, ___) async => _eval(),
         config: const MctsConfig(maxNodes: 400, maxTime: Duration(seconds: 5)),
       );
       expect(move, 'e2e4');
@@ -58,7 +58,7 @@ void main() {
       final move = await mctsSearch(
         fen: '7k/8/8/8/8/8/8/K6R w - - 0 1',
         legalMoves: const ['h1h8'],
-        evaluate: (_, __) async {
+        evaluate: (_, __, ___) async {
           evaluated = true;
           return _eval();
         },
@@ -92,7 +92,7 @@ void main() {
       final move = await mctsSearch(
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         legalMoves: _legal,
-        evaluate: (_, __) async {
+        evaluate: (_, __, ___) async {
           evaluations++;
           return _eval();
         },
@@ -110,7 +110,7 @@ void main() {
       await mctsSearch(
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         legalMoves: _legal,
-        evaluate: (fen, _) async {
+        evaluate: (fen, _, __) async {
           seen.add(fen);
           return _eval();
         },
@@ -153,7 +153,7 @@ void main() {
         legalMoves: legal,
         // A flat policy and a neutral value, so only the terminal score can
         // single out the mate.
-        evaluate: (_, moves) async => NnEval(
+        evaluate: (_, moves, __) async => NnEval(
           value: 0.0,
           policy: {for (final m in moves) m: 1.0 / moves.length},
         ),
@@ -177,6 +177,100 @@ void main() {
         config: const MctsConfig(maxNodes: 80, maxTime: Duration(seconds: 20)),
       );
       expect(move, 'a1a8');
+    });
+  });
+
+  group('mctsSearch history', () {
+    // Lc0-style networks read the previous plies as input planes, so what a
+    // leaf is told about its past changes what it says about its future.
+    // Every leaf used to be handed the *root's* history, which describes a
+    // game that diverged several moves ago — invisible in any check that
+    // evaluates one position, and invisible on a budget too small to reach a
+    // leaf at all.
+    const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+    MctsPosition resolve(List<String> rootHistory, List<String> moves) {
+      final board = chess.Chess.fromFEN(start);
+      final history = <String>[...rootHistory, start];
+      for (final uci in moves) {
+        board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+        history.add(board.fen);
+      }
+      history.removeLast();
+      return MctsPosition(
+        fen: board.fen,
+        historyFens: history,
+        legalMoves: [
+          for (final m in board.generate_moves())
+            '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+        ],
+      );
+    }
+
+    test('each evaluation is given the line that reached it', () async {
+      const rootHistory = ['a-position-before-the-root'];
+      final seen = <String, List<String>>{};
+
+      await mctsSearch(
+        fen: start,
+        legalMoves: _legal,
+        historyFens: rootHistory,
+        evaluate: (fen, _, history) async {
+          seen[fen] = history;
+          return _eval();
+        },
+        positionAt: (moves) => resolve(rootHistory, moves),
+        config: const MctsConfig(maxNodes: 6, maxTime: Duration(seconds: 20)),
+      );
+
+      expect(seen[start], rootHistory,
+          reason: 'the root is handed exactly the history it was given');
+
+      // Every leaf's history must end at the position immediately before it,
+      // and must start with the root's own history.
+      for (final entry in seen.entries) {
+        if (entry.key == start) continue;
+        expect(entry.value.first, rootHistory.first);
+        expect(entry.value, contains(start),
+            reason: 'the root is part of a leaf\'s past');
+        expect(entry.value, isNot(contains(entry.key)),
+            reason: 'a position is not part of its own history');
+        expect(entry.value.length, greaterThan(rootHistory.length),
+            reason: 'a leaf has more history than the root did');
+      }
+      expect(seen.length, greaterThan(1));
+    });
+  });
+
+  group('mctsSearch on a tiny budget', () {
+    // One simulation used to be worse than none. With no simulations the
+    // fallback returns the highest prior; with exactly one, a single child
+    // ends up with a visit and wins on visit count — and which child that was
+    // had nothing to do with the network, because the first selection scored
+    // every child at zero and took the first one generated.
+    test('one simulation still returns the network\'s choice', () async {
+      final move = await mctsSearch(
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        legalMoves: _legal,
+        evaluate: (_, __, ___) async => _eval(),
+        positionAt: (moves) {
+          final board = chess.Chess();
+          for (final uci in moves) {
+            board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+          }
+          return MctsPosition(
+            fen: board.fen,
+            legalMoves: [
+              for (final m in board.generate_moves())
+                '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+            ],
+          );
+        },
+        config: const MctsConfig(maxNodes: 1, maxTime: Duration(seconds: 20)),
+      );
+      expect(move, 'e2e4',
+          reason: 'a2a3 is what the move generator offers first, and what the '
+              'search returned while the prior was cancelled out');
     });
   });
 }

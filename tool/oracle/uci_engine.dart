@@ -33,8 +33,9 @@ List<String> _legalMoves(chess.Chess board) => [
         '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
     ];
 
-Future<NnEval> _evaluate(String fen, List<String> legalMoves) async {
-  final planes = encodePosition(fen, historyFens: _history);
+Future<NnEval> _evaluate(
+    String fen, List<String> legalMoves, List<String> history) async {
+  final planes = encodePosition(fen, historyFens: history);
   final out = _model.run(
     {'/input/planes': Tensor.float(planes, [1, 112, 8, 8])},
     ['/output/policy', '/output/wdl'],
@@ -59,27 +60,37 @@ Future<NnEval> _evaluate(String fen, List<String> legalMoves) async {
   );
 }
 
-MctsPosition _positionAt(String rootFen, List<String> moves) {
+MctsPosition _positionAt(
+    String rootFen, List<String> rootHistory, List<String> moves) {
   final board = chess.Chess.fromFEN(rootFen);
+  final history = <String>[...rootHistory, rootFen];
   for (final uci in moves) {
     board.move({
       'from': uci.substring(0, 2),
       'to': uci.substring(2, 4),
       if (uci.length > 4) 'promotion': uci.substring(4, 5),
     });
+    history.add(board.fen);
   }
+  history.removeLast();
   final legal = _legalMoves(board);
   if (legal.isEmpty) {
     return MctsPosition(
       fen: board.fen,
       legalMoves: const [],
+      historyFens: history,
       terminalValue: board.in_check ? -1.0 : 0.0,
     );
   }
   if (board.in_draw || board.in_threefold_repetition) {
-    return MctsPosition(fen: board.fen, legalMoves: legal, terminalValue: 0.0);
+    return MctsPosition(
+        fen: board.fen,
+        legalMoves: legal,
+        historyFens: history,
+        terminalValue: 0.0);
   }
-  return MctsPosition(fen: board.fen, legalMoves: legal);
+  return MctsPosition(
+      fen: board.fen, legalMoves: legal, historyFens: history);
 }
 
 void _setPosition(List<String> tokens) {
@@ -131,7 +142,8 @@ Future<void> _go(List<String> tokens) async {
     fen: _fen,
     legalMoves: legal,
     evaluate: _evaluate,
-    positionAt: (moves) => _positionAt(_fen, moves),
+    historyFens: _history,
+    positionAt: (moves) => _positionAt(_fen, _history, moves),
     config: MctsConfig(maxNodes: nodes, maxTime: moveTime, cpuct: 2.5),
   );
   stdout.writeln('bestmove $best');
