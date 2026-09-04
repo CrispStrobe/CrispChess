@@ -16,15 +16,15 @@ library;
 
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
-import 'package:onnx_runtime_dart/onnx_runtime_dart.dart';
 
 import 'chess_engine.dart';
 import 'lc0_dart/encoding.dart';
+import 'lc0_dart/inference_backend.dart';
 import 'lc0_dart/mcts.dart';
+import 'lc0_dart/native_inference_backend.dart';
 import 'lc0_dart/policy_map.dart' as policy;
 import 'lc0_dart/variants.dart';
 import 'maia3_dart/onnx/model_fetch.dart';
@@ -45,7 +45,7 @@ class Lc0Engine implements ChessEngine {
   /// plenty; 0 or 1 disables the pool.
   final int isolateWorkers;
 
-  OnnxModel? _model;
+  Lc0InferenceBackend? _model;
   final NnEvalCache _evaluationCache = NnEvalCache();
   int? _estimatedEvaluationMicros;
   MctsNode? _searchRoot;
@@ -86,11 +86,15 @@ class Lc0Engine implements ChessEngine {
       final variant = getLc0Variant(variantId);
       debugPrint('[Lc0] Loading ${variant.displayName} from ${variant.url}');
       final bytes = await fetchModelBytes(variant.url, '${variant.id}.onnx');
-      final model = OnnxModel.fromBytes(bytes);
-      _model = model;
-      if (isolateWorkers > 1) {
-        await model.parallelize(workers: isolateWorkers);
+      Lc0InferenceBackend model;
+      try {
+        model = NativeLc0InferenceBackend.create(bytes, isolateWorkers);
+        debugPrint('[Lc0] Using native ONNX Runtime');
+      } catch (e) {
+        debugPrint('[Lc0] Native runtime unavailable, using Dart: $e');
+        model = await DartLc0InferenceBackend.create(bytes, isolateWorkers);
       }
+      _model = model;
       await _warmUp();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Lc0] Ready (${variant.displayName}, '
@@ -217,16 +221,16 @@ class Lc0Engine implements ChessEngine {
           String rootFen, List<String> rootHistory, List<String> moves) =>
       _positionsAt(rootFen, rootHistory, [moves]).first;
 
-  List<MctsPosition> _positionsAt(String rootFen, List<String> rootHistory,
-      List<List<String>> paths) {
+  List<MctsPosition> _positionsAt(
+      String rootFen, List<String> rootHistory, List<List<String>> paths) {
     final root = chess.Chess.fromFEN(rootFen);
     final results = <MctsPosition>[];
     for (final moves in paths) {
       final board = root.copy();
-    // The network reads the previous plies, so a leaf needs the line that
-    // reached it — the root's own history, then the root, then each position
-    // along the way. Handing every leaf the root's history instead describes
-    // a game that diverged several moves ago.
+      // The network reads the previous plies, so a leaf needs the line that
+      // reached it — the root's own history, then the root, then each position
+      // along the way. Handing every leaf the root's history instead describes
+      // a game that diverged several moves ago.
       final history = <String>[...rootHistory, rootFen];
       for (final uci in moves) {
         board.move({
@@ -273,17 +277,12 @@ class Lc0Engine implements ChessEngine {
     final model = _model!;
     final planes = encodePosition(fen, historyFens: history);
     final watch = Stopwatch()..start();
-    final out = await model.runAsync(
-      {
-        '/input/planes': Tensor.float(planes, [1, 112, 8, 8])
-      },
-      ['/output/policy', '/output/wdl'],
-    );
+    final out = await model.run(planes, 1);
     watch.stop();
     _recordEvaluationCost(watch.elapsedMicroseconds);
 
     return _decodeEvaluation(
-        fen, legalMoves, out['/output/policy']!.f!, out['/output/wdl']!.f!);
+        fen, legalMoves, out['/output/policy']!, out['/output/wdl']!);
   }
 
   Future<List<NnEval>> _evaluateBatch(List<MctsPosition> positions) async {
@@ -309,17 +308,12 @@ class Lc0Engine implements ChessEngine {
           encodePosition(misses[i].fen, historyFens: misses[i].historyFens));
     }
     final watch = Stopwatch()..start();
-    final out = await _model!.runAsync(
-      {
-        '/input/planes': Tensor.float(planes, [misses.length, 112, 8, 8])
-      },
-      ['/output/policy', '/output/wdl'],
-    );
+    final out = await _model!.run(planes, misses.length);
     watch.stop();
     _recordEvaluationCost(
         (watch.elapsedMicroseconds / (0.5 + 0.5 * misses.length)).round());
-    final policies = out['/output/policy']!.f!;
-    final wdls = out['/output/wdl']!.f!;
+    final policies = out['/output/policy']!;
+    final wdls = out['/output/wdl']!;
     for (var i = 0; i < misses.length; i++) {
       final position = misses[i];
       final evaluation = _decodeEvaluation(
@@ -342,9 +336,8 @@ class Lc0Engine implements ChessEngine {
     final value = wdl[0] - wdl[2]; // win - loss
 
     // Softmax over the legal moves only.
-    final moveToIndex = isBlack
-        ? policy.getMirroredMoveToIndex()
-        : policy.getMoveToIndex();
+    final moveToIndex =
+        isBlack ? policy.getMirroredMoveToIndex() : policy.getMoveToIndex();
     final logits = <double>[];
     var maxLogit = double.negativeInfinity;
     for (final move in legalMoves) {

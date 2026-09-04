@@ -26,7 +26,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 - **Frozenight** — NNUE-based Rust engine compiled to WASM for web.
 - **Lynx** — strong classical engine (~3350 ELO) by Eduardo Caceres. MIT licensed. Runs as native binary (desktop, downloaded on first use) or .NET WASM in the browser (compiled from C# via `wasm-tools`, ~6 MB). Supports Chess960.
 - **Stockfish** — strongest traditional engine. Runs as Web Worker (web), process (desktop/Android), or JavaScriptCore (iOS). Downloaded at runtime.
-- **Lc0** — AlphaZero-style MCTS with Maia weights for human-like play. Runs everywhere: ONNX Runtime Web in the browser, the pure-Dart ONNX interpreter natively.
+- **Lc0** — AlphaZero-style MCTS with Maia weights for human-like play. Runs everywhere: ONNX Runtime Web in the browser, native ONNX Runtime with a pure-Dart fallback elsewhere.
 - **Custom UCI** — load any UCI engine via the Engine Manager (desktop/mobile only). Auto-detects engine identity and options.
 
 GPL-3.0 engines are never compiled into the app binary. They run as separate processes or are downloaded at runtime, keeping the app itself MIT-licensed.
@@ -290,6 +290,7 @@ The app code, built-in Dart engine, Maia3 Dart port, Lynx integration, and all o
 | Frozenight | MIT + Apache-2.0 | Yes (WASM) |
 | Lynx | MIT | Yes (WASM on web), downloaded on desktop |
 | ONNX Runtime Web (used by the separate "Maia3 (JS)" web engine and Lc0's web bridge — not Maia3 Dart, which has no runtime dependency at all) | MIT | Yes (lazy-loaded JS) |
+| ONNX Runtime native (Lc0 acceleration; pure-Dart fallback remains available) | MIT | Yes |
 | Stockfish | GPL-3.0 | No — downloaded separately, runs isolated |
 | Lc0 | GPL-3.0 (weights only) | No — no lc0 code ships. The engine is this app's own Dart MCTS over Maia weights downloaded at run time; `lc0 leela2onnx` was used only as a build-time converter |
 

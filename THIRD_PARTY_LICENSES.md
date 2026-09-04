@@ -74,6 +74,13 @@ weights entry below), not from the converter.
 - **License:** MIT
 - **Source:** https://github.com/microsoft/onnxruntime
 
+## ONNX Runtime Native (onnxruntime package)
+
+- **License:** MIT
+- **Source:** https://github.com/microsoft/onnxruntime
+- Used by the native Lc0 inference backend. The app falls back to its
+  pure-Dart ONNX interpreter if the native runtime cannot initialize.
+
 ## Maia3 Neural Network Weights
 
 - **Authoritative license: AGPL-3.0.** The official authors' repo,

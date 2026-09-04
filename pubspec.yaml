@@ -19,6 +19,7 @@ dependencies:
     git:
       url: https://github.com/CrispStrobe/onnx_runtime_dart.git
       ref: 5551e3c1300c1d39378cec9a98c1320f2eadf34b
+  onnxruntime: ^1.4.1
   ffi: ^2.0.0
   flutter_svg: ^2.2.3
   logging: ^1.2.0
