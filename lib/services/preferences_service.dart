@@ -24,6 +24,7 @@ class PreferencesService {
   static const _keyBoardTheme = 'boardTheme';
   static const _keyNotationStyle = 'notationStyle';
   static const _keyBlindfold = 'blindfold';
+  static const _keyLc0Backend = 'lc0Backend';
 
   SharedPreferences? _prefs;
 
@@ -112,6 +113,9 @@ class PreferencesService {
 
   int get engineThreads => _prefs?.getInt(_keyEngineThreads) ?? 1;
   set engineThreads(int v) => _prefs?.setInt(_keyEngineThreads, v);
+
+  String get lc0Backend => _prefs?.getString(_keyLc0Backend) ?? 'auto';
+  set lc0Backend(String v) => _prefs?.setString(_keyLc0Backend, v);
 
   // Board color theme
   String get boardTheme => _prefs?.getString(_keyBoardTheme) ?? 'brown';

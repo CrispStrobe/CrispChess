@@ -20,6 +20,7 @@ void main() {
       expect(prefs.soundEnabled, true);
       expect(prefs.showValidMoves, true);
       expect(prefs.timeControl, TimeControl.unlimited);
+      expect(prefs.lc0Backend, 'auto');
     });
 
     test('persists engine choice', () async {
@@ -27,6 +28,13 @@ void main() {
       await prefs.init();
       prefs.engine = 'Stockfish';
       expect(prefs.engine, 'Stockfish');
+    });
+
+    test('persists Lc0 inference backend', () async {
+      final prefs = PreferencesService();
+      await prefs.init();
+      prefs.lc0Backend = 'dart';
+      expect(prefs.lc0Backend, 'dart');
     });
 
     test('persists strength level', () async {

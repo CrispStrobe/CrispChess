@@ -50,7 +50,8 @@ class Lc0Engine implements ChessEngine {
   String? _searchBaseFen;
   List<String> _searchMoves = const [];
 
-  Lc0Engine({String? variantId}) : variantId = variantId ?? defaultLc0Variant;
+  Lc0Engine({String? variantId, String backend = 'auto'})
+      : variantId = variantId ?? defaultLc0Variant;
 
   @override
   String get name {

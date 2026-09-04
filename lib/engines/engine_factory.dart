@@ -28,6 +28,7 @@ ChessEngine createEngine(String name, {
   String? maia3Variant,
   int? hashMb,
   int? threads,
+  String lc0Backend = 'auto',
 }) {
   switch (name) {
     case 'Stockfish':
@@ -43,7 +44,10 @@ ChessEngine createEngine(String name, {
         playerElo: playerElo ?? 1500,
       ); // MIT (pure Dart)
     case 'Lc0':
-      return Lc0Engine(variantId: maia3Variant); // GPL-3.0, downloaded separately
+      return Lc0Engine(
+        variantId: maia3Variant,
+        backend: lc0Backend,
+      ); // GPL-3.0, downloaded separately
     case 'Lynx':
       // On web the id picks the WASM build (fast/AOT or small/interpreter);
       // on native it is ignored.

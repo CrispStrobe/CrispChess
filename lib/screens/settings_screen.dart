@@ -19,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
   final String hintEngine;
   final TimeControl timeControl;
   final ChessVariant chessVariant;
+  final String lc0Backend;
 
   const SettingsScreen({
     Key? key,
@@ -32,6 +33,7 @@ class SettingsScreen extends StatefulWidget {
     this.hintEngine = 'same',
     this.timeControl = TimeControl.unlimited,
     this.chessVariant = ChessVariant.standard,
+    this.lc0Backend = 'auto',
   }) : super(key: key);
 
   @override
@@ -49,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _animationSpeed = 2;
   late TimeControl _timeControl;
   late ChessVariant _chessVariant;
+  late String _lc0Backend;
   int _customBaseMinutes = 10;
   int _customIncrementSeconds = 0;
   int _engineHashMb = 64;
@@ -92,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hintEngine = widget.hintEngine;
     _timeControl = widget.timeControl;
     _chessVariant = widget.chessVariant;
+    _lc0Backend = widget.lc0Backend;
     _loadSavedPrefs();
   }
 
@@ -425,6 +429,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() => _maia3Variant = value!),
                     title: Text(name, style: const TextStyle(fontSize: 14)),
                     subtitle: Text('$size — $elo',
+                        style: const TextStyle(fontSize: 12)),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+
+          if (_isLc0) ...[
+            const SizedBox(height: 16),
+            Text('Inference backend',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: const [
+                  ('auto', 'Automatic', 'Use native when available'),
+                  ('native', 'Native ONNX Runtime', 'Fastest; native platforms only'),
+                  ('dart', 'Pure Dart', 'Portable runtime for comparison and fallback'),
+                ].map((option) {
+                  final (id, title, subtitle) = option;
+                  return RadioListTile<String>(
+                    value: id,
+                    groupValue: _lc0Backend,
+                    onChanged: kIsWeb
+                        ? null
+                        : (value) => setState(() => _lc0Backend = value!),
+                    title: Text(title, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text(subtitle,
                         style: const TextStyle(fontSize: 12)),
                     dense: true,
                   );
@@ -980,6 +1013,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'pieceTheme': _pieceTheme,
             'engine': _selectedEngine,
             'maia3Variant': _maia3Variant,
+            'lc0Backend': _lc0Backend,
             'timeControl': _timeControl,
             'chessVariant': _chessVariant,
             'customBaseMinutes': _customBaseMinutes,

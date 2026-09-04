@@ -44,6 +44,7 @@ class Lc0Engine implements ChessEngine {
   /// Isolate workers for the matmul pool. The network is small, so a handful is
   /// plenty; 0 or 1 disables the pool.
   final int isolateWorkers;
+  final String backend;
 
   Lc0InferenceBackend? _model;
   final NnEvalCache _evaluationCache = NnEvalCache();
@@ -52,7 +53,11 @@ class Lc0Engine implements ChessEngine {
   String? _searchBaseFen;
   List<String> _searchMoves = const [];
 
-  Lc0Engine({String? variantId, this.isolateWorkers = 4})
+  Lc0Engine({
+    String? variantId,
+    this.isolateWorkers = 4,
+    this.backend = 'auto',
+  })
       : variantId = variantId ?? defaultLc0Variant;
 
   @override
@@ -87,12 +92,18 @@ class Lc0Engine implements ChessEngine {
       debugPrint('[Lc0] Loading ${variant.displayName} from ${variant.url}');
       final bytes = await fetchModelBytes(variant.url, '${variant.id}.onnx');
       Lc0InferenceBackend model;
-      try {
-        model = NativeLc0InferenceBackend.create(bytes, isolateWorkers);
-        debugPrint('[Lc0] Using native ONNX Runtime');
-      } catch (e) {
-        debugPrint('[Lc0] Native runtime unavailable, using Dart: $e');
+      if (backend == 'dart') {
         model = await DartLc0InferenceBackend.create(bytes, isolateWorkers);
+        debugPrint('[Lc0] Using pure-Dart ONNX Runtime');
+      } else {
+        try {
+          model = NativeLc0InferenceBackend.create(bytes, isolateWorkers);
+          debugPrint('[Lc0] Using native ONNX Runtime');
+        } catch (e) {
+          if (backend == 'native') rethrow;
+          debugPrint('[Lc0] Native runtime unavailable, using Dart: $e');
+          model = await DartLc0InferenceBackend.create(bytes, isolateWorkers);
+        }
       }
       _model = model;
       await _warmUp();

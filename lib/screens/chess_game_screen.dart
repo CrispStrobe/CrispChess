@@ -145,6 +145,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         savedEngine,
         playerElo: elo,
         maia3Variant: _maia3Variant,
+        lc0Backend: _prefs.lc0Backend,
       );
       _engineService = EngineService(engine);
     }
@@ -980,6 +981,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           hintEngine: _state.hintEngine,
           timeControl: _state.timeControl,
           chessVariant: _prefs.chessVariant,
+          lc0Backend: _prefs.lc0Backend,
         ),
       ),
     );
@@ -987,6 +989,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final newPlayAsBlack = result['playAsBlack'] as bool? ?? false;
       final colorChanged = newPlayAsBlack != _state.playAsBlack;
       final newVariant = result['maia3Variant'] as String? ?? '5m';
+      final newLc0Backend = result['lc0Backend'] as String? ?? 'auto';
+      final lc0BackendChanged = newLc0Backend != _prefs.lc0Backend;
       final newChessVariant = result['chessVariant'] as ChessVariant? ?? ChessVariant.standard;
       final variantModeChanged = newChessVariant != _prefs.chessVariant;
       _prefs.chessVariant = newChessVariant;
@@ -1016,13 +1020,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _maia3Variant = newVariant;
 
       if (selectedEngine != null &&
-          (selectedEngine != _engineService.engineName || variantChanged)) {
+          (selectedEngine != _engineService.engineName ||
+              variantChanged ||
+              (selectedEngine == 'Lc0' && lc0BackendChanged))) {
         debugPrint('[CrispChess] Switching engine to $selectedEngine (variant: $_maia3Variant)');
         final elo = 800 + (_state.strengthLevel * 60);
         final newEngine = createEngine(
           selectedEngine,
           playerElo: elo,
           maia3Variant: _maia3Variant,
+          lc0Backend: newLc0Backend,
         );
         _engineService.switchEngine(newEngine);
         _applyEngineOptions();
@@ -1062,6 +1069,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       // Persist all preferences
       _prefs.engine = selectedEngine ?? _engineService.engineName;
       _prefs.variant = _maia3Variant;
+      _prefs.lc0Backend = newLc0Backend;
       _prefs.strengthLevel = _state.strengthLevel;
       _prefs.hintDepth = _state.hintDepth;
       _prefs.animationSpeed = _state.animationSpeed;
