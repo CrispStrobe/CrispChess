@@ -15,7 +15,10 @@ dependencies:
   intl: any
   chess: ^0.8.1
   crisp_chess_engine: ^0.8.1
-  onnx_runtime_dart: ^0.3.5
+  onnx_runtime_dart:
+    git:
+      url: https://github.com/CrispStrobe/onnx_runtime_dart.git
+      ref: 569b32885038325ef2bd60d3a1b7fca42b3d0904
   ffi: ^2.0.0
   flutter_svg: ^2.2.3
   logging: ^1.2.0
