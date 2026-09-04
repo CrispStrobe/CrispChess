@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import statistics
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import urllib.request
 
 WORK = Path("/kaggle/working")
 RESULT = WORK / "onnx_dart_ab.json"
-SCRIPT_VERSION = "v1"
+SCRIPT_VERSION = "v2"
 RUNTIME_SHA = "d9afbe2b694ab1fa26c959ab918b7bc8a9ed06a2"
 MODEL_URL = "https://huggingface.co/cstr/maia-chess-onnx-opset15/resolve/main/maia-1500.onnx"
 
@@ -93,7 +94,9 @@ dart_summary = {
 # This is the actual GPU test. It is intentionally separate from pure Dart.
 ort_result = {"available": False}
 try:
-    run([sys.executable, "-m", "pip", "install", "-q", "onnxruntime-gpu", "numpy"])
+    # 1.22.x uses CUDA 12 wheels; newer releases may require CUDA 13 libraries
+    # that are not present on Kaggle's current P100 image.
+    run([sys.executable, "-m", "pip", "install", "-q", "onnxruntime-gpu==1.22.0", "numpy"])
     import numpy as np
     import onnxruntime as ort
 
@@ -127,5 +130,10 @@ result = {
     "pure_dart_cpu": dart_summary,
     "onnxruntime_gpu": ort_result,
 }
+# Kaggle publishes everything left in /kaggle/working. Keep the output small.
+shutil.rmtree(dart_dir, ignore_errors=True)
+shutil.rmtree(repo, ignore_errors=True)
+for temporary in (dart_zip, model):
+    temporary.unlink(missing_ok=True)
 RESULT.write_text(json.dumps(result, indent=2) + "\n")
 print(json.dumps(result, indent=2), flush=True)
