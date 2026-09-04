@@ -24,6 +24,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:onnx_runtime_dart/onnx_runtime_dart.dart';
 
 import 'onnx/model_fetch.dart';
+import '../onnx_dart_experiments.dart';
 import 'onnx_model.dart';
 import 'variants.dart';
 
@@ -41,7 +42,7 @@ class Maia3OnnxRuntimeBackend extends Maia3OnnxModel {
   @override
   Future<void> load() async {
     final bytes = await fetchModelBytes(variant.url, variant.onnxFile);
-    final model = OnnxModel.fromBytes(bytes);
+    final model = OnnxModel.fromBytes(bytes, experiments: onnxDartExperiments);
     if (!kIsWeb && isolateWorkers > 1) {
       await model.parallelize(workers: isolateWorkers);
     }
