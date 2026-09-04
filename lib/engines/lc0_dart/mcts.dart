@@ -97,6 +97,30 @@ class MctsNode {
     }
   }
 
+  /// Temporarily makes this line unattractive while a leaf batch is gathered.
+  void applyVirtualLoss([double loss = 1.0]) {
+    MctsNode? node = this;
+    var value = -loss;
+    while (node != null) {
+      node.visits++;
+      node.totalValue += value;
+      value = -value;
+      node = node.parent;
+    }
+  }
+
+  /// Removes the temporary statistics added by [applyVirtualLoss].
+  void revertVirtualLoss([double loss = 1.0]) {
+    MctsNode? node = this;
+    var value = -loss;
+    while (node != null) {
+      node.visits--;
+      node.totalValue -= value;
+      value = -value;
+      node = node.parent;
+    }
+  }
+
   /// Get the move sequence from root to this node.
   List<String> movePath() {
     final path = <String>[];
@@ -130,6 +154,10 @@ class NnEval {
 typedef NnEvaluator = Future<NnEval> Function(
     String fen, List<String> legalMoves, List<String> historyFens);
 
+/// Evaluates several independent leaf positions in one network invocation.
+typedef NnBatchEvaluator = Future<List<NnEval>> Function(
+    List<MctsPosition> positions);
+
 /// A bounded least-recently-used cache for network evaluations.
 ///
 /// MCTS trees are deliberately rebuilt for each move, but the opponent often
@@ -155,13 +183,12 @@ class NnEvalCache {
     List<String> historyFens,
     NnEvaluator evaluator,
   ) {
-    final key = _key(fen, legalMoves, historyFens);
-    final cached = _entries.remove(key);
+    final cached = lookup(fen, legalMoves, historyFens);
     if (cached != null) {
-      _entries[key] = cached; // Touch: newest entries are evicted last.
       return cached;
     }
 
+    final key = _key(fen, legalMoves, historyFens);
     late final Future<NnEval> result;
     result = Future.sync(() => evaluator(fen, legalMoves, historyFens)).then(
       (value) => value,
@@ -171,14 +198,30 @@ class NnEvalCache {
         Error.throwWithStackTrace(error, stackTrace);
       },
     );
-    _entries[key] = result;
-    if (_entries.length > capacity) {
-      _entries.remove(_entries.keys.first);
-    }
+    _insert(key, result);
     return result;
   }
 
+  Future<NnEval>? lookup(
+      String fen, List<String> legalMoves, List<String> historyFens) {
+    final key = _key(fen, legalMoves, historyFens);
+    final cached = _entries.remove(key);
+    if (cached != null) _entries[key] = cached;
+    return cached;
+  }
+
+  void store(String fen, List<String> legalMoves, List<String> historyFens,
+      NnEval evaluation) {
+    _insert(_key(fen, legalMoves, historyFens), Future.value(evaluation));
+  }
+
   void clear() => _entries.clear();
+
+  void _insert(String key, Future<NnEval> value) {
+    _entries.remove(key);
+    _entries[key] = value;
+    if (_entries.length > capacity) _entries.remove(_entries.keys.first);
+  }
 
   String _key(String fen, List<String> legalMoves, List<String> historyFens) {
     final buffer = StringBuffer();
@@ -277,6 +320,9 @@ Future<String> mctsSearch({
   required String fen,
   required List<String> legalMoves,
   required NnEvaluator evaluate,
+  NnBatchEvaluator? evaluateBatch,
+  int batchSize = 1,
+  int? estimatedEvaluationMicros,
   List<String> historyFens = const [],
   MctsPositionResolver? positionAt,
   MctsConfig config = const MctsConfig(),
@@ -294,6 +340,8 @@ Future<String> mctsSearch({
     root.children.add(MctsNode(move: move, parent: root, prior: prior));
   }
   root.expanded = true;
+  final rootEvaluationMicros =
+      max(1, estimatedEvaluationMicros ?? stopwatch.elapsedMicroseconds);
 
   // MCTS iterations
   // Without a resolver there is no position to evaluate below the root, so
@@ -301,42 +349,94 @@ Future<String> mctsSearch({
   // spending the budget looking busy.
   if (positionAt == null) return root.bestChild()?.move ?? legalMoves.first;
 
-  for (int i = 0; i < config.maxNodes; i++) {
+  var simulations = 0;
+  while (simulations < config.maxNodes) {
     // Each simulation costs a network evaluation, so the clock is checked
     // before starting one rather than after.
     if (stopwatch.elapsed > config.maxTime) break;
 
-    // Select: follow PUCT to a leaf.
-    var node = root;
-    while (node.expanded && node.children.isNotEmpty) {
-      node = node.selectChild(config.cpuct)!;
+    final nodes = <MctsNode>[];
+    final positions = <MctsPosition>[];
+    final reserved = <MctsNode>{};
+    var wanted = evaluateBatch == null ? 1 : max(1, batchSize);
+    final remainingMicros =
+        config.maxTime.inMicroseconds - stopwatch.elapsedMicroseconds;
+    // A batch of four costs roughly 2.5 single evaluations on this small CNN.
+    // Size it from the just-measured root pass so a busy device does not pay a
+    // large clock overrun merely because batching was profitable when idle.
+    while (wanted > 1 &&
+        rootEvaluationMicros * (0.5 + 0.5 * wanted) > remainingMicros) {
+      wanted--;
     }
 
-    if (node.terminalValue != null) {
-      node.backpropagate(-node.terminalValue!);
-      continue;
+    // Virtual loss makes later selections in this batch explore another
+    // branch while the first leaf has not received its real value yet.
+    while (nodes.length < wanted && simulations < config.maxNodes) {
+      var node = root;
+      while (node.expanded && node.children.isNotEmpty) {
+        node = node.selectChild(config.cpuct)!;
+      }
+      if (reserved.contains(node)) break;
+
+      if (node.terminalValue != null) {
+        node.backpropagate(-node.terminalValue!);
+        simulations++;
+        continue;
+      }
+
+      final position = positionAt(node.movePath());
+      if (position.terminalValue != null) {
+        node.terminalValue = position.terminalValue;
+        node.expanded = true;
+        node.backpropagate(-position.terminalValue!);
+        simulations++;
+        continue;
+      }
+
+      node.applyVirtualLoss();
+      reserved.add(node);
+      nodes.add(node);
+      positions.add(position);
+      simulations++;
     }
 
-    // Expand: resolve the leaf's position and evaluate it.
-    final position = positionAt(node.movePath());
-    if (position.terminalValue != null) {
-      node.terminalValue = position.terminalValue;
+    if (nodes.isEmpty) continue;
+    late final List<NnEval> evaluations;
+    try {
+      evaluations = evaluateBatch != null && positions.length > 1
+          ? await evaluateBatch(positions)
+          : [
+              for (final position in positions)
+                await evaluate(
+                    position.fen, position.legalMoves, position.historyFens)
+            ];
+    } catch (_) {
+      for (final node in nodes) {
+        node.revertVirtualLoss();
+      }
+      rethrow;
+    }
+    if (evaluations.length != nodes.length) {
+      for (final node in nodes) {
+        node.revertVirtualLoss();
+      }
+      throw StateError('Batch evaluator returned ${evaluations.length} results '
+          'for ${nodes.length} positions');
+    }
+
+    for (var i = 0; i < nodes.length; i++) {
+      final node = nodes[i];
+      final position = positions[i];
+      final leafEval = evaluations[i];
+      node.revertVirtualLoss();
+      for (final move in position.legalMoves) {
+        final prior =
+            leafEval.policy[move] ?? (1.0 / position.legalMoves.length);
+        node.children.add(MctsNode(move: move, parent: node, prior: prior));
+      }
       node.expanded = true;
-      node.backpropagate(-position.terminalValue!);
-      continue;
+      node.backpropagate(-leafEval.value);
     }
-
-    final leafEval =
-        await evaluate(position.fen, position.legalMoves, position.historyFens);
-    for (final move in position.legalMoves) {
-      final prior = leafEval.policy[move] ?? (1.0 / position.legalMoves.length);
-      node.children.add(MctsNode(move: move, parent: node, prior: prior));
-    }
-    node.expanded = true;
-
-    // The value is from the leaf's side to move, and backpropagate flips at
-    // every step, so it enters negated.
-    node.backpropagate(-leafEval.value);
   }
 
   // Pick best move (most visited, prior as the tie-break).

@@ -212,6 +212,49 @@ void main() {
           reason: 'the search should reach past the first ply');
     });
 
+    test('batches distinct leaves and preserves the simulation budget',
+        () async {
+      var individualEvaluations = 0;
+      final batchSizes = <int>[];
+      final seenInBatches = <String>[];
+
+      MctsPosition resolve(List<String> moves) {
+        final board = chess.Chess();
+        for (final uci in moves) {
+          board.move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+        }
+        return MctsPosition(
+          fen: board.fen,
+          legalMoves: [
+            for (final m in board.generate_moves())
+              '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+          ],
+        );
+      }
+
+      await mctsSearch(
+        fen: chess.Chess().fen,
+        legalMoves: _legal,
+        evaluate: (_, __, ___) async {
+          individualEvaluations++;
+          return _eval();
+        },
+        evaluateBatch: (positions) async {
+          batchSizes.add(positions.length);
+          seenInBatches.addAll(positions.map((p) => p.fen));
+          return [for (final _ in positions) _eval()];
+        },
+        batchSize: 4,
+        positionAt: resolve,
+        config: const MctsConfig(maxNodes: 8, maxTime: Duration(seconds: 20)),
+      );
+
+      expect(individualEvaluations, 1, reason: 'only the root is unbatched');
+      expect(batchSizes, [4, 4]);
+      expect(seenInBatches.toSet().length, seenInBatches.length,
+          reason: 'virtual loss should reserve a different leaf per slot');
+    });
+
     test('a mate found in the tree is scored as a mate', () async {
       // Back-rank mate in one: after Ra8 Black has no move.
       const fen = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';

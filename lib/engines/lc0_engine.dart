@@ -16,6 +16,7 @@ library;
 
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
@@ -46,6 +47,7 @@ class Lc0Engine implements ChessEngine {
 
   OnnxModel? _model;
   final NnEvalCache _evaluationCache = NnEvalCache();
+  int? _estimatedEvaluationMicros;
 
   Lc0Engine({String? variantId, this.isolateWorkers = 4})
       : variantId = variantId ?? defaultLc0Variant;
@@ -134,6 +136,9 @@ class Lc0Engine implements ChessEngine {
         fen: fen,
         legalMoves: legalMoves,
         evaluate: _evaluateCached,
+        evaluateBatch: _evaluateBatch,
+        batchSize: 4,
+        estimatedEvaluationMicros: _estimatedEvaluationMicros,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
@@ -230,21 +235,73 @@ class Lc0Engine implements ChessEngine {
   Future<NnEval> _evaluatePosition(
       String fen, List<String> legalMoves, List<String> history) async {
     final model = _model!;
-    final board = chess.Chess.fromFEN(fen);
-    final isBlack = board.turn == chess.Color.BLACK;
-
     final planes = encodePosition(fen, historyFens: history);
+    final watch = Stopwatch()..start();
     final out = await model.runAsync(
       {
         '/input/planes': Tensor.float(planes, [1, 112, 8, 8])
       },
       ['/output/policy', '/output/wdl'],
     );
+    watch.stop();
+    _recordEvaluationCost(watch.elapsedMicroseconds);
 
-    // lc0's own exporter emits the policy already in move-vocabulary order and
-    // the WDL already as a distribution, so neither needs post-processing here.
-    final policyLogits = out['/output/policy']!.f!;
-    final wdl = out['/output/wdl']!.f!;
+    return _decodeEvaluation(
+        fen, legalMoves, out['/output/policy']!.f!, out['/output/wdl']!.f!);
+  }
+
+  Future<List<NnEval>> _evaluateBatch(List<MctsPosition> positions) async {
+    final results = List<NnEval?>.filled(positions.length, null);
+    final misses = <MctsPosition>[];
+    final missIndices = <int>[];
+    for (var i = 0; i < positions.length; i++) {
+      final position = positions[i];
+      final cached = _evaluationCache.lookup(
+          position.fen, position.legalMoves, position.historyFens);
+      if (cached == null) {
+        misses.add(position);
+        missIndices.add(i);
+      } else {
+        results[i] = await cached;
+      }
+    }
+    if (misses.isEmpty) return results.cast<NnEval>();
+
+    final planes = Float32List(misses.length * 112 * 8 * 8);
+    for (var i = 0; i < misses.length; i++) {
+      planes.setRange(i * 112 * 8 * 8, (i + 1) * 112 * 8 * 8,
+          encodePosition(misses[i].fen, historyFens: misses[i].historyFens));
+    }
+    final watch = Stopwatch()..start();
+    final out = await _model!.runAsync(
+      {
+        '/input/planes': Tensor.float(planes, [misses.length, 112, 8, 8])
+      },
+      ['/output/policy', '/output/wdl'],
+    );
+    watch.stop();
+    _recordEvaluationCost(
+        (watch.elapsedMicroseconds / (0.5 + 0.5 * misses.length)).round());
+    final policies = out['/output/policy']!.f!;
+    final wdls = out['/output/wdl']!.f!;
+    for (var i = 0; i < misses.length; i++) {
+      final position = misses[i];
+      final evaluation = _decodeEvaluation(
+          position.fen,
+          position.legalMoves,
+          Float32List.sublistView(policies, i * 1858, (i + 1) * 1858),
+          Float32List.sublistView(wdls, i * 3, (i + 1) * 3));
+      results[missIndices[i]] = evaluation;
+      _evaluationCache.store(
+          position.fen, position.legalMoves, position.historyFens, evaluation);
+    }
+    return results.cast<NnEval>();
+  }
+
+  NnEval _decodeEvaluation(String fen, List<String> legalMoves,
+      Float32List policyLogits, Float32List wdl) {
+    final board = chess.Chess.fromFEN(fen);
+    final isBlack = board.turn == chess.Color.BLACK;
     final value = wdl[0] - wdl[2]; // win - loss
 
     // Softmax over the legal moves only.
@@ -273,6 +330,12 @@ class Lc0Engine implements ChessEngine {
       probabilities[legalMoves[i]] = weights[i] / sum;
     }
     return NnEval(policy: probabilities, value: value);
+  }
+
+  void _recordEvaluationCost(int micros) {
+    final previous = _estimatedEvaluationMicros;
+    _estimatedEvaluationMicros =
+        previous == null ? micros : (previous * 0.25 + micros * 0.75).round();
   }
 
   Future<NnEval> _evaluateCached(
