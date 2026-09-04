@@ -80,12 +80,24 @@ class Lc0Engine implements ChessEngine {
           '[Lc0/Web] Loading ${variant.displayName} from ${variant.url}');
       await _jsLc0Load(variant.url.toJS).toDart;
       _modelLoaded = true;
+      await _warmUp();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Lc0/Web] Ready');
     } catch (e) {
+      _modelLoaded = false;
+      await _jsLc0Close().toDart;
       debugPrint('[Lc0/Web] Init failed: $e');
       _stateNotifier.value = EngineState.error;
     }
+  }
+
+  Future<void> _warmUp() async {
+    final board = chess.Chess();
+    final legalMoves = [
+      for (final m in board.generate_moves())
+        '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+    ];
+    await _evaluateCached(board.fen, legalMoves, const []);
   }
 
   @override

@@ -84,17 +84,25 @@ class Lc0Engine implements ChessEngine {
       debugPrint('[Lc0] Loading ${variant.displayName} from ${variant.url}');
       final bytes = await fetchModelBytes(variant.url, '${variant.id}.onnx');
       final model = OnnxModel.fromBytes(bytes);
+      _model = model;
       if (isolateWorkers > 1) {
         await model.parallelize(workers: isolateWorkers);
       }
-      _model = model;
+      await _warmUp();
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Lc0] Ready (${variant.displayName}, '
           '~${variant.estimatedElo} ELO)');
     } catch (e) {
+      _model?.dispose();
+      _model = null;
       debugPrint('[Lc0] Init failed: $e');
       _stateNotifier.value = EngineState.error;
     }
+  }
+
+  Future<void> _warmUp() async {
+    final board = chess.Chess();
+    await _evaluateCached(board.fen, _legalMoves(board), const []);
   }
 
   @override
