@@ -321,6 +321,11 @@ class MctsPosition {
 /// [mctsSearch] itself.
 typedef MctsPositionResolver = MctsPosition Function(List<String> moves);
 
+/// Resolves a leaf batch together, allowing callers to share root parsing and
+/// common move prefixes instead of replaying every line independently.
+typedef MctsBatchPositionResolver = List<MctsPosition> Function(
+    List<List<String>> movePaths);
+
 /// MCTS search configuration.
 class MctsConfig {
   final double cpuct; // Exploration constant
@@ -379,6 +384,7 @@ Future<String> mctsSearch({
   int? estimatedEvaluationMicros,
   List<String> historyFens = const [],
   MctsPositionResolver? positionAt,
+  MctsBatchPositionResolver? positionAtBatch,
   MctsConfig config = const MctsConfig(),
 }) async =>
     (await mctsSearchWithTree(
@@ -390,6 +396,7 @@ Future<String> mctsSearch({
       estimatedEvaluationMicros: estimatedEvaluationMicros,
       historyFens: historyFens,
       positionAt: positionAt,
+      positionAtBatch: positionAtBatch,
       config: config,
     ))
         .move;
@@ -412,6 +419,7 @@ Future<MctsSearchResult> mctsSearchWithTree({
   int? estimatedEvaluationMicros,
   List<String> historyFens = const [],
   MctsPositionResolver? positionAt,
+  MctsBatchPositionResolver? positionAtBatch,
   MctsNode? initialRoot,
   MctsConfig config = const MctsConfig(),
 }) async {
@@ -441,7 +449,7 @@ Future<MctsSearchResult> mctsSearchWithTree({
   // Without a resolver there is no position to evaluate below the root, so
   // there is no tree to build: return the network's own preference rather than
   // spending the budget looking busy.
-  if (positionAt == null) {
+  if (positionAt == null && positionAtBatch == null) {
     return MctsSearchResult(
         root.bestChild()?.move ?? legalMoves.first, root);
   }
@@ -452,8 +460,9 @@ Future<MctsSearchResult> mctsSearchWithTree({
     // before starting one rather than after.
     if (stopwatch.elapsed > config.maxTime) break;
 
-    final nodes = <MctsNode>[];
+    var nodes = <MctsNode>[];
     final positions = <MctsPosition>[];
+    final paths = <List<String>>[];
     final reserved = <MctsNode>{};
     var wanted = evaluateBatch == null ? 1 : max(1, batchSize);
     final remainingMicros =
@@ -481,7 +490,17 @@ Future<MctsSearchResult> mctsSearchWithTree({
         continue;
       }
 
-      final position = positionAt(node.movePath());
+      final path = node.movePath();
+      if (positionAtBatch != null) {
+        node.applyVirtualLoss();
+        reserved.add(node);
+        nodes.add(node);
+        paths.add(path);
+        simulations++;
+        continue;
+      }
+
+      final position = positionAt!(path);
       if (position.terminalValue != null) {
         node.terminalValue = position.terminalValue;
         node.expanded = true;
@@ -498,6 +517,32 @@ Future<MctsSearchResult> mctsSearchWithTree({
     }
 
     if (nodes.isEmpty) continue;
+    if (positionAtBatch != null) {
+      final resolved = positionAtBatch(paths);
+      if (resolved.length != nodes.length) {
+        for (final node in nodes) {
+          node.revertVirtualLoss();
+        }
+        throw StateError('Batch position resolver returned ${resolved.length} '
+            'positions for ${nodes.length} paths');
+      }
+      final activeNodes = <MctsNode>[];
+      for (var i = 0; i < nodes.length; i++) {
+        final node = nodes[i];
+        final position = resolved[i];
+        if (position.terminalValue != null) {
+          node.revertVirtualLoss();
+          node.terminalValue = position.terminalValue;
+          node.expanded = true;
+          node.backpropagate(-position.terminalValue!);
+        } else {
+          activeNodes.add(node);
+          positions.add(position);
+        }
+      }
+      nodes = activeNodes;
+      if (nodes.isEmpty) continue;
+    }
     late final List<NnEval> evaluations;
     try {
       evaluations = evaluateBatch != null && positions.length > 1

@@ -162,6 +162,7 @@ class Lc0Engine implements ChessEngine {
         estimatedEvaluationMicros: _estimatedEvaluationMicros,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
+        positionAtBatch: (paths) => _positionsAt(fen, history, paths),
         initialRoot: retained,
         config: config,
       );
@@ -193,44 +194,52 @@ class Lc0Engine implements ChessEngine {
   /// handful of plies and this runs once per simulation, against a network
   /// evaluation that costs orders of magnitude more.
   MctsPosition _positionAt(
-      String rootFen, List<String> rootHistory, List<String> moves) {
-    final board = chess.Chess.fromFEN(rootFen);
+          String rootFen, List<String> rootHistory, List<String> moves) =>
+      _positionsAt(rootFen, rootHistory, [moves]).first;
+
+  List<MctsPosition> _positionsAt(String rootFen, List<String> rootHistory,
+      List<List<String>> paths) {
+    final root = chess.Chess.fromFEN(rootFen);
+    final results = <MctsPosition>[];
+    for (final moves in paths) {
+      final board = root.copy();
     // The network reads the previous plies, so a leaf needs the line that
     // reached it — the root's own history, then the root, then each position
     // along the way. Handing every leaf the root's history instead describes
     // a game that diverged several moves ago.
-    final history = <String>[...rootHistory, rootFen];
-    for (final uci in moves) {
-      board.move({
-        'from': uci.substring(0, 2),
-        'to': uci.substring(2, 4),
-        if (uci.length > 4) 'promotion': uci.substring(4, 5),
-      });
-      history.add(board.fen);
-    }
-    history.removeLast(); // the leaf itself is not part of its own history
-    final legal = [
-      for (final m in board.generate_moves())
-        '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
-    ];
-    if (legal.isEmpty) {
-      // Mate is a loss for the side to move; stalemate is a draw.
-      return MctsPosition(
-        fen: board.fen,
-        legalMoves: const [],
-        historyFens: history,
-        terminalValue: board.in_check ? -1.0 : 0.0,
-      );
-    }
-    if (board.in_draw || board.in_threefold_repetition) {
-      return MctsPosition(
-          fen: board.fen,
-          legalMoves: legal,
+      final history = <String>[...rootHistory, rootFen];
+      for (final uci in moves) {
+        board.move({
+          'from': uci.substring(0, 2),
+          'to': uci.substring(2, 4),
+          if (uci.length > 4) 'promotion': uci.substring(4, 5),
+        });
+        history.add(board.fen);
+      }
+      final leafFen = history.removeLast();
+      final legal = [
+        for (final m in board.generate_moves())
+          '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+      ];
+      if (legal.isEmpty) {
+        results.add(MctsPosition(
+          fen: leafFen,
+          legalMoves: const [],
           historyFens: history,
-          terminalValue: 0.0);
+          terminalValue: board.in_check ? -1.0 : 0.0,
+        ));
+      } else if (board.in_draw || board.in_threefold_repetition) {
+        results.add(MctsPosition(
+            fen: leafFen,
+            legalMoves: legal,
+            historyFens: history,
+            terminalValue: 0.0));
+      } else {
+        results.add(MctsPosition(
+            fen: leafFen, legalMoves: legal, historyFens: history));
+      }
     }
-    return MctsPosition(
-        fen: board.fen, legalMoves: legal, historyFens: history);
+    return results;
   }
 
   /// Evaluate a position using the neural network.

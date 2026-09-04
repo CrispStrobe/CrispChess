@@ -278,6 +278,7 @@ void main() {
       var individualEvaluations = 0;
       final batchSizes = <int>[];
       final seenInBatches = <String>[];
+      var positionBatchCalls = 0;
 
       MctsPosition resolve(List<String> moves) {
         final board = chess.Chess();
@@ -306,12 +307,16 @@ void main() {
           return [for (final _ in positions) _eval()];
         },
         batchSize: 4,
-        positionAt: resolve,
+        positionAtBatch: (paths) {
+          positionBatchCalls++;
+          return [for (final path in paths) resolve(path)];
+        },
         config: const MctsConfig(maxNodes: 8, maxTime: Duration(seconds: 20)),
       );
 
       expect(individualEvaluations, 1, reason: 'only the root is unbatched');
       expect(batchSizes, [4, 4]);
+      expect(positionBatchCalls, 2);
       expect(seenInBatches.toSet().length, seenInBatches.length,
           reason: 'virtual loss should reserve a different leaf per slot');
     });
