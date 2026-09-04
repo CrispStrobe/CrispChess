@@ -123,6 +123,16 @@ jobs:
             --positions tool/oracle/positions.txt \
             --out build/oracle/dart.json
 
+      # This box is not the place to judge thread counts: the shared VPS this
+      # is developed on runs at load 6 on 4 cores, where more workers is
+      # simply worse. The runner is idle and has a known core count.
+      - name: Time a forward pass
+        run: |
+          set -o pipefail
+          dart run tool/oracle/bench.dart \
+            --model "build/oracle/$VARIANT.onnx" --iterations 25 \
+            | tee -a build/oracle/report.txt
+
       - name: Compare the input encoding against lc0's
         run: python3 tool/oracle/compare_planes.py build/oracle/dart.json
 
