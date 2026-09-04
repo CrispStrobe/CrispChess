@@ -2,7 +2,7 @@ name: crispchess
 description: Cross-platform chess app with pluggable engines.
 publish_to: "none"
 
-version: 2.1.0+10
+version: 2.1.0+11
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -18,7 +18,7 @@ dependencies:
   onnx_runtime_dart:
     git:
       url: https://github.com/CrispStrobe/onnx_runtime_dart.git
-      ref: b29ff8f05dd6d653d75f3fffb4eb05545864c0f2
+      ref: ae32ae0da3a87a18ca274406bd0c9742f6212a69
   onnxruntime: ^1.4.1
   ffi: ^2.0.0
   flutter_svg: ^2.2.3

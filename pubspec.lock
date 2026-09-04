@@ -384,11 +384,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "b29ff8f05dd6d653d75f3fffb4eb05545864c0f2"
-      resolved-ref: "b29ff8f05dd6d653d75f3fffb4eb05545864c0f2"
+      ref: "ae32ae0da3a87a18ca274406bd0c9742f6212a69"
+      resolved-ref: "ae32ae0da3a87a18ca274406bd0c9742f6212a69"
       url: "https://github.com/CrispStrobe/onnx_runtime_dart.git"
     source: git
-    version: "0.10.5"
+    version: "0.10.6"
   onnxruntime:
     dependency: "direct main"
     description:
