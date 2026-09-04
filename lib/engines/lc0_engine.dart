@@ -129,6 +129,7 @@ class Lc0Engine implements ChessEngine {
         fen: fen,
         legalMoves: legalMoves,
         evaluate: _evaluatePosition,
+        positionAt: (moves) => _positionAt(fen, moves),
         config: config,
       );
 
@@ -167,6 +168,37 @@ class Lc0Engine implements ChessEngine {
       _stateNotifier.value = EngineState.ready;
     }
   }
+
+
+  /// Resolves the position a line of play reaches, so MCTS can evaluate more
+  /// than the root. Replays from the search root each time: the lines are a
+  /// handful of plies and this runs once per simulation, against a network
+  /// evaluation that costs orders of magnitude more.
+  MctsPosition _positionAt(String rootFen, List<String> moves) {
+    final board = chess.Chess.fromFEN(rootFen);
+    for (final uci in moves) {
+      board.move({
+        'from': uci.substring(0, 2),
+        'to': uci.substring(2, 4),
+        if (uci.length > 4) 'promotion': uci.substring(4, 5),
+      });
+    }
+    final legal = _legalMovesOf(board);
+    if (legal.isEmpty) {
+      // Mate is a loss for the side to move; stalemate is a draw.
+      return MctsPosition(
+        fen: board.fen,
+        legalMoves: const [],
+        terminalValue: board.in_check ? -1.0 : 0.0,
+      );
+    }
+    if (board.in_draw || board.in_threefold_repetition) {
+      return MctsPosition(fen: board.fen, legalMoves: legal, terminalValue: 0.0);
+    }
+    return MctsPosition(fen: board.fen, legalMoves: legal);
+  }
+
+  List<String> _legalMovesOf(chess.Chess board) => _legalMoves(board);
 
   List<String> _legalMoves(chess.Chess board) => [
         for (final m in board.generate_moves())

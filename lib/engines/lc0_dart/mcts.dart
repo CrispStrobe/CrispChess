@@ -19,7 +19,9 @@ class MctsNode {
 
   // Set after expansion
   bool expanded = false;
-  double? terminalValue; // Non-null if this is a terminal node
+  /// Set when the game ends here, from the side-to-move's point of view:
+  /// -1 for being mated, 0 for a draw. Negated into [backpropagate].
+  double? terminalValue;
 
   MctsNode({this.move, this.parent, this.prior = 0.0});
 
@@ -67,7 +69,12 @@ class MctsNode {
   }
 
   /// Backpropagate a value up the tree.
-  /// Value is from the perspective of the player who just moved.
+  ///
+  /// [value] is from the perspective of the player who *made the move into this
+  /// node* — the opposite of the side to move here. That matches what
+  /// [puctScore] reads: a parent compares its children by their `q`, and it
+  /// wants "how good is this move for me". A network value, or a terminal
+  /// score, comes from the side to move at the node, so it enters negated.
   void backpropagate(double value) {
     MctsNode? node = this;
     double v = value;
@@ -107,6 +114,29 @@ class NnEval {
 typedef NnEvaluator = Future<NnEval> Function(
     String fen, List<String> legalMoves);
 
+/// A position reached by playing [moves] from the root.
+class MctsPosition {
+  final String fen;
+  final List<String> legalMoves;
+
+  /// Set when the game ends here, from the side-to-move's point of view:
+  /// -1 for checkmate (they are mated), 0 for a draw.
+  final double? terminalValue;
+
+  const MctsPosition({
+    required this.fen,
+    required this.legalMoves,
+    this.terminalValue,
+  });
+}
+
+/// Resolves the position a line of play reaches, so the search can evaluate
+/// nodes other than the root.
+///
+/// Without one, [mctsSearch] can only ever score the root — see the note on
+/// [mctsSearch] itself.
+typedef MctsPositionResolver = MctsPosition Function(List<String> moves);
+
 /// MCTS search configuration.
 class MctsConfig {
   final double cpuct; // Exploration constant
@@ -135,16 +165,32 @@ class MctsConfig {
   }
 }
 
-/// Run MCTS search and return the best move (UCI string).
+/// Run MCTS and return the best move (UCI string).
 ///
 /// [fen] — current position FEN
-/// [legalMoves] — list of legal UCI moves
-/// [evaluate] — neural network evaluation function
+/// [legalMoves] — its legal UCI moves
+/// [evaluate] — the neural network
+/// [positionAt] — resolves the position a line reaches, so leaves can be
+///   evaluated. Without it this returns the network's top policy move, which
+///   is the honest answer when there is no way to look further.
 /// [config] — search parameters
+///
+/// This used to expand only the root and then run up to [MctsConfig.maxNodes]
+/// iterations that scored every leaf with the *root's* value, scaled by depth.
+/// That is not a search: the visit counts it produced carried no information
+/// the policy did not already have, and the iterations were pure cost. With a
+/// resolver each simulation now evaluates the position it actually reached.
+///
+/// One evaluation per simulation is the budget that matters — Lc0's is about
+/// 70ms — so [MctsConfig.maxTime] usually binds long before
+/// [MctsConfig.maxNodes]. Note also that Maia weights are trained to imitate
+/// human choices, so searching on top of them makes play stronger but less
+/// human, which is the opposite of why one picks Maia.
 Future<String> mctsSearch({
   required String fen,
   required List<String> legalMoves,
   required NnEvaluator evaluate,
+  MctsPositionResolver? positionAt,
   MctsConfig config = const MctsConfig(),
 }) async {
   if (legalMoves.isEmpty) throw StateError('No legal moves');
@@ -162,29 +208,47 @@ Future<String> mctsSearch({
   root.expanded = true;
 
   // MCTS iterations
+  // Without a resolver there is no position to evaluate below the root, so
+  // there is no tree to build: return the network's own preference rather than
+  // spending the budget looking busy.
+  if (positionAt == null) return root.bestChild()?.move ?? legalMoves.first;
+
   for (int i = 0; i < config.maxNodes; i++) {
+    // Each simulation costs a network evaluation, so the clock is checked
+    // before starting one rather than after.
     if (stopwatch.elapsed > config.maxTime) break;
 
-    // Select: traverse tree to a leaf
+    // Select: follow PUCT to a leaf.
     var node = root;
     while (node.expanded && node.children.isNotEmpty) {
       node = node.selectChild(config.cpuct)!;
     }
 
-    // If terminal, backpropagate terminal value
     if (node.terminalValue != null) {
-      node.backpropagate(node.terminalValue!);
+      node.backpropagate(-node.terminalValue!);
       continue;
     }
 
-    // Expand: evaluate this position (simplified — we evaluate root only)
-    // In a full implementation, we'd track the position through the tree.
-    // For now, use the root evaluation's value as an approximation,
-    // weighted by the path from root.
-    //
-    // This is a simplified MCTS that works well with strong policy priors.
-    final value = rootEval.value * (1 - 0.1 * node.movePath().length);
-    node.backpropagate(-value); // Negate because value is from root's POV
+    // Expand: resolve the leaf's position and evaluate it.
+    final position = positionAt(node.movePath());
+    if (position.terminalValue != null) {
+      node.terminalValue = position.terminalValue;
+      node.expanded = true;
+      node.backpropagate(-position.terminalValue!);
+      continue;
+    }
+
+    final leafEval = await evaluate(position.fen, position.legalMoves);
+    for (final move in position.legalMoves) {
+      final prior =
+          leafEval.policy[move] ?? (1.0 / position.legalMoves.length);
+      node.children.add(MctsNode(move: move, parent: node, prior: prior));
+    }
+    node.expanded = true;
+
+    // The value is from the leaf's side to move, and backpropagate flips at
+    // every step, so it enters negated.
+    node.backpropagate(-leafEval.value);
   }
 
   // Pick best move (most visited, prior as the tie-break).

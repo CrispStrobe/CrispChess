@@ -10,7 +10,6 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
@@ -133,6 +132,7 @@ class Lc0Engine implements ChessEngine {
         legalMoves: legalMoves,
         evaluate: (evalFen, evalLegalMoves) =>
             _evaluatePosition(evalFen, evalLegalMoves),
+        positionAt: (moves) => _positionAt(fen, moves),
         config: config,
       );
 
@@ -146,6 +146,37 @@ class Lc0Engine implements ChessEngine {
       _stateNotifier.value = EngineState.ready;
       rethrow;
     }
+  }
+
+  /// Resolves the position a line of play reaches, so MCTS can evaluate more
+  /// than the root. Replays from the search root each time: the lines are a
+  /// handful of plies and this runs once per simulation, against a network
+  /// evaluation that costs orders of magnitude more.
+  MctsPosition _positionAt(String rootFen, List<String> moves) {
+    final board = chess.Chess.fromFEN(rootFen);
+    for (final uci in moves) {
+      board.move({
+        'from': uci.substring(0, 2),
+        'to': uci.substring(2, 4),
+        if (uci.length > 4) 'promotion': uci.substring(4, 5),
+      });
+    }
+    final legal = [
+      for (final m in board.generate_moves())
+        '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ''}'
+    ];
+    if (legal.isEmpty) {
+      // Mate is a loss for the side to move; stalemate is a draw.
+      return MctsPosition(
+        fen: board.fen,
+        legalMoves: const [],
+        terminalValue: board.in_check ? -1.0 : 0.0,
+      );
+    }
+    if (board.in_draw || board.in_threefold_repetition) {
+      return MctsPosition(fen: board.fen, legalMoves: legal, terminalValue: 0.0);
+    }
+    return MctsPosition(fen: board.fen, legalMoves: legal);
   }
 
   /// Evaluate a position using the neural network.
