@@ -89,8 +89,17 @@ class DartEngine implements ChessEngine {
       );
     }
 
+    // A budget too small to finish even depth 1 comes back empty — and a cold
+    // `compute()` isolate can eat tens of milliseconds before the search
+    // starts, so a 60ms budget is enough to trigger it. That used to surface as
+    // "No legal moves", which is both wrong and unrecoverable for the caller:
+    // the game just stops. Retry once at depth 1 with no clock. It costs
+    // microseconds and always produces a move when one exists.
+    result ??= await _searchFallback(parsed.baseFen, parsed.moves);
+
     _stateNotifier.value = EngineState.ready;
 
+    // Genuinely nothing to play: checkmate or stalemate.
     if (result == null) throw StateError('No legal moves');
 
     // At low skill levels, sometimes pick a suboptimal move
@@ -100,6 +109,23 @@ class DartEngine implements ChessEngine {
     }
 
     return result.bestMove;
+  }
+
+  /// Depth 1, no time budget — the answer when the real search ran out of
+  /// clock before it produced one. Returns null only at mate or stalemate.
+  Future<SearchResult?> _searchFallback(
+      String baseFen, List<String> moves) async {
+    if (kIsWeb) {
+      final game = chess.Chess.fromFEN(baseFen);
+      for (final uci in moves) {
+        _playUciOn(game, uci);
+      }
+      return AlphaBetaSearch(game).search(1);
+    }
+    return compute(
+      _searchInIsolate,
+      _SearchRequest(baseFen: baseFen, moves: moves, depth: 1, budgetMs: 0),
+    );
   }
 
   /// At low skill levels, occasionally pick a random legal move

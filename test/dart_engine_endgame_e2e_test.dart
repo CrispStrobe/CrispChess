@@ -26,8 +26,14 @@ void main() {
       if (board.in_stalemate || board.in_draw) break; // failed to convert
 
       final position = 'position fen $startFen moves ${moves.join(' ')}';
-      // Fixed depth 6, full strength (no weakening randomness).
-      final uci = await engine.bestMove(position, depth: 6, skillLevel: 20);
+      // Fixed depth 6, full strength (no weakening randomness), and an explicit
+      // per-move budget. Without one, an explicit depth falls back to
+      // kFixedDepthTimeCap — five seconds a move, so a hundred plies can run
+      // past any test timeout on a loaded machine, and this went red once for
+      // exactly that rather than for anything about the endgame. Depth 6 with
+      // three pieces on the board finishes far inside 300ms.
+      final uci = await engine.bestMove(position,
+          depth: 6, moveTime: const Duration(milliseconds: 300), skillLevel: 20);
 
       board.move({
         'from': uci.substring(0, 2),
@@ -40,5 +46,7 @@ void main() {
     expect(mated, isTrue,
         reason: 'engine did not mate K+R vs K — it shuffled: ${moves.join(' ')}');
     print('mated in ${moves.length} plies: ${moves.join(' ')}');
-  }, timeout: const Timeout(Duration(minutes: 2)));
+    // 100 plies x 300ms is 30s of search; the rest is headroom for a busy
+    // machine, not for the engine.
+  }, timeout: const Timeout(Duration(minutes: 4)));
 }

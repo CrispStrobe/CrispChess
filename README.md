@@ -18,7 +18,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | **Frozenight** | MIT / Apache-2.0 | ~3226 | All (WASM + FFI) | Rust NNUE engine |
 | **Lynx** | MIT | ~3350 | All (WASM + native) | C# classical HCE, .NET WASM on web |
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
-| **Lc0** | GPL-3.0 | ~1100–3300 | All | MCTS + neural net, downloaded separately |
+| **Lc0** | GPL-3.0 weights | ~1100–1900 | All | MCTS + Maia net, downloaded separately |
 | **Custom UCI** | Any | Any | Desktop/Mobile | Load any engine binary from disk |
 
 - **Built-in** — pure Dart engine with alpha-beta pruning, null move pruning, principal variation search, transposition table, quiescence search with MVV-LVA + delta pruning, and piece-square table evaluation. Works everywhere including Web WASM.

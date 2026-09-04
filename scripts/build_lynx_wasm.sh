@@ -56,10 +56,36 @@ if ! dotnet workload list 2>/dev/null | grep -q wasm-tools; then
   dotnet workload install wasm-tools
 fi
 
-# 2. Clone Lynx source if needed
+# 2. Clone Lynx source if needed.
+#
+# An existing checkout is reused, which is how a bundle once shipped built from
+# a stale tree: the directory was at upstream v1.11.0 while the branch this
+# clones had moved well past it, and nothing said so. Check what is actually
+# there before building it.
 if [[ ! -d "$LYNX_DIR/src/Lynx" ]]; then
   echo -e "${YELLOW}Cloning Lynx (WASM fork) from ${LYNX_REPO}...${NC}"
   git clone --depth 1 --branch "$LYNX_VERSION" "$LYNX_REPO" "$LYNX_DIR"
+else
+  ACTUAL_REMOTE=$(git -C "$LYNX_DIR" remote get-url origin 2>/dev/null || echo "?")
+  ACTUAL_REF=$(git -C "$LYNX_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+  [[ "$ACTUAL_REF" == "HEAD" ]] && \
+    ACTUAL_REF=$(git -C "$LYNX_DIR" describe --tags --always 2>/dev/null || echo "detached")
+
+  if [[ "$ACTUAL_REMOTE" != "$LYNX_REPO" || "$ACTUAL_REF" != "$LYNX_VERSION" ]]; then
+    echo -e "${RED}Error: $LYNX_DIR is not what this script builds from.${NC}"
+    echo "  expected: $LYNX_REPO @ $LYNX_VERSION"
+    echo "  found:    $ACTUAL_REMOTE @ $ACTUAL_REF"
+    echo
+    echo "Building it anyway would ship a bundle from source you did not choose."
+    echo "Re-clone with:"
+    echo "  rm -rf $LYNX_DIR && $0"
+    echo "or set LYNX_ALLOW_LOCAL_CHECKOUT=1 to build the tree as it stands"
+    echo "(intended for working on the engine, not for producing a release)."
+    [[ "${LYNX_ALLOW_LOCAL_CHECKOUT:-}" == "1" ]] || exit 1
+    echo -e "${YELLOW}LYNX_ALLOW_LOCAL_CHECKOUT=1 — building the local tree.${NC}"
+  else
+    echo "  Lynx source: $ACTUAL_REMOTE @ $ACTUAL_REF"
+  fi
 fi
 
 # 4. Ensure Lynx.Wasm project exists

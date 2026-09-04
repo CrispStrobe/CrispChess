@@ -31,19 +31,54 @@ import 'package:flutter_test/flutter_test.dart';
 
 // ---------------------------------------------------------------- parameters
 
+/// Everything below can be overridden from the environment, so the same harness
+/// serves two jobs: a long exploratory round robin locally, and a short
+/// correctness gate in CI (see `.github/workflows/ci.yml`).
+int _env(String name, int fallback) =>
+    int.tryParse(Platform.environment[name] ?? '') ?? fallback;
+
 /// Per-move budget handed to every engine. Small enough to finish a round robin
 /// in minutes, large enough that a real search happens.
-const Duration kMoveTime = Duration(milliseconds: 300);
+final Duration kMoveTime =
+    Duration(milliseconds: _env('TOURNAMENT_MOVETIME_MS', 300));
 
 /// A move that takes longer than this counts as a hang; the game is abandoned
 /// and the engine is reported as broken rather than silently skewing results.
-const Duration kHangCutoff = Duration(seconds: 40);
+final Duration kHangCutoff =
+    Duration(seconds: _env('TOURNAMENT_HANG_SECONDS', 40));
 
 /// Games per ordered pair (A as white vs B, then B as white vs A, repeated).
-const int kGamesPerPairing = 1;
+final int kGamesPerPairing = _env('TOURNAMENT_GAMES', 1);
 
 /// Plies before a game is called a draw.
-const int kPlyCap = 160;
+final int kPlyCap = _env('TOURNAMENT_PLY_CAP', 160);
+
+/// Fail the test when any engine misbehaves, rather than only reporting it.
+///
+/// Off by default: exploring is the normal use, and an engine that cannot be
+/// built or that hangs is information, not a reason to stop. CI turns it on,
+/// because there a broken engine is a regression.
+final bool kStrict = Platform.environment['TOURNAMENT_STRICT'] == '1';
+
+/// Which engines to build at all, by name. Empty means every one that can run.
+///
+/// Worth setting on anything smaller than a CI runner: the full field peaks
+/// around 1.4GB — the test's own frontend server is ~450MB before any engine
+/// exists, Lynx WASM's .NET runtime is another ~450MB under Node, and Maia3
+/// and Lc0 each load an ONNX model on top. Selecting two or three engines
+/// keeps a run in the hundreds of megabytes.
+final List<String> kOnly = _names('TOURNAMENT_ENGINES');
+
+/// Engines that must be present when strict. A gate that quietly skips the
+/// engine whose bug it was written to catch is worse than no gate.
+final List<String> kRequired = _names('TOURNAMENT_REQUIRE');
+
+List<String> _names(String variable) =>
+    (Platform.environment[variable] ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
 /// Opening lines, so repeated pairings are not the same game.
 const List<List<String>> kOpenings = [
@@ -318,7 +353,19 @@ String _eloDiff(double score, int games) {
 void main() {
   test('round robin', () async {
     stdout.writeln('Building engines…');
-    final candidates = _candidates();
+    var candidates = _candidates();
+    if (kOnly.isNotEmpty) {
+      // Filter before building: an engine that is not going to play should not
+      // cost a .NET runtime or an ONNX model first.
+      candidates = candidates.where((c) => kOnly.contains(c.name)).toList();
+      final unknown = kOnly
+          .where((n) => !candidates.any((c) => c.name == n))
+          .toList();
+      if (unknown.isNotEmpty) {
+        stdout.writeln('  TOURNAMENT_ENGINES names nothing here: '
+            '${unknown.join(', ')}');
+      }
+    }
     final engines = <String, ChessEngine>{};
     for (final c in candidates) {
       final e = await c.build();
@@ -457,7 +504,7 @@ void main() {
           '${s.lateVsOpening.toStringAsFixed(2).padLeft(12)}');
     }
 
-    final broken = stats.values.where((s) => s.brokenReason != null);
+    final broken = stats.values.where((s) => s.brokenReason != null).toList();
     if (broken.isNotEmpty) {
       stdout.writeln('\n=== Broken ===');
       for (final s in broken) {
@@ -467,6 +514,20 @@ void main() {
 
     for (final e in engines.values) {
       e.dispose();
+    }
+
+    if (kStrict) {
+      final missing =
+          kRequired.where((name) => !engines.containsKey(name)).toList();
+      expect(missing, isEmpty,
+          reason: 'these engines were required but could not be built: '
+              '${missing.join(', ')} — a gate that skips the engine whose bug '
+              'it exists to catch is not a gate');
+      expect(broken.map((s) => '${s.name}: ${s.brokenReason}').toList(), isEmpty,
+          reason: 'an engine returned an illegal move, threw, or hung');
+      expect(stats.values.fold<int>(0, (n, s) => n + s.samples.length),
+          greaterThan(0),
+          reason: 'no moves were played at all');
     }
   }, timeout: const Timeout(Duration(minutes: 60)));
 }

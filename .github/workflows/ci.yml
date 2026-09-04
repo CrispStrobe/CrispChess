@@ -25,9 +25,40 @@ jobs:
       - run: flutter pub get
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      # Was `continue-on-error: true`, which meant a red suite still showed a
+      # green CI — the check existed but could not fail.
       - name: Run tests
         run: flutter test
-        continue-on-error: true
+
+  # Plays the engines against each other and fails on an illegal move, a throw
+  # or a hang. Every engine bug this session cost a tournament to notice:
+  # Frozenight applying no moves at all and answering for the wrong side, then
+  # emitting castling as e8h8; Lc0 loading weights that returned garbage; the
+  # built-in engine reporting "no legal moves" from the starting position on a
+  # short budget. A unit test asserts what someone thought to ask; a game
+  # asserts that the engine can still play chess.
+  engine-gate:
+    name: Engines play legal chess
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Only engines whose artifacts are committed, so the gate needs no
+      # network and cannot go red because a CDN was slow.
+      - name: Round robin
+        env:
+          TOURNAMENT_STRICT: "1"
+          TOURNAMENT_ENGINES: "Built-in,Frozenight WASM,Lynx WASM"
+          TOURNAMENT_REQUIRE: "Built-in,Frozenight WASM,Lynx WASM"
+          TOURNAMENT_MOVETIME_MS: "100"
+          TOURNAMENT_GAMES: "1"
+          TOURNAMENT_PLY_CAP: "40"
+          TOURNAMENT_HANG_SECONDS: "30"
+        run: flutter test tool/perf/tournament.dart
 
   # Build Frozenight native library for Linux
   frozenight-linux:
