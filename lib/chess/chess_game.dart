@@ -1,6 +1,7 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 import 'game_state.dart' show ChessVariant;
+import 'chess960_castling.dart';
 import 'game_tree.dart';
 import 'move_analyzer.dart';
 import 'pgn.dart';
@@ -169,9 +170,15 @@ class ChessGame with ChangeNotifier {
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   
   List<String> getLegalMoves() {
-    _cachedLegalMoves ??= _game.generate_moves()
-        .map((m) => '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ""}')
-        .toList();
+    _cachedLegalMoves ??= [
+      ..._game.generate_moves().map(
+          (m) => '${m.fromAlgebraic}${m.toAlgebraic}${m.promotion?.name ?? ""}'),
+      // package:chess hardcodes castling to a king on e1/e8, so in a shuffled
+      // position it offers none — the player just cannot castle. Added here
+      // rather than by forking the library.
+      if (variant == ChessVariant.chess960)
+        ...chess960Castles(_game).map((c) => c.uci),
+    ];
     return _cachedLegalMoves!;
   }
   
@@ -205,6 +212,39 @@ class ChessGame with ChangeNotifier {
   final evalBefore = _lastEvaluation ?? 0.0;
   final whiteToMove = _game.turn == chess.Color.WHITE;  // ADD THIS
   
+  // Chess960 castling, which package:chess cannot play: apply it by loading the
+  // resulting position. Handled before the normal path because the library
+  // would reject the move outright.
+  if (variant == ChessVariant.chess960) {
+    final castled = applyChess960Castle(_game, uciMove);
+    if (castled != null) {
+      final wasWhite = _game.turn == chess.Color.WHITE;
+      if (!_game.load(castled)) return false;
+      _invalidatePositionCaches();
+      final node = _tree.addMove(
+        uci: uciMove,
+        // O-O / O-O-O by destination file, as the PGN spec has it.
+        san: uciMove[2] == 'g' ? 'O-O' : 'O-O-O',
+        fen: _game.fen,
+      );
+      node.eval = _lastEvaluation;
+      _annotations.add(_analyzer.analyzeMove(
+        uciMove: uciMove,
+        evaluation: MoveEvaluation(
+          scoreBefore: evalBefore,
+          scoreAfter: 0.0,
+          bestMove: '',
+          bestMoveScore: 0.0,
+          depth: _lastDepth ?? 10,
+          whiteToMove: wasWhite,
+        ),
+      ));
+      if (_annotations.length > 500) _annotations.removeAt(0);
+      notifyListeners();
+      return true;
+    }
+  }
+
   // SAN has to be produced from the position *before* the move (that is what
   // disambiguates it), so take it here rather than re-deriving the whole game's
   // notation afterwards.
