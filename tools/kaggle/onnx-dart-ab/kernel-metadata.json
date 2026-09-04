@@ -1,0 +1,14 @@
+{
+  "id": "chr1s4/crispchess-onnx-dart-hardware-ab",
+  "title": "CrispChess ONNX Dart Hardware A B",
+  "code_file": "onnx_dart_ab.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "competition_sources": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
