@@ -45,6 +45,7 @@ class Lc0Engine implements ChessEngine {
 
   bool _modelLoaded = false;
   final NnEvalCache _evaluationCache = NnEvalCache();
+  int? _estimatedEvaluationMicros;
 
   Lc0Engine({String? variantId}) : variantId = variantId ?? defaultLc0Variant;
 
@@ -139,6 +140,9 @@ class Lc0Engine implements ChessEngine {
         fen: fen,
         legalMoves: legalMoves,
         evaluate: _evaluateCached,
+        evaluateBatch: _evaluateBatch,
+        batchSize: 4,
+        estimatedEvaluationMicros: _estimatedEvaluationMicros,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
         config: config,
@@ -202,18 +206,69 @@ class Lc0Engine implements ChessEngine {
   /// Returns policy probabilities for legal moves and a value estimate.
   Future<NnEval> _evaluatePosition(
       String fen, List<String> legalMoves, List<String> history) async {
-    final board = chess.Chess.fromFEN(fen);
-    final isBlack = board.turn == chess.Color.BLACK;
-
     // Encode position into 112 planes
     final inputPlanes = encodePosition(fen, historyFens: history);
 
     // Run ONNX inference
+    final watch = Stopwatch()..start();
     final combined = (await _jsLc0Infer(inputPlanes.toJS).toDart).toDart;
+    watch.stop();
+    _recordEvaluationCost(watch.elapsedMicroseconds);
 
     // Split output: [policy(1858), wdl(3)]
     final policyLogits = Float32List.sublistView(combined, 0, 1858);
     final wdl = Float32List.sublistView(combined, 1858, 1861);
+
+    return _decodeEvaluation(fen, legalMoves, policyLogits, wdl);
+  }
+
+  Future<List<NnEval>> _evaluateBatch(List<MctsPosition> positions) async {
+    final results = List<NnEval?>.filled(positions.length, null);
+    final misses = <MctsPosition>[];
+    final missIndices = <int>[];
+    for (var i = 0; i < positions.length; i++) {
+      final position = positions[i];
+      final cached = _evaluationCache.lookup(
+          position.fen, position.legalMoves, position.historyFens);
+      if (cached == null) {
+        misses.add(position);
+        missIndices.add(i);
+      } else {
+        results[i] = await cached;
+      }
+    }
+    if (misses.isEmpty) return results.cast<NnEval>();
+
+    final input = Float32List(misses.length * 112 * 8 * 8);
+    for (var i = 0; i < misses.length; i++) {
+      input.setRange(i * 112 * 8 * 8, (i + 1) * 112 * 8 * 8,
+          encodePosition(misses[i].fen, historyFens: misses[i].historyFens));
+    }
+    final watch = Stopwatch()..start();
+    final combined = (await _jsLc0Infer(input.toJS).toDart).toDart;
+    watch.stop();
+    _recordEvaluationCost(
+        (watch.elapsedMicroseconds / (0.5 + 0.5 * misses.length)).round());
+
+    for (var i = 0; i < misses.length; i++) {
+      final position = misses[i];
+      final offset = i * 1861;
+      final evaluation = _decodeEvaluation(
+          position.fen,
+          position.legalMoves,
+          Float32List.sublistView(combined, offset, offset + 1858),
+          Float32List.sublistView(combined, offset + 1858, offset + 1861));
+      results[missIndices[i]] = evaluation;
+      _evaluationCache.store(
+          position.fen, position.legalMoves, position.historyFens, evaluation);
+    }
+    return results.cast<NnEval>();
+  }
+
+  NnEval _decodeEvaluation(String fen, List<String> legalMoves,
+      Float32List policyLogits, Float32List wdl) {
+    final board = chess.Chess.fromFEN(fen);
+    final isBlack = board.turn == chess.Color.BLACK;
 
     // WDL order: [win, draw, loss], already probabilities — the exported
     // graph ends in a Softmax feeding /output/wdl. Running another softmax
@@ -263,6 +318,12 @@ class Lc0Engine implements ChessEngine {
     }
 
     return NnEval(policy: policyMap, value: value);
+  }
+
+  void _recordEvaluationCost(int micros) {
+    final previous = _estimatedEvaluationMicros;
+    _estimatedEvaluationMicros =
+        previous == null ? micros : (previous * 0.25 + micros * 0.75).round();
   }
 
   Future<NnEval> _evaluateCached(

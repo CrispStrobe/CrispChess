@@ -3,11 +3,10 @@
 // Board encoding and MCTS are done in Dart.
 //
 // Converted Maia/lc0 ONNX models output:
-//   pol_flat: [1, 5120] (80x64 spatial convolutional policy)
-//   wdl:      [1, 3]    (win, draw, loss probabilities)
+//   policy: [batch, 1858]
+//   wdl:    [batch, 3] (win, draw, loss probabilities)
 //
-// This bridge applies kConvPolicyMap to extract 1858 policy logits
-// from the 5120 spatial output.
+// The leela2onnx export already emits policy logits in vocabulary order.
 
 let lc0OnnxSession = null;
 
@@ -66,13 +65,19 @@ async function lc0OnnxLoad(modelUrl) {
   console.log('[Lc0ONNX] Outputs:', lc0OnnxSession.outputNames);
 }
 
-// Takes Float32Array of 7168 (112*8*8).
-// Returns Float32Array of 1861: [policy(1858), wdl(3)].
+// Takes a Float32Array of batch*7168 (112*8*8).
+// Returns batch consecutive blocks of [policy(1858), wdl(3)].
 async function lc0OnnxInfer(inputPlanes) {
   if (!lc0OnnxSession) throw new Error('Lc0 model not loaded');
 
   const ort = globalThis.ort;
-  const inputTensor = new ort.Tensor('float32', inputPlanes, [1, 112, 8, 8]);
+  const sampleSize = 112 * 8 * 8;
+  const batch = inputPlanes.length / sampleSize;
+  if (!Number.isInteger(batch) || batch < 1) {
+    throw new Error('Invalid Lc0 input length ' + inputPlanes.length);
+  }
+  const inputTensor = new ort.Tensor(
+    'float32', inputPlanes, [batch, 112, 8, 8]);
 
   const inputName = lc0OnnxSession.inputNames[0];
   const feeds = {};
@@ -88,7 +93,7 @@ async function lc0OnnxInfer(inputPlanes) {
   // there is nothing to remap. Identify them by size.
   for (const name of outputNames) {
     const data = result[name].data;
-    if (data.length === 3) {
+    if (data.length === batch * 3) {
       wdlData = data;
     } else {
       policyData = data;
@@ -96,15 +101,23 @@ async function lc0OnnxInfer(inputPlanes) {
   }
 
   if (!policyData) throw new Error('No policy output found');
-  if (policyData.length !== 1858) {
+  if (policyData.length !== batch * 1858) {
     throw new Error('Unexpected policy width ' + policyData.length +
-      ' — expected 1858 from a leela2onnx export');
+      ' — expected ' + (batch * 1858) + ' from a leela2onnx export');
   }
-  if (!wdlData) wdlData = new Float32Array([0.33, 0.34, 0.33]);
+  if (!wdlData) {
+    wdlData = new Float32Array(batch * 3);
+    for (let i = 0; i < batch; i++) {
+      wdlData.set([0.33, 0.34, 0.33], i * 3);
+    }
+  }
 
-  const combined = new Float32Array(1858 + 3);
-  combined.set(policyData, 0);
-  combined.set(wdlData, 1858);
+  const combined = new Float32Array(batch * (1858 + 3));
+  for (let i = 0; i < batch; i++) {
+    const offset = i * 1861;
+    combined.set(policyData.subarray(i * 1858, (i + 1) * 1858), offset);
+    combined.set(wdlData.subarray(i * 3, (i + 1) * 3), offset + 1858);
+  }
   return combined;
 }
 
