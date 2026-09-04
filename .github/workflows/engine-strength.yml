@@ -1,0 +1,81 @@
+# Full engine-vs-engine round robin, with the tables in the run summary.
+#
+# The short version of this runs on every push as a correctness gate (see
+# "Engines play legal chess" in ci.yml). This is the long one: enough games at
+# enough time per move that the ordering means something.
+#
+# It belongs on a runner. The full field peaks around 1.4GB — the test's own
+# frontend server is ~450MB before any engine exists, Lynx WASM's .NET runtime
+# is another ~450MB under Node, and Maia3 and Lc0 each load an ONNX model on
+# top — which is comfortable here and is not on a small shared box.
+name: Engine strength
+
+on:
+  workflow_dispatch:
+    inputs:
+      engines:
+        description: "Engines to play (comma separated, blank = every one available)"
+        default: ""
+        type: string
+      movetime_ms:
+        description: "Per-move budget"
+        default: "300"
+        type: string
+      games:
+        description: "Games per ordered pair (each is played twice, once per colour)"
+        default: "2"
+        type: string
+      ply_cap:
+        description: "Plies before a game is called a draw"
+        default: "160"
+        type: string
+
+jobs:
+  round-robin:
+    name: Round robin
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+
+      # Frozenight's native library is not committed, so build it here or the
+      # FFI engine simply does not appear.
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Frozenight FFI
+        run: |
+          cd native/frozenight
+          cargo build --release
+          mkdir -p ../../linux
+          cp target/release/libfrozenight_ffi.so ../../linux/
+
+      - name: Play
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/linux
+          TOURNAMENT_ENGINES: ${{ inputs.engines }}
+          TOURNAMENT_MOVETIME_MS: ${{ inputs.movetime_ms }}
+          TOURNAMENT_GAMES: ${{ inputs.games }}
+          TOURNAMENT_PLY_CAP: ${{ inputs.ply_cap }}
+          TOURNAMENT_HANG_SECONDS: "60"
+        run: |
+          set -o pipefail
+          flutter test tool/perf/tournament.dart 2>&1 | tee run.log
+
+      # The harness prints through the test runner, which prefixes its output.
+      - name: Publish the tables
+        if: always()
+        run: |
+          {
+            echo "### Engine strength"
+            echo
+            echo "\`${{ inputs.movetime_ms }}ms\` per move, "
+            echo "\`${{ inputs.games }}\` game(s) per ordered pair."
+            echo
+            echo '```'
+            sed -n 's/^Shell: //p' run.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
