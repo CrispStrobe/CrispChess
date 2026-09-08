@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit, listing, store, beta]
+        options: [audit, listing, store, beta, mac]
         default: audit
 
 permissions:
@@ -33,4 +33,5 @@ jobs:
             listing) python3 tools/asc/listing.py ;;
             store) python3 tools/asc/store.py ;;
             beta) python3 tools/asc/beta.py ;;
+            mac) python3 tools/asc/mac.py && python3 tools/asc/listing.py ;;
           esac
