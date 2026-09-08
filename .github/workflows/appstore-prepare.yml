@@ -1,0 +1,29 @@
+name: App Store preparation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [audit]
+        default: audit
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python3 -m pip install --quiet --disable-pip-version-check cryptography
+      - name: Audit App Store Connect
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: python3 tools/asc/audit.py
