@@ -35,7 +35,9 @@ void main() {
 }
 
 class CrispChessApp extends StatelessWidget {
-  const CrispChessApp({super.key});
+  const CrispChessApp({super.key, this.fontFamily});
+
+  final String? fontFamily;
 
   @override
   Widget build(BuildContext context) {
@@ -63,12 +65,14 @@ class CrispChessApp extends StatelessWidget {
             colorSchemeSeed: Colors.brown,
             brightness: Brightness.light,
             useMaterial3: true,
+            fontFamily: fontFamily,
           ),
           darkTheme: ThemeData(
             colorSchemeSeed: Colors.brown,
             brightness: Brightness.dark,
             useMaterial3: true,
             scaffoldBackgroundColor: Colors.black,
+            fontFamily: fontFamily,
           ),
           themeMode: themeMode,
           home: const ChessGameScreen(),

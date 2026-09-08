@@ -4,75 +4,31 @@ set -euo pipefail
 output=${1:-appstore-shots}
 mkdir -p "$output"
 
-select_device() {
-  local pattern=$1
-  xcrun simctl list devices available --json | python3 -c '
-import json, re, sys
-pattern = re.compile(sys.argv[1], re.I)
-document = json.load(sys.stdin)
-matches = [device for devices in document["devices"].values() for device in devices
-           if device.get("isAvailable") and pattern.search(device["name"])]
-if not matches:
-    raise SystemExit("no matching simulator: " + sys.argv[1])
-print(matches[0]["udid"])
-' "$pattern"
-}
-
-capture_device() {
-  local device=$1
-  local suffix=$2
-  local width=$3
-  local height=$4
-
-  xcrun simctl boot "$device" 2>/dev/null || true
-  xcrun simctl bootstatus "$device" -b
-  xcrun simctl status_bar "$device" override \
-    --time 9:41 --batteryState charged --batteryLevel 100 \
-    --cellularBars 4 --wifiBars 3 2>/dev/null || true
-
-  xcrun simctl uninstall "$device" com.crispstrobe.crispchess 2>/dev/null || true
-  set +e
-  flutter test integration_test/store_screenshots_test.dart -d "$device" 2>&1 | \
-    while IFS= read -r line; do
-      printf '%s\n' "$line"
-      if [[ "$line" =~ STORE_SCREENSHOT_READY:([A-Za-z0-9-]+) ]]; then
-        name=${BASH_REMATCH[1]}
-        xcrun simctl io "$device" screenshot \
-          "$output/$name-$suffix.png"
-      fi
-    done
-  test_status=${PIPESTATUS[0]}
-  set -e
-  if [[ "$test_status" -ne 0 ]]; then
-    return "$test_status"
-  fi
-  for path in "$output"/*-"$suffix".png; do
-    actual=$(sips -g pixelWidth -g pixelHeight "$path" | awk '/pixel/{printf "%s ", $2}')
-    if [[ "$actual" != "$width $height " ]]; then
-      sips -z "$height" "$width" "$path" >/dev/null
-    fi
-  done
-  xcrun simctl shutdown "$device" 2>/dev/null || true
-}
-
-iphone=$(select_device 'iPhone (17|16|15) Pro Max')
-ipad=$(select_device 'iPad Pro.*13-inch')
-capture_device "$iphone" iphone 1320 2868
-capture_device "$ipad" ipad 2064 2752
+SCREENSHOT_OUTPUT="$output" \
+  flutter test test/store_screenshots_generator_test.dart
 
 python3 - "$output" <<'PY'
-import json, pathlib, sys
+import json, pathlib, struct, sys
+
 root = pathlib.Path(sys.argv[1])
 rows = []
 for locale in ("en-US", "de-DE"):
     for scene in ("01-play", "02-analysis", "03-tools"):
-        for suffix, display, pixels in (
-            ("iphone", "APP_IPHONE_67", "1320x2868"),
-            ("ipad", "APP_IPAD_PRO_3GEN_129", "2064x2752"),
+        for suffix, display, pixels, expected in (
+            ("iphone", "APP_IPHONE_67", "1320x2868", (1320, 2868)),
+            ("ipad", "APP_IPAD_PRO_3GEN_129", "2064x2752", (2064, 2752)),
         ):
             name = f"{locale}-{scene}-{suffix}.png"
-            if not (root / name).exists():
+            path = root / name
+            if not path.exists():
                 raise SystemExit(f"missing screenshot: {name}")
+            with path.open("rb") as image:
+                signature = image.read(24)
+            if signature[:8] != b"\x89PNG\r\n\x1a\n":
+                raise SystemExit(f"not a PNG: {name}")
+            actual = struct.unpack(">II", signature[16:24])
+            if actual != expected:
+                raise SystemExit(f"wrong dimensions for {name}: {actual}")
             rows.append({"name": name, "locale": locale,
                          "displayType": display, "pixels": pixels})
 (root / "manifest.json").write_text(json.dumps(rows, indent=2) + "\n")

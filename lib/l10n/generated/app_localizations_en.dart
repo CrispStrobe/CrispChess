@@ -659,6 +659,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get engineLoading => 'Engine loading...';
 
   @override
+  String bestMove(Object move) {
+    return 'Best: $move';
+  }
+
+  @override
   String get analysis => 'Analysis';
 
   @override

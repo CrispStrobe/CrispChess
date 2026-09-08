@@ -204,6 +204,7 @@
   "reAnalyze": "Neu analysieren",
   "tapRefreshToAnalyze": "Tippe auf Aktualisieren",
   "engineLoading": "Engine lädt...",
+  "bestMove": "Bester Zug: {move}",
   "analysis": "Analyse",
   "engineNotReady": "Engine nicht bereit",
   "positionRestored": "Stellung wiederhergestellt",

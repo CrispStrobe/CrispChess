@@ -290,6 +290,12 @@
   "reAnalyze": "Re-analyze",
   "tapRefreshToAnalyze": "Tap refresh to analyze",
   "engineLoading": "Engine loading...",
+  "bestMove": "Best: {move}",
+  "@bestMove": {
+    "placeholders": {
+      "move": {}
+    }
+  },
   "analysis": "Analysis",
   "engineNotReady": "Engine not ready",
   "positionRestored": "Position restored",
