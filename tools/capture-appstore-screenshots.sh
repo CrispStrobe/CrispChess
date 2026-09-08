@@ -30,21 +30,18 @@ capture_device() {
     --time 9:41 --batteryState charged --batteryLevel 100 \
     --cellularBars 4 --wifiBars 3 2>/dev/null || true
 
-  set -o pipefail
-  flutter test integration_test/store_screenshots_test.dart -d "$device" 2>&1 |
-    while IFS= read -r line; do
-      echo "$line"
-      if [[ "$line" =~ SHOT_MARKER[[:space:]]+([A-Za-z0-9_-]+) ]]; then
-        name=${BASH_REMATCH[1]}
-        sleep 1
-        path="$output/${name}-${suffix}.png"
-        xcrun simctl io "$device" screenshot "$path"
-        actual=$(sips -g pixelWidth -g pixelHeight "$path" | awk '/pixel/{printf "%s ", $2}')
-        if [[ "$actual" != "$width $height " ]]; then
-          sips -z "$height" "$width" "$path" >/dev/null
-        fi
-      fi
-    done
+  xcrun simctl uninstall "$device" com.crispstrobe.crispchess 2>/dev/null || true
+  SCREENSHOT_OUTPUT="$output" SCREENSHOT_SUFFIX="$suffix" \
+    flutter drive \
+      --driver=test_driver/store_screenshots_driver.dart \
+      --target=integration_test/store_screenshots_test.dart \
+      -d "$device"
+  for path in "$output"/*-"$suffix".png; do
+    actual=$(sips -g pixelWidth -g pixelHeight "$path" | awk '/pixel/{printf "%s ", $2}')
+    if [[ "$actual" != "$width $height " ]]; then
+      sips -z "$height" "$width" "$path" >/dev/null
+    fi
+  done
   xcrun simctl shutdown "$device" 2>/dev/null || true
 }
 
