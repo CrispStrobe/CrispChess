@@ -31,11 +31,21 @@ capture_device() {
     --cellularBars 4 --wifiBars 3 2>/dev/null || true
 
   xcrun simctl uninstall "$device" com.crispstrobe.crispchess 2>/dev/null || true
-  SCREENSHOT_OUTPUT="$output" SCREENSHOT_SUFFIX="$suffix" \
-    flutter drive \
-      --driver=test_driver/store_screenshots_driver.dart \
-      --target=integration_test/store_screenshots_test.dart \
-      -d "$device"
+  set +e
+  flutter test integration_test/store_screenshots_test.dart -d "$device" 2>&1 | \
+    while IFS= read -r line; do
+      printf '%s\n' "$line"
+      if [[ "$line" =~ STORE_SCREENSHOT_READY:([A-Za-z0-9-]+) ]]; then
+        name=${BASH_REMATCH[1]}
+        xcrun simctl io "$device" screenshot \
+          "$output/$name-$suffix.png"
+      fi
+    done
+  test_status=${PIPESTATUS[0]}
+  set -e
+  if [[ "$test_status" -ne 0 ]]; then
+    return "$test_status"
+  fi
   for path in "$output"/*-"$suffix".png; do
     actual=$(sips -g pixelWidth -g pixelHeight "$path" | awk '/pixel/{printf "%s ", $2}')
     if [[ "$actual" != "$width $height " ]]; then

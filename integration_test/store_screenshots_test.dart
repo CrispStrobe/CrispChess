@@ -12,16 +12,20 @@ Future<void> pumpFor(WidgetTester tester, Duration duration) async {
 }
 
 Future<void> takeShot(
-  IntegrationTestWidgetsFlutterBinding binding,
   WidgetTester tester,
   String name,
 ) async {
   await pumpFor(tester, const Duration(seconds: 1));
-  await binding.takeScreenshot(name);
+  // The host capture script watches for this marker and takes the simulator
+  // screenshot while the test deliberately keeps this scene on screen.
+  // flutter drive can hang after a successful iOS build on hosted runners,
+  // whereas flutter test has a reliable simulator lifecycle here.
+  // ignore: avoid_print
+  print('STORE_SCREENSHOT_READY:$name');
+  await pumpFor(tester, const Duration(seconds: 3));
 }
 
 Future<void> captureLocale(
-  IntegrationTestWidgetsFlutterBinding binding,
   WidgetTester tester,
   String language,
   String locale,
@@ -37,29 +41,29 @@ Future<void> captureLocale(
 
   await tester.pumpWidget(const app.CrispChessApp());
   await pumpFor(tester, const Duration(seconds: 5));
-  await takeShot(binding, tester, '$locale-01-play');
+  await takeShot(tester, '$locale-01-play');
 
   final analysis = find.byIcon(Icons.analytics_outlined);
   expect(analysis, findsOneWidget);
   await tester.tap(analysis);
   await pumpFor(tester, const Duration(seconds: 2));
-  await takeShot(binding, tester, '$locale-02-analysis');
+  await takeShot(tester, '$locale-02-analysis');
 
   final menu = find.byIcon(Icons.more_vert);
   expect(menu, findsOneWidget);
   await tester.tap(menu);
   await pumpFor(tester, const Duration(seconds: 1));
-  await takeShot(binding, tester, '$locale-03-tools');
+  await takeShot(tester, '$locale-03-tools');
 
   await tester.pumpWidget(const SizedBox.shrink());
   await pumpFor(tester, const Duration(seconds: 1));
 }
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('capture English and German store scenes', (tester) async {
-    await captureLocale(binding, tester, 'en', 'en-US');
-    await captureLocale(binding, tester, 'de', 'de-DE');
+    await captureLocale(tester, 'en', 'en-US');
+    await captureLocale(tester, 'de', 'de-DE');
   });
 }
