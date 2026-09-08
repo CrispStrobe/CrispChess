@@ -98,8 +98,9 @@ def main() -> int:
                 v["attributes"].get("appStoreState") == "PREPARE_FOR_SUBMISSION"]
     if len(editable) != 1:
         raise SystemExit(f"expected one editable iOS version, found {len(editable)}")
-    builds = client.paged(query(f"/v1/apps/{APP}/builds", **{
-        "filter[version]": args.build, "filter[processingState]": "VALID", "limit": "10"}))
+    builds = [build for build in client.paged(f"/v1/apps/{APP}/builds?limit=200")
+              if build["attributes"].get("version") == args.build and
+              build["attributes"].get("processingState") == "VALID"]
     if len(builds) != 1:
         raise SystemExit(f"expected one valid build {args.build}, found {len(builds)}")
     build = builds[0]

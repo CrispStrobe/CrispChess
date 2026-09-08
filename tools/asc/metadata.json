@@ -6,7 +6,8 @@
   "app": {
     "name": "CrispChess",
     "subtitle": "Play, analyse, improve",
-    "primaryCategory": "GAMES_BOARD",
+    "primaryCategory": "GAMES",
+    "primarySubcategoryOne": "GAMES_BOARD",
     "secondaryCategory": "EDUCATION",
     "privacyPolicyUrl": "https://crispchess.vercel.app/privacy",
     "supportUrl": "https://github.com/CrispStrobe/CrispChess/issues",
