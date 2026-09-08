@@ -1322,6 +1322,12 @@ abstract class AppLocalizations {
   /// **'Engine loading...'**
   String get engineLoading;
 
+  /// No description provided for @bestMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Best: {move}'**
+  String bestMove(Object move);
+
   /// No description provided for @analysis.
   ///
   /// In en, this message translates to:

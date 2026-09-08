@@ -159,7 +159,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if (streakXp > 0 && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Daily login: +$streakXp XP (streak: ${_prefs.dailyStreak})'),
+            content: Text(
+              AppLocalizations.of(context)?.dailyLogin(
+                    '$streakXp',
+                    '${_prefs.dailyStreak}',
+                  ) ??
+                  'Daily login: +$streakXp XP (streak: ${_prefs.dailyStreak})',
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -306,6 +312,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       case StateChangeEvent(:final state):
         debugPrint('[CrispChess] Engine state: $state');
         if (state == EngineState.ready) {
+          final l = AppLocalizations.of(context);
           // If engine just became ready and it's the engine's turn, make a move
           if (!_isPlayerTurn && !_state.twoPlayerMode && !_awaitingEngineMove && !_game.isGameOver) {
             debugPrint('[CrispChess] Engine ready — requesting first move');
@@ -321,7 +328,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               _state = _state.copyWith(
                 statusMessage: _state.isThinking
                     ? 'Your turn ($_playerColorName)'
-                    : '${_engineService.engineName} ${_engineService.engineVersion} ready',
+                    : l?.engineReady(
+                          '${_engineService.engineName} ${_engineService.engineVersion}',
+                        ) ??
+                        '${_engineService.engineName} ${_engineService.engineVersion} ready',
               );
             });
             // Brief "ready" message, then switch to "Your turn"
@@ -1160,7 +1170,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 children: [
                   Icon(Icons.analytics, size: 16, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
-                  Text('Analysis',
+                  Text(AppLocalizations.of(context)?.analysis ?? 'Analysis',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -1241,10 +1251,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       Expanded(
                         child: Text(
                           _state.currentBestMove != null
-                              ? 'Best: ${_state.currentBestMove}'
+                              ? AppLocalizations.of(context)?.bestMove(
+                                    '${_state.currentBestMove}',
+                                  ) ??
+                                  'Best: ${_state.currentBestMove}'
                               : _engineService.state == EngineState.ready
-                                  ? 'Tap refresh to analyze'
-                                  : 'Engine loading...',
+                                  ? AppLocalizations.of(context)
+                                          ?.tapRefreshToAnalyze ??
+                                      'Tap refresh to analyze'
+                                  : AppLocalizations.of(context)
+                                          ?.engineLoading ??
+                                      'Engine loading...',
                           style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2223,6 +2240,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return KeyboardListener(
       focusNode: FocusNode()..requestFocus(),
       autofocus: true,
@@ -2261,7 +2279,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                     _engineService.state == EngineState.initializing
                         ? _state.statusMessage
                         : _state.isThinking
-                            ? 'Thinking...'
+                            ? l?.thinking ?? 'Thinking...'
                             : _engineService.state == EngineState.error
                                 ? _state.statusMessage
                                 : _state.lastMove.isNotEmpty
@@ -2287,7 +2305,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                               _ => '',
                             };
                             if (info != null) {
-                              return '${info.name}${info.statsText.isNotEmpty ? ' (${info.statsText})' : ''}$variantLabel';
+                              final openingName = info.name == 'Starting Position'
+                                  ? l?.startingPosition ?? info.name
+                                  : info.name;
+                              return '$openingName${info.statsText.isNotEmpty ? ' (${info.statsText})' : ''}$variantLabel';
                             }
                             return (_state.twoPlayerMode
                                 ? 'Two Player'
