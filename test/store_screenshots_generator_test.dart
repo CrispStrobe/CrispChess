@@ -152,7 +152,7 @@ void main() {
   }
 
   testWidgets(
-    'render exact EN/DE iPhone and iPad store scenes',
+    'render exact EN/DE iPhone, iPad, and Mac store scenes',
     (tester) async {
       await tester.runAsync(loadStoreFonts);
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -169,6 +169,12 @@ void main() {
           logicalSize: const Size(1032, 1376),
           scale: 2,
           suffix: 'ipad',
+        );
+        await captureDevice(
+          tester,
+          logicalSize: const Size(1440, 900),
+          scale: 1,
+          suffix: 'mac',
         );
         await tester.binding.setSurfaceSize(null);
       } finally {

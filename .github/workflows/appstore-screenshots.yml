@@ -24,7 +24,7 @@ jobs:
           cache: true
       - name: Resolve dependencies
         run: flutter pub get
-      - name: Render real EN/DE iPhone and iPad views
+      - name: Render real EN/DE iPhone, iPad, and Mac views
         run: bash tools/capture-appstore-screenshots.sh appstore-shots
       - name: Verify manifest
         run: |
@@ -32,11 +32,11 @@ jobs:
           import json, pathlib
           root = pathlib.Path("appstore-shots")
           rows = json.loads((root / "manifest.json").read_text())
-          assert len(rows) == 12, len(rows)
+          assert len(rows) == 18, len(rows)
           for row in rows:
               assert row["locale"] in ("en-US", "de-DE")
               assert (root / row["name"]).exists()
-          print("verified 12 localized screenshots")
+          print("verified 18 localized screenshots")
           PY
       - uses: actions/upload-artifact@v6
         with:
