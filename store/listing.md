@@ -1,5 +1,11 @@
 # CrispChess Store Listing
 
+The canonical, machine-applied English and German App Store and TestFlight
+copy is in [`tools/asc/metadata.json`](../tools/asc/metadata.json). Keeping it
+there makes Apple metadata reviewable, length-checkable, and reproducible.
+
+The text below is the older English draft retained for release history.
+
 ## App Name
 CrispChess
 

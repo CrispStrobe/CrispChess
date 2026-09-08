@@ -1,0 +1,60 @@
+name: App Store screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Replace App Store screenshot sets after capture
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.2"
+          channel: stable
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Capture real EN/DE iPhone and iPad views
+        run: bash tools/capture-appstore-screenshots.sh appstore-shots
+      - name: Verify manifest
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          root = pathlib.Path("appstore-shots")
+          rows = json.loads((root / "manifest.json").read_text())
+          assert len(rows) == 12, len(rows)
+          for row in rows:
+              assert row["locale"] in ("en-US", "de-DE")
+              assert (root / row["name"]).exists()
+          print("verified 12 localized screenshots")
+          PY
+      - uses: actions/upload-artifact@v6
+        with:
+          name: crispchess-appstore-screenshots
+          path: appstore-shots
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/setup-python@v6
+        if: inputs.upload
+        with:
+          python-version: "3.12"
+      - name: Upload screenshot sets
+        if: inputs.upload
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check cryptography
+          python3 tools/asc/listing.py
+          python3 tools/asc/screenshots.py appstore-shots --replace

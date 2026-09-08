@@ -26,6 +26,7 @@
   },
   "beta": {
     "description": "Play chess against adjustable engines, solve puzzles and drills, explore openings, and analyse games. No account, ads, analytics or tracking.",
+    "feedbackEmail": "postmaster@crispstro.be",
     "whatToTest": "Please try a game with the built-in engine, hints and analysis; then explore a puzzle or drill. Also check rotation, board scaling, German/English switching, and optional engine downloads. No account is required."
   },
   "locales": {
