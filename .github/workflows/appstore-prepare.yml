@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit]
+        options: [audit, listing, store, beta]
         default: audit
 
 permissions:
@@ -21,9 +21,16 @@ jobs:
         with:
           python-version: "3.12"
       - run: python3 -m pip install --quiet --disable-pip-version-check cryptography
-      - name: Audit App Store Connect
+      - name: Audit or prepare App Store Connect
         env:
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: python3 tools/asc/audit.py
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            audit) python3 tools/asc/audit.py ;;
+            listing) python3 tools/asc/listing.py ;;
+            store) python3 tools/asc/store.py ;;
+            beta) python3 tools/asc/beta.py ;;
+          esac
