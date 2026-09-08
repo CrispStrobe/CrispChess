@@ -1,0 +1,47 @@
+{
+  "appId": "6788864039",
+  "bundleId": "com.crispstrobe.crispchess",
+  "primaryLocale": "en-US",
+  "contentRightsDeclaration": "USES_THIRD_PARTY_CONTENT",
+  "app": {
+    "name": "CrispChess",
+    "subtitle": "Play, analyse, improve",
+    "primaryCategory": "GAMES_BOARD",
+    "secondaryCategory": "EDUCATION",
+    "privacyPolicyUrl": "https://crispchess.vercel.app/privacy",
+    "supportUrl": "https://github.com/CrispStrobe/CrispChess/issues",
+    "marketingUrl": "https://crispchess.vercel.app",
+    "copyright": "2026 Christian Ströbele",
+    "keywords": "chess,AI,puzzles,tactics,analysis,coach,openings,Chess960,board game,offline",
+    "description": "Play chess your way — a relaxed first game, focused training, or a serious analysis session. CrispChess brings a polished board, adjustable computer opponents and practical learning tools together in one private, open-source app.\n\nPLAY AT YOUR LEVEL\n\n• Choose a friendly built-in opponent or optional advanced engines.\n• Adjust strength from beginner-friendly to demanding.\n• Play as White, Black or locally with a friend.\n• Pick from rapid, blitz, classical and custom clocks.\n• Explore Chess960, King of the Hill and Three-check.\n\nLEARN BY DOING\n\n• Solve tactical puzzles and try focused drills.\n• Ask for a hint when you need a nudge.\n• Review evaluations, candidate lines and the shape of a game.\n• Explore openings, revisit mistakes and follow your progress.\n• Import, export and study PGN games and custom positions.\n\nMAKE THE BOARD YOURS\n\nChoose piece sets, board themes, animation speed, notation and light or AMOLED-dark appearance. Legal-move highlights and undo are optional, so a new player can keep things welcoming while an experienced player can remove the helpers.\n\nPRIVATE BY DESIGN\n\nNo account, advertising, analytics or tracking. Games and preferences stay on your device. Optional engines and model files are downloaded only when you choose them.\n\nCrispChess is free and open source.",
+    "promotionalText": "A chessboard that grows with you: approachable games, puzzles and drills, plus serious analysis when you want it."
+  },
+  "review": {
+    "firstName": "Christian",
+    "lastName": "Ströbele",
+    "email": "cstr+apple@mailbox.org",
+    "phone": "+4917664646627",
+    "demoAccountRequired": false,
+    "notes": "No account or sign-in is required. The built-in engine, board, puzzles and drills work immediately. Optional third-party chess engines or neural-network weights are downloaded only after the reviewer selects them. For a quick review, start a game with the default Built-in engine, open the Learn menu for puzzles and drills, and toggle the analysis button in the game toolbar."
+  },
+  "beta": {
+    "description": "Play chess against adjustable engines, solve puzzles and drills, explore openings, and analyse games. No account, ads, analytics or tracking.",
+    "whatToTest": "Please try a game with the built-in engine, hints and analysis; then explore a puzzle or drill. Also check rotation, board scaling, German/English switching, and optional engine downloads. No account is required."
+  },
+  "locales": {
+    "de-DE": {
+      "app": {
+        "name": "CrispChess",
+        "subtitle": "Spielen, analysieren, lernen",
+        "privacyPolicyUrl": "https://crispchess.vercel.app/privacy",
+        "keywords": "Schach,KI,Taktik,Aufgaben,Analyse,Trainer,Eröffnungen,Chess960,Brettspiel,offline",
+        "description": "Spiele Schach so, wie es zu dir passt – als entspannte erste Partie, gezieltes Training oder anspruchsvolle Analyse. CrispChess verbindet ein aufgeräumtes Brett, anpassbare Computergegner und praktische Lernwerkzeuge in einer privaten Open-Source-App.\n\nSPIELE AUF DEINEM NIVEAU\n\n• Wähle den einsteigerfreundlichen eingebauten Gegner oder optionale stärkere Engines.\n• Passe die Spielstärke von leicht bis anspruchsvoll an.\n• Spiele mit Weiß, Schwarz oder lokal gegen eine zweite Person.\n• Nutze Schnellschach, Blitz, klassische und eigene Bedenkzeiten.\n• Entdecke Chess960, King of the Hill und Dreischach.\n\nLERNE DURCH SPIELEN\n\n• Löse Taktikaufgaben und trainiere mit gezielten Übungen.\n• Hole dir einen Hinweis, wenn du einen kleinen Anstoß brauchst.\n• Untersuche Bewertungen, Varianten und den Verlauf einer Partie.\n• Erforsche Eröffnungen, besuche Fehler erneut und verfolge deinen Fortschritt.\n• Importiere, exportiere und studiere PGN-Partien und eigene Stellungen.\n\nDEIN BRETT, DEINE WAHL\n\nWähle Figurensätze, Brettdesign, Animationstempo, Notation sowie eine helle oder AMOLED-dunkle Darstellung. Markierungen legaler Züge und Zurücknehmen sind optional: Neue Spieler behalten hilfreiche Hinweise, erfahrene Spieler können sie abschalten.\n\nDATENSCHUTZ VON ANFANG AN\n\nKein Konto, keine Werbung, keine Analyse-Dienste und kein Tracking. Partien und Einstellungen bleiben auf deinem Gerät. Optionale Engines und Modelldateien werden nur geladen, wenn du sie auswählst.\n\nCrispChess ist kostenlos und quelloffen.",
+        "promotionalText": "Ein Schachbrett, das mit dir wächst: zugängliche Partien, Aufgaben und Übungen – und gründliche Analyse, wenn du sie möchtest."
+      },
+      "beta": {
+        "description": "Spiele Schach gegen anpassbare Engines, löse Aufgaben und Übungen, erforsche Eröffnungen und analysiere Partien. Ohne Konto, Werbung, Analyse-Dienste oder Tracking.",
+        "whatToTest": "Bitte teste eine Partie mit der eingebauten Engine, Hinweisen und Analyse sowie eine Aufgabe oder Übung. Prüfe auch Drehung, Brettskalierung, den Wechsel zwischen Deutsch und Englisch und optionale Engine-Downloads. Kein Konto erforderlich."
+      }
+    }
+  }
+}
