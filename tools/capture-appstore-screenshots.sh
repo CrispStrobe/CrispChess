@@ -17,6 +17,7 @@ for locale in ("en-US", "de-DE"):
         for suffix, display, pixels, expected in (
             ("iphone", "APP_IPHONE_67", "1320x2868", (1320, 2868)),
             ("ipad", "APP_IPAD_PRO_3GEN_129", "2064x2752", (2064, 2752)),
+            ("mac", "APP_DESKTOP", "1440x900", (1440, 900)),
         ):
             name = f"{locale}-{scene}-{suffix}.png"
             path = root / name
