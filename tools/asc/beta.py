@@ -7,7 +7,6 @@ import argparse
 import json
 import pathlib
 import sys
-import urllib.parse
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import client  # noqa: E402
@@ -22,9 +21,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", default="12")
     args = parser.parse_args()
-    encoded = urllib.parse.urlencode({"filter[version]": args.build,
-                                      "filter[processingState]": "VALID", "limit": "10"})
-    builds = client.paged(f"/v1/apps/{APP}/builds?{encoded}")
+    builds = [build for build in client.paged(f"/v1/apps/{APP}/builds?limit=200")
+              if build["attributes"].get("version") == args.build and
+              build["attributes"].get("processingState") == "VALID"]
     if len(builds) != 1:
         raise SystemExit(f"expected one valid build {args.build}, found {len(builds)}")
     build_id = builds[0]["id"]

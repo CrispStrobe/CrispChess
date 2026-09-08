@@ -73,9 +73,12 @@ def main() -> int:
         "data": {"type": "appInfos", "id": info["id"], "relationships": {
             "primaryCategory": {"data": {"type": "appCategories",
                                            "id": app["primaryCategory"]}},
+            "primarySubcategoryOne": {"data": {"type": "appCategories",
+                                                 "id": app["primarySubcategoryOne"]}},
             "secondaryCategory": {"data": {"type": "appCategories",
                                              "id": app["secondaryCategory"]}}}}
-    }, f"categories: {app['primaryCategory']} / {app['secondaryCategory']}", dry_run)
+    }, (f"categories: {app['primaryCategory']} → {app['primarySubcategoryOne']} / "
+        f"{app['secondaryCategory']}"), dry_run)
 
     versions = client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50")
     editable_versions = [v for v in versions if v["attributes"].get("appStoreState")
