@@ -110,6 +110,12 @@ jobs:
           flutter build macos --release
           app_path="$PWD/build/macos/Build/Products/Release/Runner.app"
           [ -d "$app_path" ] || { echo "::error::Mac app not found"; exit 1; }
+          version=$(sed -n 's/^version:[[:space:]]*\([^+]*\)+.*$/\1/p' pubspec.yaml | head -1)
+          build=$(sed -n 's/^version:[[:space:]]*[^+]*+\(.*\)$/\1/p' pubspec.yaml | head -1)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app_path/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app_path/Contents/Info.plist"
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_path/Contents/Info.plist")" = "$version" ]
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist")" = "$build" ]
           cp "$RUNNER_TEMP/crispchess.provisionprofile" "$app_path/Contents/embedded.provisionprofile"
           cp native/frozenight/target/release/libfrozenight_ffi.dylib "$app_path/Contents/Frameworks/"
           identity=$(security find-identity -v -p codesigning "$SIGNING_KEYCHAIN" | sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' | head -1)
