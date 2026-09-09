@@ -120,6 +120,12 @@ jobs:
           [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist")" = "$build" ]
           cp "$RUNNER_TEMP/crispchess.provisionprofile" "$app_path/Contents/embedded.provisionprofile"
           cp native/frozenight/target/release/libfrozenight_ffi.dylib "$app_path/Contents/Frameworks/"
+          security cms -D -i "$RUNNER_TEMP/crispchess.provisionprofile" > "$RUNNER_TEMP/profile.plist"
+          application_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$RUNNER_TEMP/profile.plist")
+          team_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.team-identifier' "$RUNNER_TEMP/profile.plist")
+          cp macos/Runner/Release.entitlements "$RUNNER_TEMP/release.entitlements"
+          /usr/libexec/PlistBuddy -c "Set :com.apple.application-identifier $application_identifier" "$RUNNER_TEMP/release.entitlements"
+          /usr/libexec/PlistBuddy -c "Set :com.apple.developer.team-identifier $team_identifier" "$RUNNER_TEMP/release.entitlements"
           identity=$(security find-identity -v -p codesigning "$SIGNING_KEYCHAIN" | sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' | head -1)
           find "$app_path/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -111 \) -print0 | while IFS= read -r -d '' item; do
             codesign --force --timestamp --options runtime --sign "$identity" "$item"
@@ -127,8 +133,10 @@ jobs:
           find "$app_path/Contents/Frameworks" -depth -type d -name '*.framework' -print0 | while IFS= read -r -d '' framework; do
             codesign --force --timestamp --options runtime --sign "$identity" "$framework"
           done
-          codesign --force --timestamp --options runtime --entitlements macos/Runner/Release.entitlements --sign "$identity" "$app_path"
+          codesign --force --timestamp --options runtime --entitlements "$RUNNER_TEMP/release.entitlements" --sign "$identity" "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign --display --entitlements - "$app_path" > "$RUNNER_TEMP/signed-entitlements.plist"
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$RUNNER_TEMP/signed-entitlements.plist")" = "$application_identifier" ]
       - name: Package, validate, and optionally upload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
