@@ -135,7 +135,7 @@ jobs:
           done
           codesign --force --timestamp --options runtime --entitlements "$RUNNER_TEMP/release.entitlements" --sign "$identity" "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
-          codesign --display --entitlements - "$app_path" > "$RUNNER_TEMP/signed-entitlements.plist"
+          codesign --display --entitlements :- "$app_path" > "$RUNNER_TEMP/signed-entitlements.plist"
           [ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$RUNNER_TEMP/signed-entitlements.plist")" = "$application_identifier" ]
       - name: Package, validate, and optionally upload
         env:
