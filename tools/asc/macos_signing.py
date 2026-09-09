@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create or reuse the provisioning profile for a Mac App Store build."""
+"""Create or reuse the certificates and profile for a Mac App Store build."""
 
 from __future__ import annotations
 
@@ -8,11 +8,44 @@ import base64
 import hashlib
 import pathlib
 
+from cryptography import x509
+from cryptography.hazmat.primitives import serialization
+
 import client
 
 
 def certificate_bytes(item: dict) -> bytes:
     return base64.b64decode(item["attributes"]["certificateContent"])
+
+
+def installer_certificate(csr_path: pathlib.Path) -> dict:
+    csr_pem = csr_path.read_bytes()
+    csr = x509.load_pem_x509_csr(csr_pem)
+    wanted_key = csr.public_key().public_bytes(
+        serialization.Encoding.DER,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    certificates = client.paged(
+        "/v1/certificates?filter%5BcertificateType%5D=MAC_INSTALLER_DISTRIBUTION&limit=200"
+    )
+    for item in certificates:
+        cert = x509.load_der_x509_certificate(certificate_bytes(item))
+        public_key = cert.public_key().public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        if public_key == wanted_key:
+            print("reusing Mac Installer Distribution certificate", item["id"])
+            return item
+    item = client.expect("POST", "/v1/certificates", {"data": {
+        "type": "certificates",
+        "attributes": {
+            "certificateType": "MAC_INSTALLER_DISTRIBUTION",
+            "csrContent": csr_pem.decode(),
+        },
+    }})["data"]
+    print("created Mac Installer Distribution certificate", item["id"])
+    return item
 
 
 def distribution_certificate(sha1: str) -> dict:
@@ -63,8 +96,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle-id", required=True)
     parser.add_argument("--distribution-sha1", required=True)
+    parser.add_argument("--installer-csr", required=True, type=pathlib.Path)
+    parser.add_argument("--installer-cert-out", required=True, type=pathlib.Path)
     parser.add_argument("--profile-out", required=True, type=pathlib.Path)
     args = parser.parse_args()
+    installer = installer_certificate(args.installer_csr)
+    args.installer_cert_out.write_bytes(certificate_bytes(installer))
     distribution = distribution_certificate(args.distribution_sha1)
     profile = mac_profile(args.bundle_id, distribution)
     args.profile_out.write_bytes(
