@@ -112,8 +112,10 @@ jobs:
           [ -d "$app_path" ] || { echo "::error::Mac app not found"; exit 1; }
           version=$(sed -n 's/^version:[[:space:]]*\([^+]*\)+.*$/\1/p' pubspec.yaml | head -1)
           build=$(sed -n 's/^version:[[:space:]]*[^+]*+\(.*\)$/\1/p' pubspec.yaml | head -1)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app_path/Contents/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app_path/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleShortVersionString" "$app_path/Contents/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleVersion" "$app_path/Contents/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $version" "$app_path/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $build" "$app_path/Contents/Info.plist"
           [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_path/Contents/Info.plist")" = "$version" ]
           [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist")" = "$build" ]
           cp "$RUNNER_TEMP/crispchess.provisionprofile" "$app_path/Contents/embedded.provisionprofile"
