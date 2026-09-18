@@ -126,11 +126,33 @@ jobs:
       # This box is not the place to judge thread counts: the shared VPS this
       # is developed on runs at load 6 on 4 cores, where more workers is
       # simply worse. The runner is idle and has a known core count.
-      - name: Time a forward pass
+      # Not on the shared VPS this is developed on: it sits at load 6 on four
+      # cores, where thread counts and batch scaling measure the neighbours.
+      # `flutter test` rather than `dart run` because the native runtime is a
+      # Flutter plugin and a plain Dart VM cannot load it at all.
+      # package:onnxruntime bundles its native library for Android, iOS,
+      # macOS and Windows but expects the system to provide it on Linux, so
+      # without this the benchmark can only ever see the Dart path — and so
+      # can a Linux desktop user, who is silently downgraded by the `auto`
+      # fallback.
+      - name: Provide the native ONNX Runtime (Linux has none bundled)
+        run: |
+          version=1.15.1
+          curl -sSLf --retry 3 -o "$RUNNER_TEMP/ort.tgz" \
+            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
+          tar -xzf "$RUNNER_TEMP/ort.tgz" -C "$RUNNER_TEMP"
+          lib="$RUNNER_TEMP/onnxruntime-linux-x64-$version/lib"
+          ls "$lib"
+          echo "LD_LIBRARY_PATH=$lib" >> "$GITHUB_ENV"
+
+      - name: Time a forward pass, both backends
+        env:
+          BENCH_MODEL: build/oracle/${{ inputs.variant || 'maia-1900' }}.onnx
+          BENCH_ITERATIONS: '25'
+          BENCH_BATCHES: '1,2,4,8,16'
         run: |
           set -o pipefail
-          dart run tool/oracle/bench.dart \
-            --model "build/oracle/$VARIANT.onnx" --iterations 25 \
+          flutter test tool/perf/inference_bench.dart --timeout none \
             | tee -a build/oracle/report.txt
 
       - name: Compare the input encoding against lc0's

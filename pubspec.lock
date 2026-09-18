@@ -385,7 +385,7 @@ packages:
     description:
       path: "."
       ref: d9afbe2
-      resolved-ref: "d9afbe2b694ab1fa26c959ab918b7bc8a9ed06a2"
+      resolved-ref: d9afbe2b694ab1fa26c959ab918b7bc8a9ed06a2
       url: "https://github.com/CrispStrobe/onnx_runtime_dart.git"
     source: git
     version: "0.10.8"
