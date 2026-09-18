@@ -107,8 +107,15 @@ rl.on('line', (raw) => {
       if (line.startsWith('go')) {
         const started = Date.now();
         const asked = budgetOf(line);
-        emit(await interop.SendSearchCommand(discount(line)));
-        if (asked !== null) observe(asked, Date.now() - started);
+        const sent = discount(line);
+        emit(await interop.SendSearchCommand(sent));
+        const took = Date.now() - started;
+        if (asked !== null) observe(asked, took);
+        if (process.env.LYNX_TRACE) {
+          process.stderr.write(
+            `[lynx] asked ${asked} sent "${sent}" took ${took}ms ` +
+            `overhead now ${Math.round(overheadMs)}ms\n`);
+        }
       } else {
         emit(await interop.SendCommand(line));
       }
