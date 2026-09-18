@@ -65,6 +65,10 @@ const ready = () => {
 };
 
 const move = async (moves, ask = budget) => {
+  // The round robin sets the skill level before every move, and each command
+  // is its own trip into Mono, so a probe that skips it measures a cheaper
+  // move than the one being complained about.
+  send('setoption name Skill Level value 20');
   send(`position startpos${moves ? ` moves ${moves}` : ''}`);
   const started = Date.now();
   send(`go movetime ${ask}`);
