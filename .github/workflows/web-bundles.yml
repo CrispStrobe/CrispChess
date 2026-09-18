@@ -163,13 +163,20 @@ jobs:
             || { echo "expected bestmove e8g8"; echo "$out"; exit 1; }
           echo "$out" | grep '^bestmove'
 
-      # The bug this guards: a search call cannot be interrupted, so a depth
-      # that does not fit the budget runs to completion regardless. In an
-      # endgame the iterations stay cheap for many plies and then one explodes
-      # — the tournament saw two games sit for the full 60-second hang cutoff,
-      # both past ply 100. A bare endgame is where that shows up, so ask for
-      # one on a 300ms budget and require an answer long before 60 seconds.
-      - name: A search must not outrun its budget
+      # A budget check, not a reproduction of the hang that prompted it.
+      #
+      # Two tournament games were abandoned after the engine overshot a 300ms
+      # budget by more than 6.8 seconds, both past ply 100. The position was
+      # not recorded — the harness prints one now — so the trigger is unknown,
+      # and none of the obvious endgames reproduce it: measured against the old
+      # unbounded bundle, six candidates all answered in 289-402ms. So this
+      # would have PASSED before the fix and does not guard that bug.
+      #
+      # What it does check is that a bare endgame, where a search can deepen
+      # cheaply for many plies before one iteration explodes, still answers
+      # close to its budget. That is the property the node bound provides and
+      # the old heuristic could not.
+      - name: A search must stay near its budget
         if: ${{ contains(fromJSON('["all","frozenight"]'), inputs.target) }}
         run: |
           set -e
