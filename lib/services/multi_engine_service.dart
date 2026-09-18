@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show VoidCallback;
+import 'package:flutter/foundation.dart' show VoidCallback, debugPrint;
 import '../engines/chess_engine.dart';
 
 /// Events from a specific engine in multi-engine analysis.
@@ -109,7 +109,20 @@ class MultiEngineService {
     _stateListeners.add(listener);
 
     if (engine.state == EngineState.idle) {
-      await engine.initialize();
+      // One engine that cannot start is one row that cannot report. It used to
+      // be the whole panel: this throws out of addEngine, the caller disposes
+      // the service, and the engines that were fine go with it.
+      try {
+        await engine.initialize();
+      } catch (e) {
+        debugPrint('[MultiEngine] ${engine.name} failed to start: $e');
+        results[index] = results[index].copyWith(state: EngineState.error);
+        _eventController.add(MultiEngineStateChange(
+          engineIndex: index,
+          engineName: engine.name,
+          state: EngineState.error,
+        ));
+      }
     }
   }
 
@@ -140,6 +153,18 @@ class MultiEngineService {
             depth: info.depth,
             bestMove: info.bestMove ?? '',
             pv: info.pv,
+          ));
+        }
+      }, onError: (Object e) {
+        // Without this the failure is an unhandled async error and the row
+        // simply stops updating, which looks exactly like an engine thinking.
+        debugPrint('[MultiEngine] ${engine.name} analysis failed: $e');
+        if (idx < results.length) {
+          results[idx] = results[idx].copyWith(state: EngineState.error);
+          _eventController.add(MultiEngineStateChange(
+            engineIndex: idx,
+            engineName: engine.name,
+            state: EngineState.error,
           ));
         }
       });
