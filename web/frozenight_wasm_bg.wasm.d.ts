@@ -7,6 +7,7 @@ export const get_eval: () => number;
 export const get_fen: () => [number, number];
 export const init: (a: number) => void;
 export const search: (a: number) => [number, number];
+export const search_bounded: (a: number, b: number) => [number, number];
 export const set_position: (a: number, b: number, c: number, d: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
