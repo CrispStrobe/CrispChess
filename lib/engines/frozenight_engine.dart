@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'search_pacing.dart';
 
 // Native function types
 typedef _InitC = Int32 Function(Uint32 hashMb);
@@ -191,7 +192,7 @@ class FrozenightEngine implements ChessEngine {
           // the prediction, which is all the older library can support.
           if (_searchBounded == null) {
             if (!hasTimeForNextDepth(sw.elapsed, budget)) break;
-          } else if (remaining <= budget ~/ 8) {
+          } else if (!worthStartingDepth(remaining, budget)) {
             break;
           }
           // Yield so the UI can paint between iterations.
@@ -201,10 +202,7 @@ class FrozenightEngine implements ChessEngine {
         final before = sw.elapsed;
         final int status;
         if (_searchBounded != null) {
-          final allowance = (remaining.inMilliseconds * _nodesPerMs)
-              .clamp(8192, 4000000000)
-              .toInt();
-          status = _searchBounded!(d, allowance);
+          status = _searchBounded!(d, nodeAllowance(remaining, _nodesPerMs));
         } else {
           status = _search!(d);
         }
@@ -213,11 +211,7 @@ class FrozenightEngine implements ChessEngine {
         if (_getNodes != null) {
           final nodes = _getNodes!();
           final spent = (sw.elapsed - before).inMilliseconds;
-          if (nodes > 8192 && spent > 0) {
-            // Follow the recent rate: throughput differs a lot between a full
-            // board and a bare endgame.
-            _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
-          }
+          _nodesPerMs = updatedRate(_nodesPerMs, nodes, spent);
         }
 
         final ptr = _getBestMove!();
@@ -229,7 +223,14 @@ class FrozenightEngine implements ChessEngine {
 
       _stateNotifier.value = EngineState.ready;
 
-      if (best == null) throw StateError('No move found');
+      // Nothing came back because the budget ran out before even depth one
+      // finished, which is a timeout and not a broken engine. The type is what
+      // the service classifies on: as a StateError this arrived at the player
+      // as "Move request failed: Bad state: No move found".
+      if (best == null) {
+        throw TimeoutException(
+            'No move within ${budget.inMilliseconds}ms', budget);
+      }
       debugPrint('[Frozenight] $best depth=$reached/$maxDepth '
           '${sw.elapsedMilliseconds}ms (budget ${budget.inMilliseconds}ms)');
       return best;

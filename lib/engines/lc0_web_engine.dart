@@ -415,7 +415,13 @@ class Lc0Engine implements ChessEngine {
 
       yield EvalInfo(score: score, depth: 1, bestMove: null);
     } catch (e) {
+      // Swallowing this left the eval bar simply not updating, with the reason
+      // only in a debug console nobody has open. The service classifies a
+      // stream error as an analysis failure, which is reported quietly and
+      // does not touch the game.
       debugPrint('[Lc0/Web] Analysis error: $e');
+      _stateNotifier.value = EngineState.ready;
+      rethrow;
     }
 
     _stateNotifier.value = EngineState.ready;

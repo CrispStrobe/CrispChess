@@ -5,9 +5,9 @@
 
 import 'dart:async';
 import 'dart:js_interop';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'search_pacing.dart';
 import 'lynx_build.dart';
 
 @JS('lynxLoad')
@@ -168,11 +168,8 @@ class LynxEngine implements ChessEngine {
     // it one for one, the gap holding at 55-57ms across four budgets. The size
     // is learned rather than fixed, since a phone and a desktop will not agree
     // on it, and starts at zero so the first move behaves as before.
-    final asked = depth != null
-        ? budget
-        : Duration(
-            milliseconds: max(budget.inMilliseconds ~/ 2,
-                budget.inMilliseconds - _overheadMs));
+    final asked =
+        depth != null ? budget : discountedBudget(budget, _overheadMs);
     final goCmd = depth != null
         ? 'go depth $depth'
         : 'go movetime ${asked.inMilliseconds}';
@@ -244,7 +241,11 @@ class LynxEngine implements ChessEngine {
           _parseInfoLine(line.trim());
         }
       } catch (e) {
+        // This runs detached from the stream the caller holds, so the failure
+        // has to be put on the controller by hand or it is lost: the eval bar
+        // stops updating and the reason stays in a debug console.
         debugPrint('[LynxWASM] Analysis error: $e');
+        if (!_evalController.isClosed) _evalController.addError(e);
       } finally {
         if (!_stopping) {
           _stateNotifier.value = EngineState.ready;
