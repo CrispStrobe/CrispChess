@@ -18,7 +18,13 @@
 ///   BENCH_MODEL       path to a .onnx file (required)
 ///   BENCH_ITERATIONS  timed runs per batch size (default 25)
 ///   BENCH_BATCHES     comma-separated batch sizes (default 1,2,4,8,16)
-///   BENCH_WORKERS     isolate workers / intra-op threads (default 4)
+///   BENCH_WORKERS     comma-separated thread counts to compare (default 4)
+///
+/// Everything a run is meant to compare is measured inside that one run, on
+/// one machine, back to back. Comparing a number from one CI run against a
+/// number from another does not work here: the same configuration measured
+/// 1.07ms per position on one runner and 0.67ms on another, a 60% swing, which
+/// is larger than most of the effects being looked for.
 library;
 
 import 'dart:io';
@@ -109,18 +115,20 @@ void main() {
     final iterations = int.parse(_env('BENCH_ITERATIONS', '25'));
     final batches =
         _env('BENCH_BATCHES', '1,2,4,8,16').split(',').map(int.parse).toList();
-    final workers = int.parse(_env('BENCH_WORKERS', '4'));
+    final workers =
+        _env('BENCH_WORKERS', '4').split(',').map(int.parse).toList();
     final bytes = File(path).readAsBytesSync();
 
     stdout.writeln('${path.split('/').last}, '
         '${(bytes.length / 1048576).toStringAsFixed(1)} MB, '
         '${_mflopsPerPosition.toStringAsFixed(1)} MFLOP per position, '
-        '$iterations iterations, ${Platform.numberOfProcessors} cores, '
-        '$workers workers\n');
+        '$iterations iterations, ${Platform.numberOfProcessors} cores\n');
 
-    await _measure('native ONNX Runtime', bytes, batches, iterations,
-        () async => NativeLc0InferenceBackend.create(bytes, workers));
-    await _measure('pure Dart', bytes, batches, iterations,
-        () => DartLc0InferenceBackend.create(bytes, workers));
+    for (final w in workers) {
+      await _measure('native ONNX Runtime, $w thread(s)', bytes, batches,
+          iterations, () async => NativeLc0InferenceBackend.create(bytes, w));
+      await _measure('pure Dart, $w worker(s)', bytes, batches, iterations,
+          () => DartLc0InferenceBackend.create(bytes, w));
+    }
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
