@@ -38,22 +38,56 @@ const say = (line) => process.stdout.write(`${line}\n`);
 
 let position = { fen: 'startpos', moves: '' };
 
-/// Iterative deepening inside a time budget. Each `search(d)` is one
-/// uninterruptible WASM call, so the clock is checked *before* starting a
-/// depth: checking afterwards puts no bound on the iteration that overshoots.
+/// Nodes per millisecond, measured. Only the starting value is a guess, and it
+/// is deliberately low: guessing high on the first call of a session is the one
+/// case that cannot be corrected afterwards.
+let nodesPerMs = 50;
+
+/// Iterative deepening inside a time budget.
+///
+/// Each `search` is one uninterruptible WASM call, so a depth that turns out
+/// not to fit cannot be cut short — the old code checked the clock before
+/// starting a depth and assumed the next one would cost about 2.5x the search
+/// so far. In an endgame that assumption fails: iterations stay cheap for many
+/// plies, so the guard never trips, and then one of them explodes. The
+/// tournament hit exactly that twice, both past ply 100, and sat there for the
+/// full 60-second cutoff.
+///
+/// So the budget is handed to the engine as a node count instead, which it
+/// checks on every node. The estimate only has to be good enough to keep a
+/// single call short; being wrong costs an early return, not a hang.
 function go(command) {
   const depthMatch = /\bdepth\s+(\d+)/.exec(command);
   const timeMatch = /\bmovetime\s+(\d+)/.exec(command);
   const maxDepth = depthMatch ? Number(depthMatch[1]) : 14;
   const budgetMs = timeMatch ? Number(timeMatch[1]) : depthMatch ? 5000 : 1000;
+  const bounded = typeof fz.search_bounded === 'function';
 
   const started = Date.now();
   let best = null;
   for (let d = 1; d <= maxDepth; d++) {
     const elapsed = Date.now() - started;
-    // Each iteration costs roughly 2.5x the whole search so far.
-    if (d > 1 && elapsed * 2.5 >= budgetMs) break;
-    const move = fz.search(d);
+    const remaining = budgetMs - elapsed;
+    // Leave enough room to be worth starting at all.
+    if (d > 1 && remaining <= budgetMs / 8) break;
+    if (d > 1 && !bounded && elapsed * 2.5 >= budgetMs) break;
+
+    let move;
+    if (bounded) {
+      const answer = fz.search_bounded(d, Math.max(4096, remaining * nodesPerMs));
+      const space = answer.indexOf(' ');
+      move = space < 0 ? answer : answer.slice(0, space);
+      const nodes = space < 0 ? 0 : Number(answer.slice(space + 1));
+      const spent = Math.max(1, Date.now() - started - elapsed);
+      if (nodes > 4096) {
+        // Track the recent rate rather than the average: throughput changes a
+        // lot between the opening and a bare endgame.
+        nodesPerMs = 0.5 * nodesPerMs + 0.5 * (nodes / spent);
+      }
+    } else {
+      move = fz.search(d);
+    }
+
     if (move && move !== '0000') {
       best = move;
       say(`info depth ${d} time ${Date.now() - started} pv ${move}`);
