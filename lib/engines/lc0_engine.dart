@@ -15,6 +15,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:chess/chess.dart' as chess;
@@ -55,10 +56,27 @@ class Lc0Engine implements ChessEngine {
 
   Lc0Engine({
     String? variantId,
-    this.isolateWorkers = 4,
+    int? isolateWorkers,
     this.backend = 'auto',
   })
-      : variantId = variantId ?? defaultLc0Variant;
+      : variantId = variantId ?? defaultLc0Variant,
+        isolateWorkers = isolateWorkers ?? _defaultWorkers;
+
+  /// Half the cores rather than all of them.
+  ///
+  /// Four threads was asked for on every machine. Measured on a four-core
+  /// runner, all four cells in one process so the comparison is not across
+  /// machines: 0.74ms per position on two threads against 0.86ms on four, and
+  /// 1.12ms on one. The network is 76 MFLOP over an 8x8 board, small enough
+  /// that a fourth thread costs more in synchronisation than it returns in
+  /// arithmetic — and the search has a board, a UI and an opponent to share
+  /// the machine with besides. Halving scales that to whatever is available
+  /// instead of assuming four.
+  ///
+  /// The pure-Dart runtime is flat across the range (5.64-5.94ms), so nothing
+  /// is lost when the native runtime is unavailable.
+  static int get _defaultWorkers =>
+      (Platform.numberOfProcessors / 2).floor().clamp(1, 4);
 
   @override
   String get name {
