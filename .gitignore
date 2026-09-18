@@ -72,4 +72,5 @@ ios/*.a
 
 # App Review correspondence — drafts and submission detail, not for a public
 # repo. store/ is otherwise tracked (store/listing.md), so this is per-file.
-store/appeal-*.md
+# Matches appeal.md, appeal-4.3a.md, appeals.md, ...
+store/appeal*.md
