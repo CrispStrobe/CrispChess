@@ -180,7 +180,10 @@ class DartEngine implements ChessEngine {
   /// as the native path.
   Future<SearchResult?> _searchWeb(
       int maxDepth, Duration budget, String baseFen, List<String> moves) async {
-    final webDepth = maxDepth.clamp(1, 7);
+    // The browser path deepens one step at a time and hands each iteration
+    // what is left of the budget, so a high ceiling is bounded by the clock
+    // the same way the native one is.
+    final webDepth = maxDepth >= _clockBoundDepth ? maxDepth : maxDepth.clamp(1, 7);
     debugPrint(
         '[Built-in] Web search: maxDepth=$webDepth budget=${budget.inMilliseconds}ms');
     final sw = Stopwatch()..start();
@@ -338,8 +341,25 @@ class DartEngine implements ChessEngine {
     });
   }
 
-  /// Map skill 0-20 to search depth 2-10.
+  /// Map skill 0-20 to a search depth.
+  ///
+  /// Depth is the difficulty knob and stays one at every setting below the
+  /// top. At full strength it should not be a knob at all — the clock should
+  /// end the search — and depth 10 was ending it first: over a round robin at
+  /// 300ms per move this engine's late-game moves took 149ms against 301ms in
+  /// the opening, the only engine in the field not spending its budget. An
+  /// endgame is cheap to search ten plies deep, so it finished and handed half
+  /// the time back, in exactly the positions where another ply is worth most.
+  ///
+  /// The search stops itself: `AlphaBetaSearch` aborts mid-iteration on its
+  /// deadline and returns the last depth it completed, so a ceiling it cannot
+  /// reach costs nothing.
   int _depthFromSkill(int skillLevel) {
+    if (skillLevel >= 20) return _clockBoundDepth;
     return 2 + (skillLevel * 8 ~/ 20).clamp(0, 8);
   }
+
+  /// Deep enough that the budget always ends the search first, while still
+  /// terminating on its own in a position that searches instantly.
+  static const int _clockBoundDepth = 64;
 }
