@@ -34,6 +34,8 @@ jobs:
         with:
           node-version: '22'
       - name: Measure
+        env:
+          LYNX_TRACE: '1'
         run: |
           set -o pipefail
           node tool/perf/lynx_overhead.mjs \

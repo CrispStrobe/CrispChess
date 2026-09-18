@@ -40,7 +40,7 @@ const POSITIONS = [
 ];
 
 const child = spawn('node', [join(root, 'tool', 'uci', 'lynx_wasm_uci.mjs')], {
-  stdio: ['pipe', 'pipe', 'ignore'],
+  stdio: ['pipe', 'pipe', 'inherit'],
 });
 const rl = createInterface({ input: child.stdout, terminal: false });
 
