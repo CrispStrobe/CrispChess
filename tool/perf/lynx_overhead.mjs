@@ -134,6 +134,17 @@ const best = asks.reduce((a, b) =>
 console.log(`\nclosest: ask for ${best.ask}ms to spend ${best.med}ms of a ` +
   `${budget}ms budget (${(best.ask / budget).toFixed(2)}x)`);
 
+// The engine reports 300ms for a 300ms request while the caller measures 352.
+// The difference is the info lines: this build returns its whole output in one
+// burst when the search ends, so the reader spends that time parsing after the
+// thinking rather than during it. Lynx has an option for saying less.
+send('setoption name Minimal value true');
+await newGame();
+const quiet = [];
+for (const moves of POSITIONS) quiet.push(await move(moves));
+console.log(`\nwith Minimal: median ${median(quiet)}ms, ` +
+  `max ${Math.max(...quiet)}ms for a ${budget}ms budget`);
+
 send('quit');
 child.stdin.end();
 setTimeout(() => process.exit(0), 500);
