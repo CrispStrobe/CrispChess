@@ -57,23 +57,58 @@ pub fn set_position(fen: &str, moves: &str) {
 
 #[wasm_bindgen]
 pub fn search(depth: i32) -> String {
+    search_bounded(depth, 0.0)
+        .split(' ')
+        .next()
+        .unwrap_or("0000")
+        .to_string()
+}
+
+/// One search, bounded by both a depth and a node count.
+///
+/// The node bound is the one that matters. A single `search` call cannot be
+/// interrupted from outside — it is one synchronous WASM call — so every
+/// caller has had to guess, before starting a depth, whether that depth would
+/// fit in the time left. The guess is that each iteration costs about 2.5x the
+/// search so far, and in an endgame it is badly wrong: iterations stay cheap
+/// for many plies, the guard never trips, and then one of them explodes with
+/// nothing able to stop it. That is a hung engine, and the tournament caught it
+/// twice, both times past ply 100.
+///
+/// `frozenight` already counts nodes and checks the limit on every one of them
+/// (`search.rs`: `if nodes >= self.node_limit`), which needs no clock — and no
+/// clock is available here, because `Instant::now` does not work on
+/// `wasm32-unknown-unknown`. So the bound the engine can actually honour is
+/// nodes, and this hands it one.
+///
+/// Returns `"<uci> <nodes>"`, so the caller can turn the time it has left into
+/// the next call's node budget from measured throughput rather than a constant.
+/// A `max_nodes` of zero means no node bound, which is the old behaviour.
+#[wasm_bindgen]
+pub fn search_bounded(depth: i32, max_nodes: f64) -> String {
     unsafe {
         let engine = match ENGINE.as_mut() {
             Some(e) => e,
-            None => return String::from("0000"),
+            None => return String::from("0000 0"),
         };
 
         let tc = TimeConstraint {
             depth: depth as i16,
+            nodes: if max_nodes >= 1.0 {
+                max_nodes as u64
+            } else {
+                u64::MAX
+            },
             ..TimeConstraint::INFINITE
         };
 
         let result = engine.search(tc, |_| {});
 
-        match CURRENT_BOARD.as_ref() {
+        let uci = match CURRENT_BOARD.as_ref() {
             Some(board) => move_to_uci(board, result.best_move),
             None => format!("{}{}", result.best_move.from, result.best_move.to),
-        }
+        };
+        format!("{} {}", uci, result.nodes)
     }
 }
 

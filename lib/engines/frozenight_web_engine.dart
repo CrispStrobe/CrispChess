@@ -17,6 +17,9 @@ external void _frozenightSetPosition(JSString fen, JSString moves);
 @JS('frozenightSearch')
 external JSString _frozenightSearch(JSNumber depth);
 
+@JS('frozenightSearchBounded')
+external JSString _frozenightSearchBounded(JSNumber depth, JSNumber maxNodes);
+
 @JS('frozenightGetEval')
 external JSNumber _frozenightGetEval();
 
@@ -29,6 +32,11 @@ external void _frozenightDispose();
 /// Single-threaded — search runs synchronously per depth.
 /// Uses incremental deepening with UI yields between depths.
 class FrozenightEngine implements ChessEngine {
+  /// Nodes per millisecond, measured as the search runs. Only the initial
+  /// value is a guess, and it is deliberately low: guessing high on the first
+  /// search of a session is the one case that cannot be corrected afterwards.
+  double _nodesPerMs = 50;
+
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   bool _loaded = false;
   bool _stopped = false;
@@ -92,15 +100,46 @@ class FrozenightEngine implements ChessEngine {
     String? bestMove;
     var reached = 0;
 
-    // Iterative deepening, bounded by the time budget. The check has to happen
-    // *before* starting a depth: each WASM search call runs to completion and
-    // cannot be interrupted, so testing the clock afterwards (as this did) puts
-    // no bound on the iteration that actually overshoots — which is why a
-    // middlegame move could take far longer than an opening one.
+    // Iterative deepening, bounded by a node count rather than by guessing
+    // which depth will fit.
+    //
+    // A search call runs to completion and cannot be interrupted, so deciding
+    // before each depth whether it will fit is a guess — and in an endgame it
+    // is a bad one: iterations stay cheap for many plies, so the guard never
+    // trips, and then one of them explodes. The tournament caught exactly that
+    // twice, both past ply 100, each time sitting for the full 60-second hang
+    // cutoff. Handing the engine a node budget it checks on every node turns
+    // a hang into an early return.
     for (int d = 1; d <= webDepth; d++) {
-      if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
+      final remaining = budget - sw.elapsed;
+      if (d > 1 && remaining <= budget ~/ 8) break;
       await Future.delayed(Duration.zero);
-      final move = _frozenightSearch(d.toJS).toDart;
+
+      final before = sw.elapsed;
+      final allowance = (remaining.inMilliseconds * _nodesPerMs)
+          .clamp(4096, 2000000000)
+          .toDouble();
+      var answer = _frozenightSearchBounded(d.toJS, allowance.toJS).toDart;
+
+      String move;
+      if (answer.isEmpty) {
+        // A bundle older than `search_bounded`; fall back to the unbounded
+        // call and the guess that goes with it.
+        if (d > 1 && !hasTimeForNextDepth(before, budget)) break;
+        move = _frozenightSearch(d.toJS).toDart;
+      } else {
+        final space = answer.indexOf(' ');
+        move = space < 0 ? answer : answer.substring(0, space);
+        final nodes =
+            space < 0 ? 0 : int.tryParse(answer.substring(space + 1)) ?? 0;
+        final spent = (sw.elapsed - before).inMilliseconds;
+        if (nodes > 4096 && spent > 0) {
+          // Follow the recent rate: throughput differs a lot between a full
+          // board and a bare endgame.
+          _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
+        }
+      }
+
       if (move.isNotEmpty && move != '0000') {
         bestMove = move;
         reached = d;

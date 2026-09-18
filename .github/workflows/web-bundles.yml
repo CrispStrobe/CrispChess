@@ -163,6 +163,27 @@ jobs:
             || { echo "expected bestmove e8g8"; echo "$out"; exit 1; }
           echo "$out" | grep '^bestmove'
 
+      # The bug this guards: a search call cannot be interrupted, so a depth
+      # that does not fit the budget runs to completion regardless. In an
+      # endgame the iterations stay cheap for many plies and then one explodes
+      # — the tournament saw two games sit for the full 60-second hang cutoff,
+      # both past ply 100. A bare endgame is where that shows up, so ask for
+      # one on a 300ms budget and require an answer long before 60 seconds.
+      - name: A search must not outrun its budget
+        if: ${{ contains(fromJSON('["all","frozenight"]'), inputs.target) }}
+        run: |
+          set -e
+          fen='8/8/8/4k3/8/8/4K3/4R3 w - - 0 1'
+          start=$(date +%s%N)
+          out=$(printf 'uci\nisready\nposition fen %s\ngo movetime 300\nquit\n' "$fen" \
+            | timeout 90 node tool/uci/frozenight_wasm_uci.mjs 2>/dev/null)
+          ms=$(( ($(date +%s%N) - start) / 1000000 ))
+          echo "$out" | grep -q '^bestmove' \
+            || { echo "no bestmove"; echo "$out"; exit 1; }
+          echo "answered in ${ms}ms against a 300ms budget"
+          [ "$ms" -lt 6000 ] \
+            || { echo "overshot its budget by more than 20x"; exit 1; }
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-engine-bundles
