@@ -297,11 +297,28 @@ Future<GameOutcome> _playGame({
           .bestMove(position, moveTime: kMoveTime, skillLevel: 20)
           .timeout(kHangCutoff);
     } on TimeoutException {
-      stats.brokenReason = 'no move within ${kHangCutoff.inSeconds}s '
-          'at ply ${played.length}';
+      // Report how long it actually took, not this harness's cutoff. Engines
+      // cap their own searches too — a UCI engine on a 300ms budget gives up
+      // after 6.8s — and its TimeoutException arrives here looking exactly
+      // like the harness's own, so quoting kHangCutoff turned a 7-second
+      // overshoot into a report of a 60-second hang.
+      //
+      // The position goes with it. Without the moves an abort is not
+      // reproducible, and the two that have happened so far were both lost
+      // that way: an engine that takes too long in one specific position
+      // cannot be fixed from the knowledge that it was ply 106.
+      sw.stop();
+      stats.brokenReason =
+          'no move after ${(sw.elapsedMilliseconds / 1000).toStringAsFixed(1)}s '
+          '(harness cutoff ${kHangCutoff.inSeconds}s) at ply ${played.length}'
+          '\n      position: $position'
+          '\n      fen: ${board.fen}';
       return GameOutcome(GameResult.aborted, played.length, stats.brokenReason);
     } catch (e) {
-      stats.brokenReason = 'bestMove threw at ply ${played.length}: $e';
+      sw.stop();
+      stats.brokenReason = 'bestMove threw at ply ${played.length}: $e'
+          '\n      position: $position'
+          '\n      fen: ${board.fen}';
       return GameOutcome(GameResult.aborted, played.length, stats.brokenReason);
     }
     sw.stop();
