@@ -70,6 +70,26 @@ jobs:
       - name: Generate localizations
         run: dart run intl_utils:generate || flutter gen-l10n || true
 
+      # The Lc0 engine's runtime was fetched from a public CDN on every cold
+      # load. That is a third party between a user and the engine starting, and
+      # when it is blocked or down the engine fails before it can say anything
+      # useful. Serving it from here removes that. The bridge probes for these
+      # and falls back to the CDN when they are absent, so a checkout without
+      # them still runs.
+      #
+      # The wasm-only build, not the JSEP one: WebGPU needs cross-origin
+      # isolation, this is not served with it, and the difference is 12MB
+      # against 23MB of binary that could never be used.
+      - name: Vendor the ONNX Runtime binary
+        run: |
+          version=1.21.0
+          base="https://cdn.jsdelivr.net/npm/onnxruntime-web@$version/dist"
+          mkdir -p web/ort
+          for f in ort-wasm-simd-threaded.mjs ort-wasm-simd-threaded.wasm; do
+            curl -sSLf --retry 3 -o "web/ort/$f" "$base/$f"
+          done
+          ls -la web/ort/
+
       - name: Build Flutter web
         run: |
           # Try WASM first, fall back to JS
