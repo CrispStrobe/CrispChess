@@ -88,8 +88,15 @@ class FrozenightEngine implements ChessEngine {
 
     _applyPosition(positionCommand);
 
-    final searchDepth = depth ?? (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14);
-    final webDepth = searchDepth.clamp(1, 10); // Cap for responsiveness
+    // The depth ceiling is the difficulty knob, and at full strength it should
+    // not be one: the clock should end the search. The extra cap at 10 was
+    // there for responsiveness, which is now the node bound's job — a depth
+    // that does not fit is cut short instead of running to completion.
+    final searchDepth = depth ??
+        (skillLevel != null && skillLevel >= 20
+            ? 64
+            : (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14));
+    final webDepth = searchDepth.clamp(1, 64);
     final budget = moveTime ??
         (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skillLevel ?? 10));
 
