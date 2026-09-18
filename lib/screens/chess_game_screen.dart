@@ -379,20 +379,40 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             );
           }
         }
-      case EngineErrorEvent(:final message):
-        debugPrint('[CrispChess] Engine error: $message');
+      case EngineErrorEvent(:final message, :final kind, :final recovering):
+        debugPrint('[CrispChess] Engine error ($kind): $message');
         if (mounted) {
+          // A crash that is being recovered from is not the same news as one
+          // that ended the game, and analysis failing is not news about the
+          // game at all. All three used to be the same red banner.
+          final name = _engineService.engineName;
+          final (text, colour) = switch (kind) {
+            EngineFailure.died when recovering =>
+              ('$name stopped unexpectedly — starting it again', Colors.orange),
+            EngineFailure.died =>
+              ('$name stopped unexpectedly. Pick another engine in Settings '
+                  'to carry on.', Colors.red),
+            EngineFailure.timeout =>
+              ('$name took too long to move', Colors.orange),
+            EngineFailure.startup => ('$name could not start', Colors.red),
+            EngineFailure.analysis => ('$name: analysis unavailable',
+                Colors.orange),
+            EngineFailure.other => ('$name: $message', Colors.red),
+          };
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${_engineService.engineName}: $message',
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
+              content: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
+              backgroundColor: colour,
+              duration: Duration(seconds: recovering ? 2 : 5),
             ),
           );
-          setState(() {
-            _state = _state.copyWith(isThinking: false);
-          });
+          // A recovery is still in flight, so the engine has not stopped
+          // thinking and the board should not say it has.
+          if (!recovering) {
+            setState(() {
+              _state = _state.copyWith(isThinking: false);
+            });
+          }
         }
     }
   }
