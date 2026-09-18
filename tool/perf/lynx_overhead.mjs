@@ -64,12 +64,18 @@ const ready = () => {
   return until((l) => l.trim() === 'readyok');
 };
 
-const move = async (moves) => {
+const move = async (moves, ask = budget) => {
   send(`position startpos${moves ? ` moves ${moves}` : ''}`);
   const started = Date.now();
-  send(`go movetime ${budget}`);
+  send(`go movetime ${ask}`);
   await until((l) => l.startsWith('bestmove'));
   return Date.now() - started;
+};
+
+const newGame = async () => {
+  // Some engines only re-read options at the start of a game.
+  send('ucinewgame');
+  await ready();
 };
 
 const median = (xs) => {
