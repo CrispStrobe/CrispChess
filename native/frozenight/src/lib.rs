@@ -18,6 +18,7 @@ static SEARCH_BOARD: Mutex<Option<Board>> = Mutex::new(None);
 static SEARCH_DONE: (Mutex<bool>, Condvar) = (Mutex::new(false), Condvar::new());
 
 struct SearchResult {
+    nodes: u64,
     best_move: CString,
     score_cp: i32,
     depth: i32,
@@ -93,6 +94,24 @@ pub extern "C" fn frozenight_set_position(fen: *const c_char, moves: *const c_ch
 
 #[no_mangle]
 pub extern "C" fn frozenight_search(depth: i32) -> i32 {
+    frozenight_search_bounded(depth, 0)
+}
+
+/// One search, bounded by a node count as well as a depth.
+///
+/// A search call cannot be interrupted once it starts, so the caller has had
+/// to decide *before* each depth whether that depth would fit in the time
+/// left, guessing that an iteration costs about 2.5x the search so far. When
+/// the guess is wrong the overshoot has no bound — this engine was measured
+/// taking 1111ms of a 300ms budget — and raising the depth ceiling, which the
+/// clock should be setting rather than a constant, makes a bad guess more
+/// likely rather than less.
+///
+/// `frozenight` checks its node limit on every node, so a node budget is a
+/// bound it can actually honour mid-iteration. A `max_nodes` of zero means
+/// no node bound.
+#[no_mangle]
+pub extern "C" fn frozenight_search_bounded(depth: i32, max_nodes: u64) -> i32 {
     {
         let mut done = SEARCH_DONE.0.lock().unwrap();
         *done = false;
@@ -111,6 +130,7 @@ pub extern "C" fn frozenight_search(depth: i32) -> i32 {
 
         let tc = TimeConstraint {
             depth: depth as i16,
+            nodes: if max_nodes > 0 { max_nodes } else { u64::MAX },
             ..TimeConstraint::INFINITE
         };
 
@@ -120,6 +140,7 @@ pub extern "C" fn frozenight_search(depth: i32) -> i32 {
                 let full_uci = uci_for_current_position(info.best_move);
                 let score = eval_to_cp(info.eval);
                 *result_for_info.lock().unwrap() = Some(SearchResult {
+                    nodes: info.nodes,
                     best_move: CString::new(full_uci).unwrap_or_default(),
                     score_cp: score,
                     depth: info.depth as i32,
@@ -129,6 +150,7 @@ pub extern "C" fn frozenight_search(depth: i32) -> i32 {
                 let full_uci = uci_for_current_position(info.best_move);
                 let score = eval_to_cp(info.eval);
                 *result_for_finish.lock().unwrap() = Some(SearchResult {
+                    nodes: info.nodes,
                     best_move: CString::new(full_uci).unwrap_or_default(),
                     score_cp: score,
                     depth: info.depth as i32,
@@ -163,6 +185,18 @@ pub extern "C" fn frozenight_get_best_move() -> *const c_char {
 #[no_mangle]
 pub extern "C" fn frozenight_get_score() -> i32 {
     RESULT.lock().unwrap().as_ref().map(|r| r.score_cp).unwrap_or(0)
+}
+
+/// Nodes searched by the last call, so the caller can turn the time it has
+/// left into the next call's node budget from measured throughput.
+#[no_mangle]
+pub extern "C" fn frozenight_get_nodes() -> i64 {
+    RESULT
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|r| r.nodes.min(i64::MAX as u64) as i64)
+        .unwrap_or(0)
 }
 
 #[no_mangle]
