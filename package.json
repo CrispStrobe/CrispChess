@@ -8,7 +8,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "analyze": "flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings",
+    "test": "flutter test --no-pub",
+    "perf": "dart run tool/perf/bench_search.dart"
   },
   "keywords": [],
   "author": "",

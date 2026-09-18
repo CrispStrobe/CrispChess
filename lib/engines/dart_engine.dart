@@ -5,9 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
 import 'uci_position.dart';
 import 'package:crisp_chess_engine/crisp_chess_engine.dart';
-// Native builds get the bitboard engine here; web resolves to a stub and uses
-// the chess-package search in _searchWeb instead.
-import 'native_search.dart';
+// Native builds search in an owned, reusable isolate that can be killed; web
+// resolves to a stub.
+import 'search_worker.dart';
 
 /// Built-in chess engine written in pure Dart.
 ///
@@ -23,6 +23,11 @@ class DartEngine implements ChessEngine {
   AlphaBetaSearch? _search;
   bool _disposed = false;
   final _rng = Random();
+
+  /// Owns the native search isolate. Kept alive between requests and killed
+  /// when a search is cancelled — a synchronous search cannot observe a flag
+  /// set on this (the UI) isolate, so termination is the only real stop.
+  final _worker = NativeSearchWorker();
 
   final ValueNotifier<EngineState> _stateNotifier =
       ValueNotifier(EngineState.idle);
@@ -75,27 +80,31 @@ class DartEngine implements ChessEngine {
         (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skill));
 
     SearchResult? result;
-    if (kIsWeb) {
-      result = await _searchWeb(searchDepth, budget, parsed.baseFen, parsed.moves);
-    } else {
-      result = await compute(
-        _searchInIsolate,
-        _SearchRequest(
-          baseFen: parsed.baseFen,
-          moves: parsed.moves,
-          depth: searchDepth,
-          budgetMs: budget.inMilliseconds,
-        ),
-      );
-    }
+    try {
+      if (kIsWeb) {
+        result =
+            await _searchWeb(searchDepth, budget, parsed.baseFen, parsed.moves);
+      } else {
+        result = await _searchNative(
+            searchDepth, budget, parsed.baseFen, parsed.moves);
+      }
 
-    // A budget too small to finish even depth 1 comes back empty — and a cold
-    // `compute()` isolate can eat tens of milliseconds before the search
-    // starts, so a 60ms budget is enough to trigger it. That used to surface as
-    // "No legal moves", which is both wrong and unrecoverable for the caller:
-    // the game just stops. Retry once at depth 1 with no clock. It costs
-    // microseconds and always produces a move when one exists.
-    result ??= await _searchFallback(parsed.baseFen, parsed.moves);
+      // A budget too small to finish even depth 1 comes back empty — and a cold
+      // `compute()` isolate can eat tens of milliseconds before the search
+      // starts, so a 60ms budget is enough to trigger it. That used to surface
+      // as "No legal moves", which is both wrong and unrecoverable for the
+      // caller: the game just stops. The native worker already retries at depth
+      // 1 with no clock inside the isolate; the web path has to do it here.
+      if (kIsWeb) {
+        result ??= await _searchFallback(parsed.baseFen, parsed.moves);
+      }
+    } on StateError {
+      // Cancelled or disposed mid-search. Report ready and never fall back: the
+      // fallback is a fresh depth-1 search, which is work the caller just asked
+      // us to stop doing.
+      if (!_disposed) _stateNotifier.value = EngineState.ready;
+      rethrow;
+    }
 
     _stateNotifier.value = EngineState.ready;
 
@@ -111,21 +120,38 @@ class DartEngine implements ChessEngine {
     return result.bestMove;
   }
 
-  /// Depth 1, no time budget — the answer when the real search ran out of
+  /// Depth 1, no time budget — the web answer when the real search ran out of
   /// clock before it produced one. Returns null only at mate or stalemate.
+  ///
+  /// Native does not need this: the search worker runs the same retry inside
+  /// the isolate, where it costs no message round-trip.
   Future<SearchResult?> _searchFallback(
       String baseFen, List<String> moves) async {
-    if (kIsWeb) {
-      final game = chess.Chess.fromFEN(baseFen);
-      for (final uci in moves) {
-        _playUciOn(game, uci);
-      }
-      return AlphaBetaSearch(game).search(1);
+    final game = chess.Chess.fromFEN(baseFen);
+    for (final uci in moves) {
+      _playUciOn(game, uci);
     }
-    return compute(
-      _searchInIsolate,
-      _SearchRequest(baseFen: baseFen, moves: moves, depth: 1, budgetMs: 0),
-    );
+    return AlphaBetaSearch(game).search(1);
+  }
+
+  /// One iterative-deepening search in the owned isolate, returning the best
+  /// move from the last depth it completed.
+  ///
+  /// Replaces a `compute()` per requested depth: each of those built a fresh
+  /// isolate, replayed the whole game to rebuild repetition history and threw
+  /// its transposition table away, so deepening paid the setup cost every time.
+  ///
+  /// Throws [StateError] when the search is cancelled or disposed — the caller
+  /// must not treat a cancelled search as "no legal moves" and fall back, which
+  /// is what would restart work the user just asked to stop.
+  Future<SearchResult?> _searchNative(
+      int depth, Duration budget, String fen, List<String> moves) async {
+    SearchResult? last;
+    await for (final result
+        in _worker.search(fen, moves, depth, budget.inMilliseconds)) {
+      last = result;
+    }
+    return last;
   }
 
   /// At low skill levels, occasionally pick a random legal move
@@ -155,7 +181,8 @@ class DartEngine implements ChessEngine {
   Future<SearchResult?> _searchWeb(
       int maxDepth, Duration budget, String baseFen, List<String> moves) async {
     final webDepth = maxDepth.clamp(1, 7);
-    debugPrint('[Built-in] Web search: maxDepth=$webDepth budget=${budget.inMilliseconds}ms');
+    debugPrint(
+        '[Built-in] Web search: maxDepth=$webDepth budget=${budget.inMilliseconds}ms');
     final sw = Stopwatch()..start();
 
     final game = chess.Chess.fromFEN(baseFen);
@@ -181,12 +208,14 @@ class DartEngine implements ChessEngine {
       if (sw.elapsed >= budget) break;
     }
 
-    debugPrint('[Built-in] Total: ${sw.elapsedMilliseconds}ms depth=${best?.depth}');
+    debugPrint(
+        '[Built-in] Total: ${sw.elapsedMilliseconds}ms depth=${best?.depth}');
     return best;
   }
 
   @override
-  Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) async* {
+  Stream<EvalInfo> analyze(String positionCommand,
+      {int? depth, bool infinite = false}) async* {
     if (_disposed) return;
     _stateNotifier.value = EngineState.thinking;
     _applyPosition(positionCommand);
@@ -199,25 +228,41 @@ class DartEngine implements ChessEngine {
     // scratch — the deep ones never return on a slow device.
     const perIteration = Duration(seconds: 3);
 
+    if (!kIsWeb) {
+      // One deepening search streams every depth it completes, keeping its
+      // transposition table between iterations. The web loop below still
+      // restarts per depth because it has no isolate to stream from.
+      final sw = Stopwatch()..start();
+      try {
+        await for (final result in _worker.search(parsed.baseFen, parsed.moves,
+            maxDepth, _analysisBudget(maxDepth, perIteration))) {
+          if (_disposed) break;
+          yield EvalInfo(
+            score: result.score / 100.0,
+            depth: result.depth,
+            bestMove: result.bestMove,
+          );
+          // An iteration that overran the per-depth cap would only time out
+          // again deeper, so end the stream instead of spending the rest of the
+          // budget on it.
+          if (sw.elapsed > perIteration) break;
+          sw.reset();
+        }
+      } on StateError {
+        // Cancelled (position changed, engine stopped) or disposed. That is the
+        // normal way analysis ends, not a failure to report to the stream.
+      }
+      if (!_disposed) _stateNotifier.value = EngineState.ready;
+      return;
+    }
+
     for (int d = 1; d <= maxDepth; d++) {
       if (_disposed) break;
       SearchResult? result;
-      if (kIsWeb) {
-        await Future.delayed(Duration.zero);
-        final game = chess.Chess();
-        game.load(_game.fen);
-        result = AlphaBetaSearch(game).search(d, timeBudget: perIteration);
-      } else {
-        result = await compute(
-          _searchInIsolate,
-          _SearchRequest(
-            baseFen: parsed.baseFen,
-            moves: parsed.moves,
-            depth: d,
-            budgetMs: perIteration.inMilliseconds,
-          ),
-        );
-      }
+      await Future.delayed(Duration.zero);
+      final game = chess.Chess();
+      game.load(_game.fen);
+      result = AlphaBetaSearch(game).search(d, timeBudget: perIteration);
       if (result == null || _disposed) break;
       yield EvalInfo(
         score: result.score / 100.0,
@@ -231,8 +276,25 @@ class DartEngine implements ChessEngine {
     if (!_disposed) _stateNotifier.value = EngineState.ready;
   }
 
+  /// Total wall clock for one analysis request, in milliseconds.
+  ///
+  /// Each depth gets [perIteration] to itself, and the stream ends early when
+  /// one overruns — this is only the ceiling that keeps an unbounded depth
+  /// request (or `infinite`) from running for minutes.
+  int _analysisBudget(int maxDepth, Duration perIteration) {
+    const ceilingMs = 60000;
+    final budget = perIteration.inMilliseconds * maxDepth;
+    return budget > ceilingMs ? ceilingMs : budget;
+  }
+
   @override
-  void stop() => _search?.stop();
+  void stop() {
+    // The native search runs synchronously in its own isolate, where a flag set
+    // here is invisible to it — termination is the only stop that works, and
+    // the isolate is rebuilt lazily on the next search.
+    _worker.cancel();
+    _search?.stop();
+  }
 
   @override
   void setOption(String name, String value) {}
@@ -240,6 +302,7 @@ class DartEngine implements ChessEngine {
   @override
   void dispose() {
     _disposed = true;
+    _worker.dispose();
     _search?.stop();
     _stateNotifier.value = EngineState.disposed;
   }
@@ -279,26 +342,4 @@ class DartEngine implements ChessEngine {
   int _depthFromSkill(int skillLevel) {
     return 2 + (skillLevel * 8 ~/ 20).clamp(0, 8);
   }
-}
-
-class _SearchRequest {
-  final String baseFen;
-  final List<String> moves;
-  final int depth;
-  final int budgetMs;
-  _SearchRequest({
-    required this.baseFen,
-    required this.moves,
-    required this.depth,
-    required this.budgetMs,
-  });
-}
-
-SearchResult? _searchInIsolate(_SearchRequest request) {
-  // Native only (compute() isolates don't exist on web). Uses the bitboard
-  // engine — ~20-60x the nodes/sec of the chess-package search. The time
-  // budget is what guarantees a prompt return: the isolate can't be signalled.
-  // baseFen + moves let it rebuild the game history for repetition detection.
-  return searchPositionNative(
-      request.baseFen, request.moves, request.depth, request.budgetMs);
 }
