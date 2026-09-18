@@ -77,6 +77,15 @@ jobs:
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/linux
           TOURNAMENT_ENGINES: ${{ inputs.engines }}
+          # Whatever was asked for has to actually play. The harness skips an
+          # engine whose initialize fails and carries on, so a broken engine
+          # produced a green run with one fewer row in the table — which is how
+          # a double stderr listener took native Lynx out of the field and was
+          # caught by someone noticing the row was gone. Its own comment says a
+          # gate that skips the engine whose bug it exists to catch is not a
+          # gate; this turns that on.
+          TOURNAMENT_STRICT: '1'
+          TOURNAMENT_REQUIRE: ${{ inputs.engines || 'Built-in,Lynx,Frozenight,Maia3 Dart,Lc0 (Maia 1900),Lynx WASM,Stockfish.js,Frozenight WASM' }}
           TOURNAMENT_MOVETIME_MS: ${{ inputs.movetime_ms }}
           TOURNAMENT_GAMES: ${{ inputs.games }}
           TOURNAMENT_PLY_CAP: ${{ inputs.ply_cap }}
