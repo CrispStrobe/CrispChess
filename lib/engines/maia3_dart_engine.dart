@@ -96,6 +96,17 @@ class Maia3DartEngine implements ChessEngine {
     }
   }
 
+  /// One network evaluation, then the most likely legal move. There is no
+  /// search, so [depth] and [moveTime] are accepted and ignored.
+  ///
+  /// That is deliberate and worth saying out loud, because it looks exactly
+  /// like a bug that was real in three other engines here: a round robin shows
+  /// this one spending 105ms of a 300ms budget while everything else spends
+  /// 300, which in Frozenight, its WASM build and the built-in engine meant a
+  /// search stopping on a constant instead of the clock. Here there is nothing
+  /// to spend it on. Maia is trained to predict what a human of a given rating
+  /// plays, and searching on top of it makes the move stronger and less human,
+  /// which is the opposite of why anyone picks it.
   @override
   Future<String> bestMove(
     String positionCommand, {
