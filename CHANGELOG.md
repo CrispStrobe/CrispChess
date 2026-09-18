@@ -2,6 +2,77 @@
 
 ## Unreleased
 
+### Engines now spend the time they are given
+
+Four of them were not, in two different ways, and the round robin's latency
+table is where it showed: every engine sat at a `late/opening` ratio of 1.00
+except the ones with something wrong.
+
+Frozenight finished searching before its clock ran out. Depth is the
+difficulty setting, and at full strength the ceiling was low enough to stop
+the search first — 830 of its 1554 moves ended at depth 14 with most of the
+budget unspent, several of them in three milliseconds. The built-in engine did
+the same in endgames, where ten plies is cheap: 149ms of a 300ms budget,
+handing back half the clock in exactly the positions where another ply is
+worth most. Both now stop when the time does.
+
+Lynx did the opposite. On the web it took 408ms of a 300ms budget — time its
+opponents did not get — because a move costs more than its search: setting the
+position is its own trip into the .NET runtime, and that was not being counted.
+It now measures the whole move and asks for correspondingly less, landing on
+300ms. The desktop build had the reverse problem, reserving 50ms of every move
+against losing on time in an app where every move has its own budget and there
+is no clock to run out; that reserve is now 10ms.
+
+A search that cannot be interrupted is bounded by a node count instead of a
+guess about how long the next depth will take. That guess was wrong in
+endgames, where iterations stay cheap for many plies and then one explodes:
+two games were abandoned after an engine stopped answering. Frozenight's worst
+move fell from 1111ms to 331ms of a 300ms budget as a result.
+
+### A crashed engine no longer ends the game
+
+Nothing watched the engine process. When one exited mid-search, nothing
+completed the request: the app waited out its own timeout and reported a slow
+engine, leaving the dead process in place so every later move failed the same
+way until you noticed and switched engines by hand, mid-game.
+
+A death is now noticed in milliseconds rather than seconds, reported with what
+the engine printed as it went, and recovered from — the app starts a
+replacement and asks it for the move. An engine that keeps dying is not
+restarted forever.
+
+Failures also say what kind they are, so a crash being recovered from reads
+differently from one that needs you to pick another engine, and analysis
+trouble no longer looks like trouble with the game.
+
+### Analysis was running unbounded
+
+The eval bar asked for a fixed depth with no clock behind it — the thing taken
+out of ordinary play because a fixed depth costs whatever that depth costs in
+the position in front of it. Nothing stopped it either, so a strong engine sat
+at full CPU until your next move happened to interrupt it. On a phone that is
+the battery. It is bounded now.
+
+Analysis failures were also invisible on the web: two engines caught them,
+wrote to a console nobody has open, and let the eval bar quietly stop updating.
+
+### Lc0 is faster, and the web download is half the size
+
+The engine evaluates two positions per batch rather than four and uses half the
+machine's cores rather than all of them — both measured, and both the opposite
+of what it was doing: four threads and a batch of four came to 1.33ms per
+position against 0.74ms. That is 405 positions inside a 300ms move budget where
+there were 225.
+
+On the web it was downloading the WebGPU build of its runtime, 23MB, on a page
+that cannot use WebGPU — 11MB of binary that could never be reached. It now
+takes the 12MB one, served from the app rather than a public CDN, so a blocked
+or unreachable CDN no longer stops the engine before it can say why.
+
+Linux desktop builds now ship the native runtime they were missing, which they
+had been silently falling back from onto a five-times slower one.
+
 ### Lc0 was not playing the game it was given
 
 The engine scored zero out of twenty-four in the strength tournament while
