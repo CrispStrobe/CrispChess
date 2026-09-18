@@ -95,24 +95,44 @@ console.log(`budget ${budget}ms, ${POSITIONS.length} positions per value\n`);
 console.log(`${'MoveOverhead'.padStart(13)}${'median'.padStart(10)}` +
   `${'max'.padStart(8)}${'vs budget'.padStart(12)}`);
 
-const results = [];
 for (const value of values) {
   send(`setoption name MoveOverhead value ${value}`);
-  await ready();
+  await newGame();
   const times = [];
   for (const moves of POSITIONS) times.push(await move(moves));
   const med = median(times);
-  results.push({ value, med });
   const off = ((med - budget) / budget) * 100;
   console.log(`${String(value).padStart(13)}${`${med}ms`.padStart(10)}` +
     `${`${Math.max(...times)}ms`.padStart(8)}` +
     `${`${off >= 0 ? '+' : ''}${off.toFixed(0)}%`.padStart(12)}`);
 }
 
-const best = results.reduce((a, b) =>
+// If MoveOverhead does not reach the search — the native build honours it, so
+// this is a question about the WASM one — the remaining lever is to ask for
+// less time and let the fixed cost land the total on the budget.
+send('setoption name MoveOverhead value 50');
+await newGame();
+console.log(`\nasking for less, to land on ${budget}ms\n`);
+console.log(`${'requested'.padStart(13)}${'median'.padStart(10)}` +
+  `${'max'.padStart(8)}${'vs budget'.padStart(12)}`);
+
+const asks = [];
+const step = Math.max(1, Math.round(budget / 8));
+for (let ask = Math.round(budget / 2); ask <= budget; ask += step) {
+  const times = [];
+  for (const moves of POSITIONS) times.push(await move(moves, ask));
+  const med = median(times);
+  asks.push({ ask, med });
+  const off = ((med - budget) / budget) * 100;
+  console.log(`${String(ask).padStart(13)}${`${med}ms`.padStart(10)}` +
+    `${`${Math.max(...times)}ms`.padStart(8)}` +
+    `${`${off >= 0 ? '+' : ''}${off.toFixed(0)}%`.padStart(12)}`);
+}
+
+const best = asks.reduce((a, b) =>
   Math.abs(b.med - budget) < Math.abs(a.med - budget) ? b : a);
-console.log(`\nclosest to the budget: MoveOverhead ${best.value} ` +
-  `(${best.med}ms for ${budget}ms)`);
+console.log(`\nclosest: ask for ${best.ask}ms to spend ${best.med}ms of a ` +
+  `${budget}ms budget (${(best.ask / budget).toFixed(2)}x)`);
 
 send('quit');
 child.stdin.end();
