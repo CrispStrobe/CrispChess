@@ -15,6 +15,12 @@ typedef _SetPositionDart = int Function(Pointer<Utf8> fen, Pointer<Utf8> moves);
 typedef _SearchC = Int32 Function(Int32 depth);
 typedef _SearchDart = int Function(int depth);
 
+typedef _SearchBoundedC = Int32 Function(Int32 depth, Uint64 maxNodes);
+typedef _SearchBoundedDart = int Function(int depth, int maxNodes);
+
+typedef _GetNodesC = Int64 Function();
+typedef _GetNodesDart = int Function();
+
 typedef _GetBestMoveC = Pointer<Utf8> Function();
 typedef _GetBestMoveDart = Pointer<Utf8> Function();
 
@@ -35,6 +41,13 @@ class FrozenightEngine implements ChessEngine {
   _InitDart? _init;
   _SetPositionDart? _setPosition;
   _SearchDart? _search;
+  _SearchBoundedDart? _searchBounded;
+  _GetNodesDart? _getNodes;
+
+  /// Nodes per millisecond, measured as play goes on. Only the initial value
+  /// is a guess, and it is deliberately low: guessing high on the first search
+  /// of a session is the one case that cannot be corrected afterwards.
+  double _nodesPerMs = 200;
   _GetBestMoveDart? _getBestMove;
   _GetScoreDart? _getScore;
   _GetDepthDart? _getDepth;
@@ -43,6 +56,12 @@ class FrozenightEngine implements ChessEngine {
   bool _disposed = false;
   bool _available = false;
   bool _stopped = false;
+
+  /// Deep enough that the time budget is always what ends the search, without
+  /// being unbounded: a depth this engine cannot reach inside any budget the
+  /// app hands it, so the iterative deepening loop still terminates on its own
+  /// in a position where the search returns instantly.
+  static const int _fullStrengthDepth = 64;
 
   /// One search at a time. The FFI engine holds a single global position, so
   /// two overlapping searches would clobber each other's board between
@@ -97,6 +116,16 @@ class FrozenightEngine implements ChessEngine {
       _setPosition = lib.lookupFunction<_SetPositionC, _SetPositionDart>(
           'frozenight_set_position');
       _search = lib.lookupFunction<_SearchC, _SearchDart>('frozenight_search');
+      // Added later than the rest; a library built before it still loads and
+      // simply searches without a node bound.
+      try {
+        _searchBounded = lib.lookupFunction<_SearchBoundedC, _SearchBoundedDart>(
+            'frozenight_search_bounded');
+        _getNodes =
+            lib.lookupFunction<_GetNodesC, _GetNodesDart>('frozenight_get_nodes');
+      } on ArgumentError {
+        debugPrint('[Frozenight] library predates the node bound');
+      }
       _getBestMove = lib.lookupFunction<_GetBestMoveC, _GetBestMoveDart>(
           'frozenight_get_best_move');
       _getScore =
@@ -129,7 +158,16 @@ class FrozenightEngine implements ChessEngine {
     if (_disposed || !_available) throw StateError('Engine not ready');
     _stateNotifier.value = EngineState.thinking;
 
-    final maxDepth = depth ?? (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14);
+    // The depth ceiling is the difficulty knob: a weaker setting is a
+    // shallower search. At full strength it should not be a knob at all — the
+    // clock should be what stops the search — and 14 was low enough to stop it
+    // first. Measured over a round robin at 300ms per move, 830 of 1554
+    // Frozenight moves finished depth 14 and returned, several of them in
+    // three milliseconds, handing back nearly the whole budget unused.
+    final maxDepth = depth ??
+        (skillLevel != null && skillLevel >= 20
+            ? _fullStrengthDepth
+            : (2 + (skillLevel ?? 10) * 12 ~/ 20).clamp(2, 14));
     final budget = moveTime ??
         (depth != null ? kFixedDepthTimeCap : thinkTimeForLevel(skillLevel ?? 10));
 
@@ -146,10 +184,42 @@ class FrozenightEngine implements ChessEngine {
       var reached = 0;
       for (var d = 1; d <= maxDepth; d++) {
         if (_disposed) break;
-        if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
-        // Yield so the UI can paint between iterations.
-        if (d > 1) await Future<void>.delayed(Duration.zero);
-        if (_search!(d) != 0) break;
+        final remaining = budget - sw.elapsed;
+        if (d > 1) {
+          // With a node bound there is no need to predict whether a depth
+          // fits: it is cut short if it does not. Without one, fall back to
+          // the prediction, which is all the older library can support.
+          if (_searchBounded == null) {
+            if (!hasTimeForNextDepth(sw.elapsed, budget)) break;
+          } else if (remaining <= budget ~/ 8) {
+            break;
+          }
+          // Yield so the UI can paint between iterations.
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        final before = sw.elapsed;
+        final int status;
+        if (_searchBounded != null) {
+          final allowance = (remaining.inMilliseconds * _nodesPerMs)
+              .clamp(8192, 4000000000)
+              .toInt();
+          status = _searchBounded!(d, allowance);
+        } else {
+          status = _search!(d);
+        }
+        if (status != 0) break;
+
+        if (_getNodes != null) {
+          final nodes = _getNodes!();
+          final spent = (sw.elapsed - before).inMilliseconds;
+          if (nodes > 8192 && spent > 0) {
+            // Follow the recent rate: throughput differs a lot between a full
+            // board and a bare endgame.
+            _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
+          }
+        }
+
         final ptr = _getBestMove!();
         if (ptr.address != 0) {
           best = ptr.toDartString();
