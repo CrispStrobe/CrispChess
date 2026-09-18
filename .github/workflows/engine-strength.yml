@@ -53,6 +53,23 @@ jobs:
           mkdir -p ../../linux
           cp target/release/libfrozenight_ffi.so ../../linux/
 
+      # Without this the Lc0 engine's `auto` backend finds no native runtime
+      # on Linux, falls back to the pure-Dart one, and the tournament reports
+      # the strength of a configuration no phone or Mac user ever runs: 6.10ms
+      # per position instead of 1.06ms, so roughly a fifth of the search inside
+      # the same move budget. It rides in the directory LD_LIBRARY_PATH
+      # already points at for Frozenight.
+      - name: Provide the native ONNX Runtime
+        run: |
+          version=1.15.1
+          curl -sSLf --retry 3 -o ort.tgz \
+            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
+          tar -xzf ort.tgz
+          mkdir -p "$GITHUB_WORKSPACE/linux"
+          cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
+            "$GITHUB_WORKSPACE/linux/"
+          ls -la "$GITHUB_WORKSPACE/linux/"
+
       - name: Play
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/linux
