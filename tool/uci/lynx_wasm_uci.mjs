@@ -88,10 +88,12 @@ function discount(command) {
 function observe(asked, actual) {
   const want = Math.max(Math.round(asked / 2), Math.round(asked - overheadMs));
   const seen = actual - want;
-  // A third of the budget is already a lot of overhead; more than that means
-  // the clock started somewhere it should not have, and following it would
-  // starve the search.
-  if (seen > 0 && seen < asked / 3) {
+  // Half the budget is the limit worth following: the discount never goes
+  // below half anyway, so a larger reading cannot be acted on and most likely
+  // means the clock started somewhere it should not have. A third was too
+  // tight — three trips into Mono measured 108ms against a 300ms budget, the
+  // real cost, and rejecting it left the overshoot in place.
+  if (seen > 0 && seen < asked / 2) {
     overheadMs = overheadMs === 0 ? seen : 0.5 * overheadMs + 0.5 * seen;
   }
 }
