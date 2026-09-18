@@ -74,3 +74,4 @@ ios/*.a
 # repo. store/ is otherwise tracked (store/listing.md), so this is per-file.
 # Matches appeal.md, appeal-4.3a.md, appeals.md, ...
 store/appeal*.md
+web/ort/

@@ -10,6 +10,26 @@
 
 let lc0OnnxSession = null;
 
+/// Where to load the runtime binary from: this origin if the deploy vendored
+/// it, the CDN otherwise.
+///
+/// Asking for the loader rather than the 12MB binary keeps the probe cheap,
+/// and a failure here is not fatal — it just means falling back.
+const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+let ortWasmPaths = null;
+
+async function resolveWasmPaths() {
+  if (ortWasmPaths) return ortWasmPaths;
+  try {
+    const probe = await fetch('ort/ort-wasm-simd-threaded.mjs', { method: 'HEAD' });
+    ortWasmPaths = probe.ok ? 'ort/' : ORT_CDN;
+  } catch (_) {
+    ortWasmPaths = ORT_CDN;
+  }
+  console.log('[Lc0ONNX] runtime from ' + ortWasmPaths);
+  return ortWasmPaths;
+}
+
 async function lc0OnnxLoad(modelUrl) {
   await lc0OnnxClose();
 
@@ -28,8 +48,15 @@ async function lc0OnnxLoad(modelUrl) {
   }
 
   if (globalThis.ort.env) {
+    // Single-threaded: onnxruntime-web needs SharedArrayBuffer for threads,
+    // which needs cross-origin isolation, which this is not served with.
     globalThis.ort.env.wasm.numThreads = 1;
-    globalThis.ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+    // Prefer a copy served from here. The runtime binary is 12MB and was
+    // coming from a public CDN on every cold load, so a blocked or unreachable
+    // jsdelivr took the engine down before it could report anything useful.
+    // The deploy puts the files in ort/; a checkout does not have them, so
+    // fall back rather than fail for anyone running the app locally.
+    globalThis.ort.env.wasm.wasmPaths = await resolveWasmPaths();
   }
 
   console.log('[Lc0ONNX] Loading model from: ' + modelUrl);
