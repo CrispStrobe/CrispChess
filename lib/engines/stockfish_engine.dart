@@ -11,9 +11,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'chess_engine.dart';
 import 'stockfish_downloadable_engine.dart';
+import 'uci_process_lifecycle.dart';
 import 'uci_search_coordinator.dart';
 
-class StockfishEngine with UciSearchCoordinator implements ChessEngine {
+class StockfishEngine
+    with UciSearchCoordinator, UciProcessLifecycle
+    implements ChessEngine {
   // Accept sfVersion/variantId for API compat with web engine (ignored on native)
   StockfishEngine({dynamic sfVersion, String? variantId})
       : _delegate = Platform.isIOS ? StockfishDownloadableEngine() : null;
@@ -61,6 +64,15 @@ class StockfishEngine with UciSearchCoordinator implements ChessEngine {
   }
 
   @override
+  String get processLabel => 'Stockfish';
+
+  @override
+  void onProcessLost() {
+    if (!disposingProcess) _stateNotifier.value = EngineState.error;
+    if (isSearching) finishSearch(null);
+  }
+
+  @override
   Future<void> initialize() async {
     if (_delegate != null) return _delegate.initialize();
     _stateNotifier.value = EngineState.initializing;
@@ -68,6 +80,7 @@ class StockfishEngine with UciSearchCoordinator implements ChessEngine {
       final path = await _findOrExtractBinary();
       debugPrint('[Stockfish] Starting: $path');
       _process = await Process.start(path, []);
+      watchProcess(_process!);
 
       final ready = Completer<void>();
       _stdoutSub = _process!.stdout
@@ -76,6 +89,14 @@ class StockfishEngine with UciSearchCoordinator implements ChessEngine {
           .listen((line) {
         _handleLine(line);
         if (line.trim() == 'uciok' && !ready.isCompleted) ready.complete();
+      }, onDone: () {
+        // stdout closing is the first sign of death, usually ahead of the exit
+        // code; do not leave a caller waiting for the difference.
+        if (!ready.isCompleted) ready.complete();
+        releaseOnLoss();
+      }, onError: (Object e) {
+        debugPrint('[Stockfish] stdout error: $e');
+        releaseOnLoss();
       });
 
       _process!.stdin.writeln('uci');
@@ -138,12 +159,20 @@ class StockfishEngine with UciSearchCoordinator implements ChessEngine {
     final cap = uciSearchTimeout(
         depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
+    if (processGone) throw await processDeathReport();
+
     final move = await startSearch(positionCommand, go, awaitMove: true)
         .timeout(cap, onTimeout: () {
       abandonSearch();
       return null;
     });
-    if (move == null) throw TimeoutException('Search timed out');
+    if (move == null) {
+      // A null answer means one of two very different things, and reporting
+      // both as a timeout is what let a crashed engine pass for a slow one.
+      if (processGone) throw await processDeathReport();
+      throw TimeoutException(
+          'No bestmove within ${cap.inMilliseconds}ms', cap);
+    }
     return move;
   }
 
@@ -178,9 +207,11 @@ class StockfishEngine with UciSearchCoordinator implements ChessEngine {
   @override
   void dispose() {
     if (_delegate != null) return _delegate.dispose();
+    beginProcessDispose();
     finishSearch(null);
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
+    stopWatchingProcess();
     _evalController.close();
     _process?.kill();
     _process = null;

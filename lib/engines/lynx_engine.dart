@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'uci_process_lifecycle.dart';
 import 'uci_search_coordinator.dart';
 
 /// GitHub release download URLs for Lynx v1.11.0 (self-contained binaries).
@@ -47,7 +48,9 @@ const _lynxBaseUrl =
 }
 
 /// Lynx chess engine — downloads and runs as a native UCI process.
-class LynxEngine with UciSearchCoordinator implements ChessEngine {
+class LynxEngine
+    with UciSearchCoordinator, UciProcessLifecycle
+    implements ChessEngine {
   /// Accepted for API parity with the web build, which offers a choice of WASM
   /// bundles. There is nothing to choose on native: it runs one downloaded
   /// binary.
@@ -91,12 +94,22 @@ class LynxEngine with UciSearchCoordinator implements ChessEngine {
       (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
 
   @override
+  String get processLabel => 'Lynx';
+
+  @override
+  void onProcessLost() {
+    if (!disposingProcess) _stateNotifier.value = EngineState.error;
+    if (isSearching) finishSearch(null);
+  }
+
+  @override
   Future<void> initialize() async {
     _stateNotifier.value = EngineState.initializing;
     try {
       final binaryPath = await _ensureDownloaded();
       debugPrint('[Lynx] Starting: $binaryPath');
       _process = await Process.start(binaryPath, []);
+      watchProcess(_process!);
 
       final ready = Completer<void>();
       _stdoutSub = _process!.stdout
@@ -105,6 +118,14 @@ class LynxEngine with UciSearchCoordinator implements ChessEngine {
           .listen((line) {
         _handleLine(line);
         if (line.trim() == 'uciok' && !ready.isCompleted) ready.complete();
+      }, onDone: () {
+        // stdout closing is the first sign of death, usually ahead of the exit
+        // code; do not leave a caller waiting for the difference.
+        if (!ready.isCompleted) ready.complete();
+        releaseOnLoss();
+      }, onError: (Object e) {
+        debugPrint('[Lynx] stdout error: $e');
+        releaseOnLoss();
       });
 
       _process!.stderr
@@ -195,12 +216,20 @@ class LynxEngine with UciSearchCoordinator implements ChessEngine {
     final cap = uciSearchTimeout(
         depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
+    if (processGone) throw await processDeathReport();
+
     final move = await startSearch(positionCommand, go, awaitMove: true)
         .timeout(cap, onTimeout: () {
       abandonSearch();
       return null;
     });
-    if (move == null) throw TimeoutException('Search timed out');
+    if (move == null) {
+      // A null answer means one of two very different things, and reporting
+      // both as a timeout is what let a crashed engine pass for a slow one.
+      if (processGone) throw await processDeathReport();
+      throw TimeoutException(
+          'No bestmove within ${cap.inMilliseconds}ms', cap);
+    }
     return move;
   }
 
@@ -229,9 +258,11 @@ class LynxEngine with UciSearchCoordinator implements ChessEngine {
 
   @override
   void dispose() {
+    beginProcessDispose();
     finishSearch(null);
     _process?.stdin.writeln('quit');
     _stdoutSub?.cancel();
+    stopWatchingProcess();
     _evalController.close();
     _process?.kill();
     _process = null;
