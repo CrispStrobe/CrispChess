@@ -165,7 +165,14 @@ class Lc0Engine implements ChessEngine {
         legalMoves: legalMoves,
         evaluate: _evaluateCached,
         evaluateBatch: _evaluateBatch,
-        batchSize: 4,
+        // Two, not four. Measured on the native runtime at 25, 400 and 1200
+        // iterations: 1.07ms per position at a batch of two against 1.52ms at
+        // four, which is slower even than one. The pure-Dart runtime is flat
+        // across the range (6.08 / 6.16 / 6.22), so nothing loses by it. A
+        // smaller batch also speculates less — fewer leaves are chosen before
+        // any of their evaluations come back — so the search is a little
+        // better informed as well as faster.
+        batchSize: 2,
         estimatedEvaluationMicros: _estimatedEvaluationMicros,
         historyFens: history,
         positionAt: (moves) => _positionAt(fen, history, moves),
