@@ -11,6 +11,17 @@
 name: Engine latency
 
 on:
+  # Every timing fix in these engines was found by reading a table someone had
+  # to ask for. A move that costs far more than it was given takes time its
+  # opponent did not get and makes the app feel slower than the setting says,
+  # and neither shows up in a unit test.
+  pull_request:
+    paths:
+      - 'tool/uci/**'
+      - 'tool/perf/lynx_overhead.mjs'
+      - 'lib/engines/lynx_*.dart'
+      - 'web/lynx*'
+      - '.github/workflows/engine-latency.yml'
   workflow_dispatch:
     inputs:
       budget_ms:

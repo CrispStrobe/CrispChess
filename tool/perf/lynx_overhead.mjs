@@ -149,6 +149,21 @@ for (const moves of POSITIONS) quiet.push(await move(moves));
 console.log(`\nwith Minimal: median ${median(quiet)}ms, ` +
   `max ${Math.max(...quiet)}ms for a ${budget}ms budget`);
 
+// Fail the run when a move costs materially more than it was given. Every
+// timing fix in this engine was found by reading a table someone had to ask
+// for; this is the part that asks on its own. The allowance is generous — the
+// point is to catch an engine going back to 408ms for a 300ms budget, not to
+// police a few milliseconds of jitter.
+const limit = Math.round(budget * 1.15);
+const observed = median(quiet);
+if (observed > limit) {
+  console.error(`\nFAIL: ${observed}ms for a ${budget}ms budget, over the ` +
+    `${limit}ms allowance`);
+  process.exitCode = 1;
+} else {
+  console.log(`within budget: ${observed}ms <= ${limit}ms`);
+}
+
 send('quit');
 child.stdin.end();
 setTimeout(() => process.exit(0), 500);
