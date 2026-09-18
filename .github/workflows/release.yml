@@ -46,6 +46,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
       - run: flutter build linux --release
+      # package:onnxruntime bundles its native library for Android, iOS, macOS
+      # and Windows, and expects the system to provide it on Linux — where
+      # almost nobody has it. The Lc0 engine then falls back to the pure-Dart
+      # runtime, which is correct but measured at 6.10ms per position against
+      # 1.06ms native, so a Linux user was quietly getting a fifth of the
+      # search for the same move budget. Flutter's rpath covers `lib/` next to
+      # the executable, which is how the Frozenight library already travels.
+      - name: Bundle the native ONNX Runtime
+        run: |
+          version=1.15.1
+          curl -sSLf --retry 3 -o ort.tgz \
+            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
+          tar -xzf ort.tgz
+          cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
+            build/linux/x64/release/bundle/lib/
+          ls -la build/linux/x64/release/bundle/lib/ | grep onnx
       - run: |
           cd build/linux/x64/release/bundle
           tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64.tar.gz .
@@ -70,6 +86,22 @@ jobs:
       - run: cargo build --release
         working-directory: native/frozenight
       - run: flutter build linux --release
+      # package:onnxruntime bundles its native library for Android, iOS, macOS
+      # and Windows, and expects the system to provide it on Linux — where
+      # almost nobody has it. The Lc0 engine then falls back to the pure-Dart
+      # runtime, which is correct but measured at 6.10ms per position against
+      # 1.06ms native, so a Linux user was quietly getting a fifth of the
+      # search for the same move budget. Flutter's rpath covers `lib/` next to
+      # the executable, which is how the Frozenight library already travels.
+      - name: Bundle the native ONNX Runtime
+        run: |
+          version=1.15.1
+          curl -sSLf --retry 3 -o ort.tgz \
+            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
+          tar -xzf ort.tgz
+          cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
+            build/linux/x64/release/bundle/lib/
+          ls -la build/linux/x64/release/bundle/lib/ | grep onnx
       - run: |
           cp native/frozenight/target/release/libfrozenight_ffi.so build/linux/x64/release/bundle/lib/
           cd build/linux/x64/release/bundle
