@@ -5,6 +5,7 @@
 
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
 import 'lynx_build.dart';
@@ -37,6 +38,11 @@ final _multipvRegex = RegExp(r'multipv (\d+)');
 /// Uses .NET compiled to WebAssembly (Mono runtime).
 /// Async search — yields back to event loop during search.
 class LynxEngine implements ChessEngine {
+  /// Milliseconds a move costs outside the search, learned as play goes on.
+  /// Zero until the first move has been timed, so nothing is assumed about the
+  /// machine this is running on.
+  int _overheadMs = 0;
+
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
 
   /// Which WASM build to load. The .NET runtime can only be created once per
@@ -155,17 +161,37 @@ class LynxEngine implements ChessEngine {
     // once the position opens up, and worse every move — the "it gets slower
     // each turn" report. Search by time instead; Lynx honours `go movetime`.
     final budget = moveTime ?? thinkTimeForLevel(skillLevel ?? 10);
+    // Ask for less than the budget by the measured cost of getting into Mono
+    // and back, which the search itself never sees. Lynx's own MoveOverhead
+    // option does not pay for it here: sweeping it from 50 to 450 moved the
+    // median move time by three milliseconds, while the time requested tracked
+    // it one for one, the gap holding at 55-57ms across four budgets. The size
+    // is learned rather than fixed, since a phone and a desktop will not agree
+    // on it, and starts at zero so the first move behaves as before.
+    final asked = depth != null
+        ? budget
+        : Duration(
+            milliseconds: max(budget.inMilliseconds ~/ 2,
+                budget.inMilliseconds - _overheadMs));
     final goCmd = depth != null
         ? 'go depth $depth'
-        : 'go movetime ${budget.inMilliseconds}';
+        : 'go movetime ${asked.inMilliseconds}';
 
     return _serialized(() async {
       try {
         // Yield to let the UI update before the blocking search
         await Future.delayed(const Duration(milliseconds: 50));
 
+        final watch = Stopwatch()..start();
         await _lynxSendUci(positionCommand.toJS).toDart;
         final result = (await _lynxSearch(goCmd.toJS).toDart).toDart;
+        if (depth == null) {
+          final seen = watch.elapsedMilliseconds - asked.inMilliseconds;
+          if (seen > 0 && seen < budget.inMilliseconds) {
+            _overheadMs =
+                _overheadMs == 0 ? seen : (_overheadMs + seen) ~/ 2;
+          }
+        }
 
         final bestMove = _parseBestMove(result);
         _stateNotifier.value = EngineState.ready;

@@ -116,6 +116,15 @@ class LynxEngine with UciSearchCoordinator implements ChessEngine {
       await ready.future.timeout(const Duration(seconds: 15),
           onTimeout: () => debugPrint('[Lynx] UCI handshake timeout'));
 
+      // Lynx reserves MoveOverhead milliseconds of every move against losing
+      // on time, and honours it for `go movetime` too: a 300ms budget came
+      // back in 251ms over a round robin, which is the default 50 subtracted.
+      // Nothing here plays to a clock — each move is given its own budget and
+      // there is no flag to fall — so most of that reserve is thinking time
+      // handed back for nothing. Ten leaves a margin for the pipe without
+      // giving up a sixth of the search.
+      _process!.stdin.writeln('setoption name MoveOverhead value 10');
+
       _process!.stdin.writeln('isready');
       _stateNotifier.value = EngineState.ready;
       debugPrint('[Lynx] Ready (v$_lynxVersion, ~${estimatedElo} ELO)');

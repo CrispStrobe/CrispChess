@@ -46,6 +46,39 @@ if (init !== 'ok') {
 await interop.SendCommand('position startpos');
 await interop.SendSearchCommand('go movetime 600');
 
+// A move costs a fixed amount outside the search — dispatching into Mono and
+// back — and Lynx's own MoveOverhead option does not pay for it: sweeping that
+// from 50 to 450 moved the median move time by three milliseconds, while the
+// time actually requested tracked it one for one. Measured on a CI runner at
+// four budgets, the gap was 57, 55, 57 and 56ms: a constant, not a fraction.
+//
+// So the fix is to ask for that much less. The size of it is learned rather
+// than hardcoded, because it is a property of the machine — a phone and a CI
+// runner will not agree on it — and it starts at zero so the first move
+// behaves exactly as before and every later one is corrected.
+let overheadMs = 0;
+
+function budgetOf(command) {
+  const m = /\bmovetime\s+(\d+)/.exec(command);
+  return m ? Number(m[1]) : null;
+}
+
+/// Ask for `movetime` minus the measured overhead, never less than half.
+function discount(command) {
+  const asked = budgetOf(command);
+  if (asked === null) return command;
+  const want = Math.max(Math.round(asked / 2), Math.round(asked - overheadMs));
+  return command.replace(/\bmovetime\s+\d+/, `movetime ${want}`);
+}
+
+function observe(asked, actual) {
+  const want = Math.max(Math.round(asked / 2), Math.round(asked - overheadMs));
+  const seen = actual - want;
+  if (seen > 0 && seen < asked) {
+    overheadMs = overheadMs === 0 ? seen : 0.5 * overheadMs + 0.5 * seen;
+  }
+}
+
 function emit(text) {
   if (!text) return;
   for (const line of String(text).split('\n')) {
@@ -71,9 +104,14 @@ rl.on('line', (raw) => {
     try {
       // `go` blocks until the search ends and returns every info line plus the
       // bestmove; everything else is a plain command/response.
-      emit(line.startsWith('go')
-          ? await interop.SendSearchCommand(line)
-          : await interop.SendCommand(line));
+      if (line.startsWith('go')) {
+        const started = Date.now();
+        const asked = budgetOf(line);
+        emit(await interop.SendSearchCommand(discount(line)));
+        if (asked !== null) observe(asked, Date.now() - started);
+      } else {
+        emit(await interop.SendCommand(line));
+      }
     } catch (e) {
       process.stderr.write(`error handling "${line}": ${e}\n`);
     }
