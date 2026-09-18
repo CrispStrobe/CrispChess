@@ -58,14 +58,19 @@ await interop.SendSearchCommand('go movetime 600');
 // behaves exactly as before and every later one is corrected.
 let overheadMs = 0;
 
-/// When the position for the next move arrived.
+/// When the caller started paying for the next move.
 ///
-/// A move costs the caller more than the search: setting the position is its
-/// own trip into Mono, and a GUI that sends `position` then `go` back to back
-/// is already on the clock when the first one lands. Timing only the `go` put
-/// that cost outside the measurement and learned an overhead of five
-/// milliseconds when the caller was seeing fifty.
-let positionAt = null;
+/// A move costs the caller more than the search. Every command is its own trip
+/// into Mono, and a GUI asking for a move sends several back to back —
+/// `setoption`, then `position`, then `go` — while its clock runs from the
+/// first of them. Timing only the `go` learned an overhead of 5ms where the
+/// caller saw 50; timing from `position` closed most of it and left the
+/// `setoption` trip outside, which is the 52ms between a probe that sends two
+/// commands and a round robin that sends three.
+///
+/// So the clock starts at whichever of them arrives first and stops when the
+/// search answers.
+let moveStartedAt = null;
 
 function budgetOf(command) {
   const m = /\bmovetime\s+(\d+)/.exec(command);
@@ -83,7 +88,10 @@ function discount(command) {
 function observe(asked, actual) {
   const want = Math.max(Math.round(asked / 2), Math.round(asked - overheadMs));
   const seen = actual - want;
-  if (seen > 0 && seen < asked) {
+  // A third of the budget is already a lot of overhead; more than that means
+  // the clock started somewhere it should not have, and following it would
+  // starve the search.
+  if (seen > 0 && seen < asked / 3) {
     overheadMs = overheadMs === 0 ? seen : 0.5 * overheadMs + 0.5 * seen;
   }
 }
@@ -114,8 +122,8 @@ rl.on('line', (raw) => {
       // `go` blocks until the search ends and returns every info line plus the
       // bestmove; everything else is a plain command/response.
       if (line.startsWith('go')) {
-        const started = positionAt ?? Date.now();
-        positionAt = null;
+        const started = moveStartedAt ?? Date.now();
+        moveStartedAt = null;
         const asked = budgetOf(line);
         const sent = discount(line);
         emit(await interop.SendSearchCommand(sent));
@@ -127,7 +135,12 @@ rl.on('line', (raw) => {
             `overhead now ${Math.round(overheadMs)}ms\n`);
         }
       } else {
-        if (line.startsWith('position')) positionAt = Date.now();
+        // `ucinewgame` and `isready` are housekeeping between moves, not part
+        // of one, so they do not start the clock.
+        if ((line.startsWith('position') || line.startsWith('setoption')) &&
+            moveStartedAt === null) {
+          moveStartedAt = Date.now();
+        }
         emit(await interop.SendCommand(line));
       }
     } catch (e) {
