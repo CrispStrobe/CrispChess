@@ -33,6 +33,9 @@ on:
       bench_batches:
         description: Batch sizes to time
         default: '1,2,4,8,16'
+      bench_workers:
+        description: Inference threads / isolate workers
+        default: '4'
   pull_request:
     paths:
       - 'lib/engines/lc0_dart/**'
@@ -156,6 +159,7 @@ jobs:
           BENCH_MODEL: build/oracle/${{ inputs.variant || 'maia-1900' }}.onnx
           BENCH_ITERATIONS: ${{ inputs.bench_iterations || '25' }}
           BENCH_BATCHES: ${{ inputs.bench_batches || '1,2,4,8,16' }}
+          BENCH_WORKERS: ${{ inputs.bench_workers || '4' }}
         run: |
           set -o pipefail
           flutter test tool/perf/inference_bench.dart --timeout none \
