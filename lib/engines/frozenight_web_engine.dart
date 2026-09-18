@@ -175,9 +175,34 @@ class FrozenightEngine implements ChessEngine {
 
     for (int d = 1; d <= (depth ?? 15); d++) {
       if (_stopped) break;
-      if (d > 1 && !hasTimeForNextDepth(sw.elapsed, budget)) break;
+      final remaining = budget - sw.elapsed;
+      if (d > 1 && remaining <= budget ~/ 8) break;
       await Future.delayed(Duration.zero);
-      final move = _frozenightSearch(d.toJS).toDart;
+
+      // The node bound went into `bestMove` and stopped there, so analysis
+      // kept the call that cannot be interrupted: "each depth is one
+      // uninterruptible WASM call" was a description of the problem, not a
+      // reason to accept it. A depth that does not fit is cut short here too.
+      final before = sw.elapsed;
+      final allowance = (remaining.inMilliseconds * _nodesPerMs)
+          .clamp(4096, 2000000000)
+          .toDouble();
+      final answer = _frozenightSearchBounded(d.toJS, allowance.toJS).toDart;
+
+      final String move;
+      if (answer.isEmpty) {
+        // A bundle older than `search_bounded`.
+        move = _frozenightSearch(d.toJS).toDart;
+      } else {
+        final space = answer.indexOf(' ');
+        move = space < 0 ? answer : answer.substring(0, space);
+        final nodes =
+            space < 0 ? 0 : int.tryParse(answer.substring(space + 1)) ?? 0;
+        final spent = (sw.elapsed - before).inMilliseconds;
+        if (nodes > 4096 && spent > 0) {
+          _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
+        }
+      }
       final eval = _frozenightGetEval().toDartInt;
 
       yield EvalInfo(

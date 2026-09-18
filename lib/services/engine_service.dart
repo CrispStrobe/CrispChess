@@ -32,9 +32,42 @@ class StateChangeEvent extends EngineEvent {
   StateChangeEvent(this.state);
 }
 
+/// What went wrong, in a form the UI can act on.
+///
+/// The message alone could only be rendered red for four seconds. "Stockfish
+/// crashed, restarting it" and a stack trace want different treatment, and the
+/// screen had no way to tell them apart.
+enum EngineFailure {
+  /// The engine could not be started at all.
+  startup,
+
+  /// Its process exited while it owed a move; [EngineErrorEvent.recovering]
+  /// says whether a replacement is on the way.
+  died,
+
+  /// It is alive and did not answer in time.
+  timeout,
+
+  /// Analysis failed; play is unaffected.
+  analysis,
+
+  /// Anything else.
+  other,
+}
+
 class EngineErrorEvent extends EngineEvent {
   final String message;
-  EngineErrorEvent(this.message);
+  final EngineFailure kind;
+
+  /// True when a replacement is already being started, so the screen can say
+  /// so instead of implying the game is over.
+  final bool recovering;
+
+  EngineErrorEvent(
+    this.message, {
+    this.kind = EngineFailure.other,
+    this.recovering = false,
+  });
 }
 
 /// High-level service managing a [ChessEngine] instance.
@@ -80,7 +113,7 @@ class EngineService {
     try {
       await _engine.initialize();
     } catch (e) {
-      _eventController.add(EngineErrorEvent('Init failed: $e'));
+      _eventController.add(EngineErrorEvent('Init failed: $e', kind: EngineFailure.startup));
     }
   }
 
@@ -144,7 +177,10 @@ class EngineService {
         _eventController.add(BestMoveEvent(move));
       }
     } catch (e) {
-      _eventController.add(EngineErrorEvent('Move request failed: $e'));
+      _eventController.add(EngineErrorEvent('Move request failed: $e',
+          kind: e is TimeoutException
+              ? EngineFailure.timeout
+              : EngineFailure.other));
     }
   }
 
@@ -161,11 +197,12 @@ class EngineService {
   ) async {
     final rebuild = rebuildEngine;
     if (rebuild == null || _restarts >= _maxRestarts) {
-      _eventController.add(EngineErrorEvent('$death'));
+      _eventController.add(EngineErrorEvent('$death', kind: EngineFailure.died));
       return null;
     }
     _restarts++;
-    _eventController.add(EngineErrorEvent('$death — restarting it'));
+    _eventController.add(EngineErrorEvent('$death — restarting it',
+        kind: EngineFailure.died, recovering: true));
 
     try {
       _analysisSubscription?.cancel();
@@ -182,7 +219,7 @@ class EngineService {
         skillLevel: skillLevel,
       );
     } catch (e) {
-      _eventController.add(EngineErrorEvent('Restart failed: $e'));
+      _eventController.add(EngineErrorEvent('Restart failed: $e', kind: EngineFailure.died));
       return null;
     }
   }
@@ -211,11 +248,11 @@ class EngineService {
           ));
         },
         onError: (e) {
-          _eventController.add(EngineErrorEvent('Analysis error: $e'));
+          _eventController.add(EngineErrorEvent('Analysis error: $e', kind: EngineFailure.analysis));
         },
       );
     } catch (e) {
-      _eventController.add(EngineErrorEvent('Analysis failed: $e'));
+      _eventController.add(EngineErrorEvent('Analysis failed: $e', kind: EngineFailure.analysis));
     }
   }
 
