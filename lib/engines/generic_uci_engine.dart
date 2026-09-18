@@ -2,6 +2,7 @@
 ///
 /// Speaks the UCI protocol over stdin/stdout. Available on desktop
 /// and mobile platforms (not web — no process spawning).
+library;
 
 import 'dart:async';
 import 'dart:convert';
@@ -14,12 +15,51 @@ import 'uci_search_coordinator.dart';
 
 export 'generic_uci_engine_stub.dart' show EngineProfile;
 
+/// Thrown when the engine process exits while it still owed us a move.
+///
+/// Without this the death was invisible: nothing completed the pending
+/// request, the caller waited out its own timeout, and a crashed engine was
+/// reported as a slow one. The two need telling apart — a slow engine wants a
+/// bigger budget, a dead one wants its stderr read — so the last thing it
+/// printed travels with the exception.
+class EngineProcessDiedException implements Exception {
+  final String engine;
+  final int? exitCode;
+  final List<String> stderrTail;
+
+  EngineProcessDiedException(this.engine, this.exitCode, this.stderrTail);
+
+  @override
+  String toString() {
+    final code = exitCode == null ? 'unknown exit code' : 'exit code $exitCode';
+    final tail = stderrTail.isEmpty
+        ? ' (it printed nothing to stderr)'
+        : '\n  stderr: ${stderrTail.join('\n          ')}';
+    return 'Engine "$engine" exited while searching ($code)$tail';
+  }
+}
+
 class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
   final EngineProfile profile;
 
   Process? _process;
   final _stateNotifier = ValueNotifier<EngineState>(EngineState.idle);
   StreamSubscription? _stdoutSub;
+  StreamSubscription? _stderrSub;
+
+  /// Set once the connection is gone, so a request can say so instead of
+  /// waiting. Stdout closing is the earliest sign and arrives well before the
+  /// exit code — relying on the code alone left a 13ms death being reported as
+  /// a 6.8-second timeout.
+  bool _exited = false;
+  int? _exitCode;
+
+  /// Set while tearing down on purpose, so a kill is not reported as a crash.
+  bool _disposing = false;
+
+  /// The last few stderr lines, kept for the exception that reports a death.
+  /// A crash usually explains itself there, and the output was being discarded.
+  final List<String> _stderrTail = [];
   final _evalController = StreamController<EvalInfo>.broadcast();
 
   /// Engine identity parsed from the UCI handshake.
@@ -67,6 +107,22 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
       }
 
       _process = await Process.start(profile.path, []);
+      _exited = false;
+      _exitCode = null;
+      _stderrTail.clear();
+
+      _stderrSub = _process!.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
+        if (line.trim().isEmpty) return;
+        _stderrTail.add(line);
+        if (_stderrTail.length > 10) _stderrTail.removeAt(0);
+      });
+
+      // A process that dies owes us an answer it will never send. Watching the
+      // exit turns an indefinite wait into an error that names the cause.
+      unawaited(_process!.exitCode.then(_onProcessExit));
 
       final ready = Completer<void>();
 
@@ -78,6 +134,14 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
         if (line.trim() == 'uciok' && !ready.isCompleted) {
           ready.complete();
         }
+      }, onDone: () {
+        // stdout closing is the first sign of death, usually ahead of the
+        // exit code; don't leave a caller waiting for the difference.
+        if (!ready.isCompleted) ready.complete();
+        _releasePendingSearch();
+      }, onError: (Object e) {
+        debugPrint('[UCI] ${profile.path} stdout error: $e');
+        _releasePendingSearch();
       });
 
       // Start UCI handshake
@@ -112,7 +176,52 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
 
   @override
   void sendUci(String command) {
-    _process?.stdin.writeln(command);
+    if (_exited) return;
+    try {
+      _process?.stdin.writeln(command);
+    } on SocketException catch (e) {
+      // Writing to a pipe whose far end is gone. The exit watcher reports it.
+      debugPrint('[UCI] ${profile.path} write failed: $e');
+    }
+  }
+
+  void _onProcessExit(int code) {
+    _exitCode = code;
+    if (!_disposing) {
+      debugPrint('[UCI] ${profile.path} exited with code $code');
+    }
+    _releasePendingSearch();
+  }
+
+  /// Note that the far end is gone and complete whatever request is
+  /// outstanding, so its caller stops waiting.
+  ///
+  /// Called from both the exit code and stdout closing, because they do not
+  /// arrive together and the request should end on whichever comes first. The
+  /// move is null, which `bestMove` turns into [EngineProcessDiedException].
+  void _releasePendingSearch() {
+    _exited = true;
+    if (!_disposing) _stateNotifier.value = EngineState.error;
+    if (isSearching) finishSearch(null);
+  }
+
+  /// The death report, with the exit code if it can be had.
+  ///
+  /// Stdout closes a moment before the exit code lands, and the code is the
+  /// most useful part of the report, so this waits briefly rather than saying
+  /// "unknown" — which also gives any last stderr line time to be delivered.
+  Future<EngineProcessDiedException> _deathReport() async {
+    if (_exitCode == null && _process != null) {
+      try {
+        _exitCode =
+            await _process!.exitCode.timeout(const Duration(seconds: 2));
+      } on TimeoutException {
+        // Gone but not reaped; report it without a code.
+      }
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    return EngineProcessDiedException(
+        _engineName, _exitCode, List.of(_stderrTail));
   }
 
   void _send(String command) => sendUci(command);
@@ -194,12 +303,20 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
         depth: depth, moveTime: moveTime, skillLevel: skillLevel);
     final cap = uciSearchTimeout(depth: depth, moveTime: moveTime, skillLevel: skillLevel);
 
+    if (_exited) throw await _deathReport();
+
     final move = await startSearch(positionCommand, go, awaitMove: true)
         .timeout(cap, onTimeout: () {
       abandonSearch();
       return null;
     });
-    if (move == null) throw TimeoutException('Search timed out');
+    if (move == null) {
+      // A null answer means one of two very different things, and reporting
+      // both as a timeout is what let a crashed engine pass for a slow one.
+      if (_exited) throw await _deathReport();
+      throw TimeoutException(
+          'No bestmove within ${cap.inMilliseconds}ms', cap);
+    }
     return move;
   }
 
@@ -237,9 +354,11 @@ class GenericUciEngine with UciSearchCoordinator implements ChessEngine {
 
   @override
   void dispose() {
+    _disposing = true;
     finishSearch(null);
     _send('quit');
     _stdoutSub?.cancel();
+    _stderrSub?.cancel();
     _evalController.close();
     _process?.kill();
     _process = null;
