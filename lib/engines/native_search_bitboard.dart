@@ -11,17 +11,20 @@ import 'package:crisp_chess_engine/bitboard.dart';
 /// Returns the best move from the last completed depth, or null if there are no
 /// legal moves.
 SearchResult? searchPositionNative(
-    String baseFen, List<String> moves, int depth, int budgetMs) {
+    String baseFen, List<String> moves, int depth, int budgetMs,
+    {void Function(SearchResult)? onDepthComplete}) {
   final pos = Position.fromFen(baseFen);
   final history = <int>[pos.hash()];
   for (final uci in moves) {
     final m = pos.moveFromUci(uci);
-    if (m < 0) break; // unparseable/illegal — stop replaying, search what we have
+    if (m < 0)
+      break; // unparseable/illegal — stop replaying, search what we have
     pos.makeMove(m);
     history.add(pos.hash());
   }
   return BitboardSearch(pos, repetitionHistory: history).search(
     depth,
+    onDepthComplete: onDepthComplete,
     timeBudget: budgetMs > 0 ? Duration(milliseconds: budgetMs) : null,
   );
 }
