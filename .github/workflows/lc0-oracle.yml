@@ -27,6 +27,12 @@ on:
       nodes:
         description: Node budget per move, both sides
         default: '100'
+      bench_iterations:
+        description: Timed runs per batch size in the inference benchmark
+        default: '25'
+      bench_batches:
+        description: Batch sizes to time
+        default: '1,2,4,8,16'
   pull_request:
     paths:
       - 'lib/engines/lc0_dart/**'
@@ -148,8 +154,8 @@ jobs:
       - name: Time a forward pass, both backends
         env:
           BENCH_MODEL: build/oracle/${{ inputs.variant || 'maia-1900' }}.onnx
-          BENCH_ITERATIONS: '25'
-          BENCH_BATCHES: '1,2,4,8,16'
+          BENCH_ITERATIONS: ${{ inputs.bench_iterations || '25' }}
+          BENCH_BATCHES: ${{ inputs.bench_batches || '1,2,4,8,16' }}
         run: |
           set -o pipefail
           flutter test tool/perf/inference_bench.dart --timeout none \
