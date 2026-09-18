@@ -1,0 +1,47 @@
+# Does an engine finish a move in the time it was given?
+#
+# The round robin reports median move time per engine, and two of them have
+# been wrong there for a while in opposite directions: an engine that stops
+# early hands back thinking time, and one that runs over takes time its
+# opponents did not get, which quietly inflates its rating in every table.
+#
+# Calibrating that needs a warmed engine and every value measured in one
+# process. It cannot be done on a dev box — Mono's cold start is seconds and
+# swamps a 300ms budget — so it lives here.
+name: Engine latency
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget_ms:
+        description: Move budget to calibrate against
+        default: '300'
+      overheads:
+        description: MoveOverhead values to try
+        default: '50,150,250,350,450'
+
+permissions:
+  contents: read
+
+jobs:
+  lynx-overhead:
+    name: Lynx WASM MoveOverhead
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Measure
+        run: |
+          set -o pipefail
+          node tool/perf/lynx_overhead.mjs \
+            --budget ${{ inputs.budget_ms || '300' }} \
+            --values ${{ inputs.overheads || '50,150,250,350,450' }} \
+            | tee lynx-overhead.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lynx-overhead
+          path: lynx-overhead.txt
