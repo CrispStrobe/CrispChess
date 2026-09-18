@@ -15,7 +15,7 @@ import 'uci_process_lifecycle.dart';
 import 'uci_search_coordinator.dart';
 
 export 'generic_uci_engine_stub.dart' show EngineProfile;
-export 'uci_process_lifecycle.dart' show EngineProcessDiedException;
+export 'chess_engine.dart' show EngineProcessDiedException;
 
 class GenericUciEngine
     with UciSearchCoordinator, UciProcessLifecycle
