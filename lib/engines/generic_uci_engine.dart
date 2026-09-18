@@ -244,10 +244,26 @@ class GenericUciEngine
 
   @override
   Stream<EvalInfo> analyze(String positionCommand, {int? depth, bool infinite = false}) {
-    if (_process == null) return const Stream.empty();
+    if (_process == null || processGone) {
+      // Silently returning an empty stream here is how a dead engine looked
+      // like a quiet one: the eval bar simply stopped updating.
+      if (processGone) debugPrint('[$processLabel] analysis skipped: process gone');
+      return const Stream.empty();
+    }
     _stateNotifier.value = EngineState.thinking;
-    startSearch(positionCommand,
-        infinite ? 'go infinite' : 'go depth ${depth ?? 20}',
+    // Bound the depth search by the clock too. A fixed depth costs whatever
+    // that depth costs in the position in front of it — the thing that was
+    // taken out of `bestMove` because it turned into seconds per move by the
+    // middlegame — and nothing here ever stopped it: analysis has no timeout,
+    // so a strong engine asked for depth 20 sits at full CPU until the next
+    // move happens to interrupt it. On a phone that is the battery.
+    //
+    // `infinite` is left alone: it is unbounded on purpose and ends at `stop`.
+    startSearch(
+        positionCommand,
+        infinite
+            ? 'go infinite'
+            : 'go depth ${depth ?? 20} movetime ${kFixedDepthTimeCap.inMilliseconds}',
         awaitMove: false);
     return _evalController.stream;
   }

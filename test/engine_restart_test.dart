@@ -9,8 +9,10 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:crispchess/engines/chess_engine.dart';
+import 'package:crispchess/engines/generic_uci_engine.dart';
 import 'package:crispchess/services/engine_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -135,5 +137,74 @@ void main() {
         reason: 'restarting on every move turns one bad engine into an '
             'unusable app');
     service.dispose();
+  });
+
+  group('against a real process', () {
+    // The stub above proves the service's logic. This proves the thing the
+    // logic depends on: that a replacement engine actually comes up — a new
+    // pipe, a fresh UCI handshake — after the first one died. It is why the
+    // service takes a factory instead of re-initialising the instance it has:
+    // `dispose()` closes a StreamController that `initialize()` does not
+    // recreate, so the same object cannot be brought back.
+    late Directory dir;
+
+    setUp(() => dir = Directory.systemTemp.createTempSync('restart'));
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    /// An engine that dies on `go` the first time it is ever run, and plays
+    /// normally afterwards. The marker file survives the process, so the
+    /// replacement behaves differently from the original.
+    EngineProfile diesOnce() {
+      final marker = '${dir.path}/started-before';
+      final file = File('${dir.path}/flaky.sh');
+      file.writeAsStringSync("""
+#!/bin/bash
+while IFS= read -r line; do
+  case "\$line" in
+    uci) echo "id name Flaky"; echo "uciok" ;;
+    isready) echo "readyok" ;;
+    go*)
+      if [ -f "$marker" ]; then echo "bestmove e2e4"; else touch "$marker"; exit 7; fi ;;
+    quit) exit 0 ;;
+  esac
+done
+""");
+      Process.runSync('chmod', ['+x', file.path]);
+      return EngineProfile(name: 'Flaky', path: file.path);
+    }
+
+    test('a replacement comes up and answers', () async {
+      final profile = diesOnce();
+      final service = EngineService(
+        GenericUciEngine(profile),
+        rebuildEngine: () => GenericUciEngine(profile),
+      );
+      service.useOpeningBook = false;
+      await service.initialize();
+
+      final move = service.events
+          .where((e) => e is BestMoveEvent)
+          .cast<BestMoveEvent>()
+          .first;
+      await service.requestMove('position startpos',
+          moveTime: const Duration(milliseconds: 200));
+
+      expect((await move.timeout(const Duration(seconds: 15))).move, 'e2e4',
+          reason: 'the first process exits on go; the second plays');
+      service.dispose();
+    });
+
+    test('the death that triggered it names the exit code', () async {
+      final engine = GenericUciEngine(diesOnce());
+      await engine.initialize();
+      try {
+        await engine.bestMove('position startpos',
+            moveTime: const Duration(milliseconds: 200));
+        fail('expected the death to be reported');
+      } on EngineProcessDiedException catch (e) {
+        expect(e.exitCode, 7);
+      }
+      engine.dispose();
+    });
   });
 }
