@@ -59,7 +59,10 @@ let nodesPerMs = 50;
 function go(command) {
   const depthMatch = /\bdepth\s+(\d+)/.exec(command);
   const timeMatch = /\bmovetime\s+(\d+)/.exec(command);
-  const maxDepth = depthMatch ? Number(depthMatch[1]) : 14;
+  // Without an explicit depth the clock decides, not a constant: the node
+  // bound cuts a depth short when it does not fit, so a high ceiling costs
+  // nothing and a low one just hands time back.
+  const maxDepth = depthMatch ? Number(depthMatch[1]) : 64;
   const budgetMs = timeMatch ? Number(timeMatch[1]) : depthMatch ? 5000 : 1000;
   const bounded = typeof fz.search_bounded === 'function';
 
