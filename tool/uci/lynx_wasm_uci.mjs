@@ -58,6 +58,15 @@ await interop.SendSearchCommand('go movetime 600');
 // behaves exactly as before and every later one is corrected.
 let overheadMs = 0;
 
+/// When the position for the next move arrived.
+///
+/// A move costs the caller more than the search: setting the position is its
+/// own trip into Mono, and a GUI that sends `position` then `go` back to back
+/// is already on the clock when the first one lands. Timing only the `go` put
+/// that cost outside the measurement and learned an overhead of five
+/// milliseconds when the caller was seeing fifty.
+let positionAt = null;
+
 function budgetOf(command) {
   const m = /\bmovetime\s+(\d+)/.exec(command);
   return m ? Number(m[1]) : null;
@@ -105,7 +114,8 @@ rl.on('line', (raw) => {
       // `go` blocks until the search ends and returns every info line plus the
       // bestmove; everything else is a plain command/response.
       if (line.startsWith('go')) {
-        const started = Date.now();
+        const started = positionAt ?? Date.now();
+        positionAt = null;
         const asked = budgetOf(line);
         const sent = discount(line);
         emit(await interop.SendSearchCommand(sent));
@@ -117,6 +127,7 @@ rl.on('line', (raw) => {
             `overhead now ${Math.round(overheadMs)}ms\n`);
         }
       } else {
+        if (line.startsWith('position')) positionAt = Date.now();
         emit(await interop.SendCommand(line));
       }
     } catch (e) {
