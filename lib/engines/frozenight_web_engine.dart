@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'search_pacing.dart';
 
 @JS('frozenightLoad')
 external JSPromise<JSAny?> _frozenightLoad();
@@ -119,14 +120,13 @@ class FrozenightEngine implements ChessEngine {
     // a hang into an early return.
     for (int d = 1; d <= webDepth; d++) {
       final remaining = budget - sw.elapsed;
-      if (d > 1 && remaining <= budget ~/ 8) break;
+      if (d > 1 && !worthStartingDepth(remaining, budget)) break;
       await Future.delayed(Duration.zero);
 
       final before = sw.elapsed;
-      final allowance = (remaining.inMilliseconds * _nodesPerMs)
-          .clamp(4096, 2000000000)
-          .toDouble();
-      var answer = _frozenightSearchBounded(d.toJS, allowance.toJS).toDart;
+      var answer = _frozenightSearchBounded(
+              d.toJS, nodeAllowance(remaining, _nodesPerMs).toDouble().toJS)
+          .toDart;
 
       String move;
       if (answer.isEmpty) {
@@ -140,11 +140,7 @@ class FrozenightEngine implements ChessEngine {
         final nodes =
             space < 0 ? 0 : int.tryParse(answer.substring(space + 1)) ?? 0;
         final spent = (sw.elapsed - before).inMilliseconds;
-        if (nodes > 4096 && spent > 0) {
-          // Follow the recent rate: throughput differs a lot between a full
-          // board and a bare endgame.
-          _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
-        }
+        _nodesPerMs = updatedRate(_nodesPerMs, nodes, spent);
       }
 
       if (move.isNotEmpty && move != '0000') {
@@ -176,7 +172,7 @@ class FrozenightEngine implements ChessEngine {
     for (int d = 1; d <= (depth ?? 15); d++) {
       if (_stopped) break;
       final remaining = budget - sw.elapsed;
-      if (d > 1 && remaining <= budget ~/ 8) break;
+      if (d > 1 && !worthStartingDepth(remaining, budget)) break;
       await Future.delayed(Duration.zero);
 
       // The node bound went into `bestMove` and stopped there, so analysis
@@ -184,10 +180,9 @@ class FrozenightEngine implements ChessEngine {
       // uninterruptible WASM call" was a description of the problem, not a
       // reason to accept it. A depth that does not fit is cut short here too.
       final before = sw.elapsed;
-      final allowance = (remaining.inMilliseconds * _nodesPerMs)
-          .clamp(4096, 2000000000)
-          .toDouble();
-      final answer = _frozenightSearchBounded(d.toJS, allowance.toJS).toDart;
+      final answer = _frozenightSearchBounded(
+              d.toJS, nodeAllowance(remaining, _nodesPerMs).toDouble().toJS)
+          .toDart;
 
       final String move;
       if (answer.isEmpty) {
@@ -199,9 +194,7 @@ class FrozenightEngine implements ChessEngine {
         final nodes =
             space < 0 ? 0 : int.tryParse(answer.substring(space + 1)) ?? 0;
         final spent = (sw.elapsed - before).inMilliseconds;
-        if (nodes > 4096 && spent > 0) {
-          _nodesPerMs = 0.5 * _nodesPerMs + 0.5 * (nodes / spent);
-        }
+        _nodesPerMs = updatedRate(_nodesPerMs, nodes, spent);
       }
       final eval = _frozenightGetEval().toDartInt;
 

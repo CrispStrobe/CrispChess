@@ -98,6 +98,10 @@ class EngineService {
   /// Restarts already spent. A process that dies once may have hit something
   /// transient; one that dies repeatedly is broken, and restarting it on every
   /// move turns one bad engine into an unusable app.
+  /// The last analysis failure reported, so the same one is not posted once
+  /// per position.
+  String? _lastAnalysisError;
+
   int _restarts = 0;
   static const int _maxRestarts = 3;
 
@@ -248,7 +252,13 @@ class EngineService {
           ));
         },
         onError: (e) {
-          _eventController.add(EngineErrorEvent('Analysis error: $e', kind: EngineFailure.analysis));
+          // Analysis runs again on every position, so a failure that is not
+          // transient would otherwise post a banner per move.
+          if ('$e' != _lastAnalysisError) {
+            _lastAnalysisError = '$e';
+            _eventController.add(EngineErrorEvent('Analysis error: $e',
+                kind: EngineFailure.analysis));
+          }
         },
       );
     } catch (e) {
