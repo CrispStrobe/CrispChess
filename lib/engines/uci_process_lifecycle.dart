@@ -13,29 +13,17 @@
 /// place rather than three.
 library;
 
+// The exception itself lives in chess_engine.dart: it is part of the
+// contract a caller sees, and this file imports dart:io, which the web
+// build cannot.
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-/// Thrown when the engine process exits while it still owed us a move.
-class EngineProcessDiedException implements Exception {
-  final String engine;
-  final int? exitCode;
-  final List<String> stderrTail;
-
-  EngineProcessDiedException(this.engine, this.exitCode, this.stderrTail);
-
-  @override
-  String toString() {
-    final code = exitCode == null ? 'unknown exit code' : 'exit code $exitCode';
-    final tail = stderrTail.isEmpty
-        ? ' (it printed nothing to stderr)'
-        : '\n  stderr: ${stderrTail.join('\n          ')}';
-    return 'Engine "$engine" exited while searching ($code)$tail';
-  }
-}
+import 'chess_engine.dart';
 
 /// Watches a spawned engine process and reports its death.
 ///

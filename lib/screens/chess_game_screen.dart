@@ -141,13 +141,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final savedEngine = _prefs.engine;
     if (savedEngine != 'Built-in') {
       final elo = 800 + (_prefs.strengthLevel * 60);
-      final engine = createEngine(
-        savedEngine,
-        playerElo: elo,
-        maia3Variant: _maia3Variant,
-        lc0Backend: _prefs.lc0Backend,
-      );
-      _engineService = EngineService(engine);
+      // The same arguments twice: once to build it, and again to build its
+      // replacement if the process dies mid-game. Without the second one a
+      // crash ends play until the user notices and switches engines by hand.
+      ChessEngine build() => createEngine(
+            savedEngine,
+            playerElo: elo,
+            maia3Variant: _maia3Variant,
+            lc0Backend: _prefs.lc0Backend,
+          );
+      _engineService = EngineService(build(), rebuildEngine: build);
     }
     _initializeEngine();
     _puzzleDb.load();

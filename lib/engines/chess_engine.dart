@@ -1,5 +1,23 @@
 import 'package:flutter/foundation.dart';
 
+/// Thrown when the engine process exits while it still owed us a move.
+class EngineProcessDiedException implements Exception {
+  final String engine;
+  final int? exitCode;
+  final List<String> stderrTail;
+
+  EngineProcessDiedException(this.engine, this.exitCode, this.stderrTail);
+
+  @override
+  String toString() {
+    final code = exitCode == null ? 'unknown exit code' : 'exit code $exitCode';
+    final tail = stderrTail.isEmpty
+        ? ' (it printed nothing to stderr)'
+        : '\n  stderr: ${stderrTail.join('\n          ')}';
+    return 'Engine "$engine" exited while searching ($code)$tail';
+  }
+}
+
 /// State of a chess engine.
 enum EngineState { idle, initializing, ready, thinking, error, disposed }
 
