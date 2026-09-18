@@ -19,6 +19,30 @@ export function init(hash_mb: number): void;
 
 export function search(depth: number): string;
 
+/**
+ * One search, bounded by both a depth and a node count.
+ *
+ * The node bound is the one that matters. A single `search` call cannot be
+ * interrupted from outside — it is one synchronous WASM call — so every
+ * caller has had to guess, before starting a depth, whether that depth would
+ * fit in the time left. The guess is that each iteration costs about 2.5x the
+ * search so far, and in an endgame it is badly wrong: iterations stay cheap
+ * for many plies, the guard never trips, and then one of them explodes with
+ * nothing able to stop it. That is a hung engine, and the tournament caught it
+ * twice, both times past ply 100.
+ *
+ * `frozenight` already counts nodes and checks the limit on every one of them
+ * (`search.rs`: `if nodes >= self.node_limit`), which needs no clock — and no
+ * clock is available here, because `Instant::now` does not work on
+ * `wasm32-unknown-unknown`. So the bound the engine can actually honour is
+ * nodes, and this hands it one.
+ *
+ * Returns `"<uci> <nodes>"`, so the caller can turn the time it has left into
+ * the next call's node budget from measured throughput rather than a constant.
+ * A `max_nodes` of zero means no node bound, which is the old behaviour.
+ */
+export function search_bounded(depth: number, max_nodes: number): string;
+
 export function set_position(fen: string, moves: string): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -31,6 +55,7 @@ export interface InitOutput {
     readonly get_fen: () => [number, number];
     readonly init: (a: number) => void;
     readonly search: (a: number) => [number, number];
+    readonly search_bounded: (a: number, b: number) => [number, number];
     readonly set_position: (a: number, b: number, c: number, d: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
