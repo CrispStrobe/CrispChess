@@ -77,6 +77,44 @@ export function search(depth) {
 }
 
 /**
+ * One search, bounded by both a depth and a node count.
+ *
+ * The node bound is the one that matters. A single `search` call cannot be
+ * interrupted from outside — it is one synchronous WASM call — so every
+ * caller has had to guess, before starting a depth, whether that depth would
+ * fit in the time left. The guess is that each iteration costs about 2.5x the
+ * search so far, and in an endgame it is badly wrong: iterations stay cheap
+ * for many plies, the guard never trips, and then one of them explodes with
+ * nothing able to stop it. That is a hung engine, and the tournament caught it
+ * twice, both times past ply 100.
+ *
+ * `frozenight` already counts nodes and checks the limit on every one of them
+ * (`search.rs`: `if nodes >= self.node_limit`), which needs no clock — and no
+ * clock is available here, because `Instant::now` does not work on
+ * `wasm32-unknown-unknown`. So the bound the engine can actually honour is
+ * nodes, and this hands it one.
+ *
+ * Returns `"<uci> <nodes>"`, so the caller can turn the time it has left into
+ * the next call's node budget from measured throughput rather than a constant.
+ * A `max_nodes` of zero means no node bound, which is the old behaviour.
+ * @param {number} depth
+ * @param {number} max_nodes
+ * @returns {string}
+ */
+export function search_bounded(depth, max_nodes) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.search_bounded(depth, max_nodes);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @param {string} fen
  * @param {string} moves
  */
