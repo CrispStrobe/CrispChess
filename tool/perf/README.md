@@ -1,8 +1,36 @@
 # Performance harnesses
 
-Two small benchmarks that back the perf work on engine move latency and on the
-game screen's per-rebuild cost. Neither is part of the app or of CI; run them by
-hand when touching the search wiring or the game-screen hot path.
+Small benchmarks that back the perf work on engine move latency and on the
+game screen's per-rebuild cost. None is part of the app; run them by hand when
+touching the search wiring or the game-screen hot path.
+
+Correctness gates (run these before/after any change here):
+
+```sh
+flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+flutter test --no-pub
+```
+
+`tool/perf/statistics.dart` holds `summarizeSamples`, the nearest-rank
+percentile summariser the harnesses share. It is covered by
+`test/perf_statistics_test.dart` (a test, not a benchmark — the percentile
+maths must be right before any number it produces means anything).
+
+## Built-in engine search: reuse and cancellation
+
+`lib/engines/native_search_worker.dart` owns one persistent search isolate:
+
+- **Reuse.** One iterative-deepening search streams every depth it completes
+  (`onDepthComplete`), keeping its transposition table across iterations.
+  Before, each requested depth was a fresh `compute()` — new isolate, whole
+  game replayed for repetition history, table discarded.
+- **Cancellation.** `DartEngine.stop()` terminates the isolate. A synchronous
+  search cannot see a flag set on the UI isolate, so termination is the only
+  stop that actually stops; the isolate is rebuilt lazily on the next request.
+  Covered by `test/dart_engine_worker_test.dart`.
+
+Web still searches on the UI thread between event-loop yields, and still
+restarts per depth — it has no isolate to stream from.
 
 ## `bench_search.dart` — fixed depth vs. a time budget
 
