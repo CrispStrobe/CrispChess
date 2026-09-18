@@ -128,10 +128,10 @@ class LynxEngine
         releaseOnLoss();
       });
 
-      _process!.stderr
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) => debugPrint('[Lynx stderr] $line'));
+      // stderr belongs to the lifecycle watch now — it prints each line the
+      // same way and keeps the last few for a death report. A second listener
+      // here threw "Stream has already been listened to" and left the engine
+      // in EngineState.error, which the round robin quietly skips.
 
       _process!.stdin.writeln('uci');
       await ready.future.timeout(const Duration(seconds: 15),
