@@ -71,7 +71,15 @@ macos/*.dylib
 ios/*.a
 
 # App Review correspondence — drafts and submission detail, not for a public
-# repo. store/ is otherwise tracked (store/listing.md), so this is per-file.
-# Matches appeal.md, appeal-4.3a.md, appeals.md, ...
-store/appeal*.md
+# repo. store/ is tracked for store/listing.md, so a reply dropped next to it
+# is one `git add .` away from publishing the submission IDs it quotes.
+#
+# Everything in store/ is ignored and the publishable files are named back in,
+# rather than guessing at the names correspondence might arrive under. The
+# previous rule matched store/appeal*.md only: appeal.txt, rejection-notes.md
+# or a screenshot of the review message would all have been added by a plain
+# `git add .`.
+store/*
+!store/listing.md
+!store/screenshots/
 web/ort/
