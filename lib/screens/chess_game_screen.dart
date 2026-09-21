@@ -14,6 +14,7 @@ import '../chess/game_state.dart';
 import '../chess/game_tree.dart';
 import '../chess/move_analyzer.dart';
 import '../engines/chess_engine.dart';
+import '../engines/engine_slot.dart';
 import '../engines/dart_engine.dart';
 import '../engines/engine_factory.dart';
 import '../services/engine_service.dart';
@@ -727,7 +728,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
-  ChessEngine? _hintEngineInstance;
+  /// The hint engine, rebuilt if the one held becomes unusable.
+  EngineSlot? _hintSlot;
 
   void _getHint() {
     if (!_isPlayerTurn || _state.isThinking) return;
@@ -1142,7 +1144,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     _depthNotifier.dispose();
     _clock?.dispose();
     _sound.dispose();
-    _hintEngineInstance?.dispose();
+    _hintSlot?.dispose();
     _game.dispose();
     _engineService.dispose();
     super.dispose();
@@ -1842,33 +1844,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     });
 
     try {
-      // Reusing the hint engine means noticing when it is no longer usable.
-      // A process that dies leaves its engine in EngineState.error, which is
-      // neither idle nor disposed: `??=` keeps the dead instance, the
-      // initialize guard below never fires again, and every hint from then on
-      // fails. Same bug the engine service had, in a second place.
-      final cached = _hintEngineInstance;
-      if (cached != null &&
-          (cached.state == EngineState.error ||
-              cached.state == EngineState.disposed)) {
-        try {
-          cached.dispose();
-        } catch (_) {
-          // Already gone; the point is only to stop holding it.
-        }
-        _hintEngineInstance = null;
-      }
+      // Held in a slot rather than a field: the slot notices when the engine
+      // it has can no longer be asked anything — a dead process leaves it in
+      // EngineState.error, which is neither idle nor disposed — and builds a
+      // replacement. Kept in a field, one crash meant every later hint failed.
+      _hintSlot ??= EngineSlot(
+          () => createEngine(_state.hintEngine, maia3Variant: _maia3Variant));
+      final hintEngine = await _hintSlot!.get();
 
-      _hintEngineInstance ??= createEngine(_state.hintEngine, maia3Variant: _maia3Variant);
-      if (_hintEngineInstance!.state == EngineState.idle) {
-        await _hintEngineInstance!.initialize();
-      }
-
-      final move = await _hintEngineInstance!.bestMove(
+      final move = await hintEngine.bestMove(
         _game.positionCommand,
         depth: _state.hintDepth,
       ).timeout(const Duration(seconds: 15), onTimeout: () {
-        _hintEngineInstance?.stop();
+        hintEngine.stop();
         throw TimeoutException('Hint timed out');
       });
 
