@@ -1842,7 +1842,23 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     });
 
     try {
-      // Create or reuse the hint engine
+      // Reusing the hint engine means noticing when it is no longer usable.
+      // A process that dies leaves its engine in EngineState.error, which is
+      // neither idle nor disposed: `??=` keeps the dead instance, the
+      // initialize guard below never fires again, and every hint from then on
+      // fails. Same bug the engine service had, in a second place.
+      final cached = _hintEngineInstance;
+      if (cached != null &&
+          (cached.state == EngineState.error ||
+              cached.state == EngineState.disposed)) {
+        try {
+          cached.dispose();
+        } catch (_) {
+          // Already gone; the point is only to stop holding it.
+        }
+        _hintEngineInstance = null;
+      }
+
       _hintEngineInstance ??= createEngine(_state.hintEngine, maia3Variant: _maia3Variant);
       if (_hintEngineInstance!.state == EngineState.idle) {
         await _hintEngineInstance!.initialize();
@@ -1865,7 +1881,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         setState(() {
           _state = _state.copyWith(
             isThinking: false,
-            statusMessage: 'Hint failed — try "Same as opponent"',
+            // A crash is worth distinguishing: the next hint will start a
+            // fresh engine, so asking again is the right advice rather than
+            // switching engines.
+            statusMessage: e is EngineProcessDiedException
+                ? 'The hint engine stopped — ask again to restart it'
+                : 'Hint failed — try "Same as opponent"',
           );
         });
       }
