@@ -28,6 +28,8 @@ concurrency:
 jobs:
   build-and-deploy:
     name: Build & Deploy to Vercel
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,6 +142,41 @@ jobs:
           cp vercel.json build/web/vercel.json
           mkdir -p build/web/.vercel
           echo '{"orgId":"${{ secrets.VERCEL_ORG_ID }}","projectId":"${{ secrets.VERCEL_PROJECT_ID }}"}' > build/web/.vercel/project.json
+
+      # A second home for the same build, on GitHub Pages.
+      #
+      # Vercel's free tier allows 100 deployments a day across every project on
+      # the account, and v2.2.0 hit it: the build succeeded, all 7.2MB
+      # uploaded, and the deploy was refused. Pages has no such cap, costs
+      # nothing, and is already serving this repo — so far only `docs/`, whose
+      # root 404s because there is no index.html in it.
+      #
+      # docs/ is copied in alongside the app so nothing that was reachable
+      # stops being reachable: /privacy.html keeps working, and / becomes the
+      # app instead of a 404.
+      - name: Publish to GitHub Pages
+        if: ${{ !cancelled() }}
+        run: |
+          set -e
+          # `Prepare deploy` writes .vercel/project.json into this directory
+          # from VERCEL_ORG_ID and VERCEL_PROJECT_ID, which are repository
+          # secrets. gh-pages is public. They are identifiers rather than
+          # credentials, but secrets do not get published because they looked
+          # harmless — take them out explicitly rather than relying on this
+          # step running before that one.
+          rm -rf build/web/.vercel build/web/vercel.json
+          if [ -d docs ]; then cp -r docs/. build/web/; fi
+          touch build/web/.nojekyll   # or Flutter's _-prefixed assets vanish
+          cd build/web
+          git init -q
+          git config user.name "crispasr integration"
+          git config user.email "stc.akrs@gmail.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7} to Pages"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
+            HEAD:gh-pages
+          echo "pushed $(find . -type f | wc -l) files to gh-pages"
 
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
