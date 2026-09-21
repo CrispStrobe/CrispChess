@@ -2,7 +2,7 @@ name: crispchess
 description: Cross-platform chess app with pluggable engines.
 publish_to: "none"
 
-version: 2.1.0+12
+version: 2.2.0+13
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
