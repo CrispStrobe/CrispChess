@@ -2018,6 +2018,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your favourite first moves: {moves}'**
   String ghostFavourite(Object moves);
+
+  /// No description provided for @scanModeDiagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagram'**
+  String get scanModeDiagram;
+
+  /// No description provided for @scanModePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get scanModePhoto;
+
+  /// No description provided for @scanPhotoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Photograph the whole board from a player\'s side, grid lines visible. Works best with standard tournament-style pieces.'**
+  String get scanPhotoHint;
+
+  /// No description provided for @scanPhotoNoBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'No board found. Photograph the whole board, with its grid visible.'**
+  String get scanPhotoNoBoard;
+
+  /// No description provided for @scanRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate 90°'**
+  String get scanRotate;
+
+  /// No description provided for @scanOrientationUnsure.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the orientation: rotate until White is at the bottom.'**
+  String get scanOrientationUnsure;
 }
 
 class _AppLocalizationsDelegate

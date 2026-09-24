@@ -67,6 +67,10 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - **Position editor** — drag pieces, set castling/EP, FEN I/O
 - **Syzygy tablebase** — 7-piece endgame lookup (all platforms including web)
 
+### Board scanning
+- **Diagram mode** — screenshots and book diagrams, 836 KB model, offline everywhere
+- **Photo mode** — photos of a real board: board located in perspective (a port of chesscog), squares read by two small on-device classifiers. Reliable on standard tournament-style pieces; unusual sets need checking in the editor
+
 ### Opening Explorer
 - Interactive board with move statistics from master games
 - Win/draw/loss percentage bars for each candidate move
