@@ -17,6 +17,8 @@ import 'maia3_dart/history.dart';
 import 'maia3_dart/moves.dart' as moves;
 import 'maia3_dart/onnx_model.dart';
 import 'maia3_dart/onnx_model_dart.dart';
+import 'maia3_dart/onnx_native_backend_stub.dart'
+    if (dart.library.ffi) 'maia3_dart/onnx_native_backend.dart';
 import 'maia3_dart/onnx_runtime_backend.dart';
 import 'maia3_dart/utils.dart';
 import 'maia3_dart/variants.dart';
@@ -37,6 +39,14 @@ class Maia3DartEngine implements ChessEngine {
   /// legacy direct-executor wiring in maia3_dart/onnx_model_dart.dart, kept
   /// as the parity oracle (test/maia3_runtime_parity_test.dart).
   static bool useLegacyBackend = false;
+
+  /// Try Microsoft's native ONNX Runtime first where dart:ffi exists. It is
+  /// an order of magnitude faster; if its library is missing on a platform,
+  /// loading fails and the pure-Dart interpreter takes over.
+  static bool preferNative = true;
+
+  /// Which runtime the loaded model runs on, for diagnostics.
+  String backendName = '';
 
   Maia3DartEngine({
     this.variantId = defaultVariant,
@@ -68,17 +78,38 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.initializing;
     try {
       final variant = getVariant(variantId);
-      _model = useLegacyBackend
-          ? Maia3DartOnnxModel(variant: variant)
-          : Maia3OnnxRuntimeBackend(variant: variant);
-      await _model!.load();
+      _model = await _loadModel(variant);
       await _warmUp();
       _stateNotifier.value = EngineState.ready;
-      debugPrint('[Maia3Dart] Ready (${variant.displayName})');
+      debugPrint('[Maia3Dart] Ready (${variant.displayName}, $backendName)');
     } catch (e) {
       debugPrint('[Maia3Dart] Init failed: $e');
       _stateNotifier.value = EngineState.error;
     }
+  }
+
+  Future<Maia3OnnxModel> _loadModel(Maia3Variant variant) async {
+    if (useLegacyBackend) {
+      final legacy = Maia3DartOnnxModel(variant: variant);
+      await legacy.load();
+      backendName = 'pure Dart (legacy executor)';
+      return legacy;
+    }
+    if (preferNative && Maia3NativeBackend.isSupported) {
+      final native = Maia3NativeBackend(variant: variant);
+      try {
+        await native.load();
+        backendName = 'native ONNX Runtime';
+        return native;
+      } catch (e) {
+        debugPrint('[Maia3Dart] Native runtime unavailable, using Dart: $e');
+        await native.close();
+      }
+    }
+    final dart = Maia3OnnxRuntimeBackend(variant: variant);
+    await dart.load();
+    backendName = 'pure Dart';
+    return dart;
   }
 
   /// Run one throwaway inference while the app is still showing "Loading".
@@ -118,44 +149,14 @@ class Maia3DartEngine implements ChessEngine {
     _stateNotifier.value = EngineState.thinking;
 
     try {
-      // Real, consecutive game history straight from the position command —
-      // maia3-js conditions on it, and it must not be reconstructed from the
-      // engine's own turns (that skips every other ply).
-      final history = _historyFor(positionCommand);
-      final fen = history.last;
       final selfElo = skillLevel != null
           ? (800 + (skillLevel * 60)).clamp(0, 5000)
           : playerElo.clamp(0, 5000);
-      final oppoElo = selfElo; // maia3-js defaults oppoElo to selfElo
-
-      final boards = resolveHistory(_historyInput(history));
-      final tokens = buildHistoryTokens(boards);
-
-      // Run inference
-      final result = await _model!.infer(tokens, selfElo, oppoElo);
-
-      // Build legal move mask
-      final board = chess_lib.Chess.fromFEN(fen);
-      final isBlack = fen.split(' ').length > 1 && fen.split(' ')[1] == 'b';
-      final legalMoves = board.moves({'asObjects': true});
-
-      final mask = Uint8List(moves.numMoves);
-      final moveIndex = moves.getMoveToIndex();
-
-      for (final m in legalMoves) {
-        String uci = '${m.fromAlgebraic}${m.toAlgebraic}';
-        if (m.promotion != null) {
-          uci += m.promotion.toString().toLowerCase();
-        }
-
-        // If black to move, mirror the UCI for lookup (model always sees white POV)
-        final lookupUci = isBlack ? mirrorMove(uci) : uci;
-        final idx = moveIndex[lookupUci];
-        if (idx != null) mask[idx] = 1;
-      }
+      // maia3-js defaults oppoElo to selfElo
+      final legal = await _legalLogits(positionCommand, selfElo, selfElo);
 
       // Apply temperature scaling
-      final logits = result.logitsMove;
+      final logits = legal.logits;
       if (temperature > 0) {
         for (int i = 0; i < logits.length; i++) {
           logits[i] /= temperature;
@@ -163,7 +164,7 @@ class Maia3DartEngine implements ChessEngine {
       }
 
       // Masked softmax
-      final probs = softmax(logits, mask: mask);
+      final probs = softmax(logits, mask: legal.mask);
 
       // Select move
       int moveIdx;
@@ -175,7 +176,7 @@ class Maia3DartEngine implements ChessEngine {
 
       // Convert back to UCI
       String bestUci = moves.indexToMove(moveIdx);
-      if (isBlack) bestUci = mirrorMove(bestUci);
+      if (legal.isBlack) bestUci = mirrorMove(bestUci);
 
       _stateNotifier.value = EngineState.ready;
       return bestUci;
@@ -184,6 +185,77 @@ class Maia3DartEngine implements ChessEngine {
       _stateNotifier.value = EngineState.ready;
       rethrow;
     }
+  }
+
+  /// How likely a player rated [elo] is to play each legal move here.
+  ///
+  /// The whole distribution rather than its top entry: the Human Lens asks how
+  /// *findable* a move is and which wrong moves tempt people, and both are
+  /// questions about the probabilities, not the argmax. Keys are UCI from the
+  /// real board's point of view; values sum to 1. No temperature — this is the
+  /// model's own estimate, not a sampling policy.
+  Future<Map<String, double>> movePolicy(
+    String positionCommand, {
+    required int elo,
+    int? oppoElo,
+  }) async {
+    if (_model == null) throw StateError('Not initialized');
+    final self = elo.clamp(0, 5000);
+    final legal =
+        await _legalLogits(positionCommand, self, (oppoElo ?? self).clamp(0, 5000));
+    final probs = softmax(legal.logits, mask: legal.mask);
+    final out = <String, double>{};
+    legal.uciByIndex.forEach((idx, uci) => out[uci] = probs[idx]);
+    return out;
+  }
+
+  /// One forward pass, plus which policy slots are the legal moves here.
+  ///
+  /// Real, consecutive game history straight from the position command —
+  /// maia3-js conditions on it, and it must not be reconstructed from the
+  /// engine's own turns (that skips every other ply).
+  Future<
+      ({
+        Float32List logits,
+        Uint8List mask,
+        bool isBlack,
+        Map<int, String> uciByIndex,
+      })> _legalLogits(String positionCommand, int selfElo, int oppoElo) async {
+    final history = _historyFor(positionCommand);
+    final fen = history.last;
+    final boards = resolveHistory(_historyInput(history));
+    final tokens = buildHistoryTokens(boards);
+
+    final result = await _model!.infer(tokens, selfElo, oppoElo);
+
+    final board = chess_lib.Chess.fromFEN(fen);
+    final isBlack = fen.split(' ').length > 1 && fen.split(' ')[1] == 'b';
+    final legalMoves = board.moves({'asObjects': true});
+
+    final mask = Uint8List(moves.numMoves);
+    final moveIndex = moves.getMoveToIndex();
+    final uciByIndex = <int, String>{};
+
+    for (final m in legalMoves) {
+      String uci = '${m.fromAlgebraic}${m.toAlgebraic}';
+      if (m.promotion != null) {
+        uci += m.promotion.toString().toLowerCase();
+      }
+
+      // If black to move, mirror the UCI for lookup (model always sees white POV)
+      final lookupUci = isBlack ? mirrorMove(uci) : uci;
+      final idx = moveIndex[lookupUci];
+      if (idx != null) {
+        mask[idx] = 1;
+        uciByIndex[idx] = uci;
+      }
+    }
+    return (
+      logits: result.logitsMove,
+      mask: mask,
+      isBlack: isBlack,
+      uciByIndex: uciByIndex,
+    );
   }
 
   @override
