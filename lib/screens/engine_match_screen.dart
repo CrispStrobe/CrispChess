@@ -3,7 +3,9 @@ import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../engines/engine_factory.dart';
 import '../engines/chess_lm_engine.dart' show availableChessLmNames;
+import '../engines/searchless_engine.dart' show availableSearchlessSizes;
 import '../services/engine_match_service.dart';
+import '../services/rating_fit.dart';
 import '../chess/chess_game.dart';
 import '../widgets/chess_board.dart';
 
@@ -35,7 +37,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
   int _currentGame = 0;
   int _currentMoveCount = 0;
 
-  static final _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0', ...availableChessLmNames];
+  static final _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0', for (final s in availableSearchlessSizes) s.engineName, ...availableChessLmNames];
 
   @override
   void dispose() {
@@ -122,7 +124,8 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
     });
 
     final engines = _tournamentEngines.map((n) => createEngine(n)).toList();
-    _tournament = TournamentService(engines: engines, depthPerMove: _depth);
+    _tournament = TournamentService(
+        engines: engines, depthPerMove: _depth, gamesPerPairing: _numGames);
 
     _sub = _tournament!.events.listen((event) {
       if (!mounted) return;
@@ -277,6 +280,16 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
+                        // Games per pairing, colours alternating.
+                        Text('${l?.games ?? 'Games'}: ', style: const TextStyle(fontSize: 13)),
+                        DropdownButton<int>(
+                          value: _numGames,
+                          underline: const SizedBox.shrink(),
+                          items: [2, 4, 6, 10, 20].map((n) =>
+                            DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+                          onChanged: (v) => setState(() => _numGames = v!),
+                        ),
+                        const SizedBox(width: 16),
                         Text('${l?.depth ?? 'Depth'}: ', style: const TextStyle(fontSize: 13)),
                         DropdownButton<int>(
                           value: _depth,
@@ -299,8 +312,10 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
               flex: 2,
               child: Column(
                 children: [
+                  // Ratings fitted to all games so far
+                  if (_results.isNotEmpty) _ratingsTable(),
                   // Score summary
-                  if (scores.isNotEmpty)
+                  if (scores.isNotEmpty && !_tournamentMode)
                     Padding(
                       padding: const EdgeInsets.all(8),
                       child: Row(
@@ -395,5 +410,56 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
       'r' => PieceType.rook, 'q' => PieceType.queen, 'k' => PieceType.king,
       _ => PieceType.pawn,
     };
+  }
+
+  /// Ratings fitted jointly to every finished game (Bradley–Terry), centred
+  /// on 1500, with one standard error — a small match mostly measures noise,
+  /// and the error bar says so.
+  Widget _ratingsTable() {
+    final ratings = fitRatings([
+      for (final r in _results)
+        (white: r.white, black: r.black, score: r.whiteScore)
+    ]);
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(3),
+          1: FlexColumnWidth(2),
+          2: FlexColumnWidth(2),
+          3: FlexColumnWidth(1.4),
+        },
+        children: [
+          TableRow(children: [
+            for (final h in [
+              l?.engine ?? 'Engine',
+              l?.rating ?? 'Rating',
+              '+ / = / −',
+              '%',
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(h,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+          ]),
+          for (final p in ratings)
+            TableRow(children: [
+              Text(p.name, style: const TextStyle(fontSize: 12)),
+              Text(
+                  p.stdErr.isFinite
+                      ? '${p.rating.round()} ± ${p.stdErr.round()}'
+                      : '${p.rating.round()}',
+                  style: const TextStyle(fontSize: 12)),
+              Text('${p.wins} / ${p.draws} / ${p.losses}',
+                  style: const TextStyle(fontSize: 12)),
+              Text('${(p.score * 100).round()}',
+                  style: const TextStyle(fontSize: 12)),
+            ]),
+        ],
+      ),
+    );
   }
 }

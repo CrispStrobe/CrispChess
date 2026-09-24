@@ -60,6 +60,19 @@ The ChessMamba engine uses the model, weights and search design of
 [cstr/chessmamba-onnx](https://huggingface.co/cstr/chessmamba-onnx); the
 search is a Dart port of its `search.py`.
 
+## Searchless transformers (DeepMind)
+
+The "Searchless 9M / 136M / 270M" engines use the model weights of
+[Grandmaster-Level Chess Without Search](https://github.com/google-deepmind/searchless_chess)
+by Google DeepMind (Ruoss et al., 2024). The weights are licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and the original code
+under Apache-2.0. **Changes:** the JAX checkpoints were converted to ONNX
+(attention written as matrix products, same computation), and the 136M and
+270M weights are stored in fp16. The converted files are downloaded at run
+time from [cstr/searchless-chess-onnx](https://huggingface.co/cstr/searchless-chess-onnx);
+the input encoding in `lib/engines/searchless/tokenizer.dart` follows the
+original `tokenizer.py`.
+
 ## Language-model bot zoo
 
 The "LM:" engines are small chess language models by their authors below,

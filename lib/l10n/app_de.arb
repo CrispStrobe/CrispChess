@@ -314,5 +314,16 @@
   "scanUncertain": "{count} unsichere Felder sind markiert. Bitte prüfen.",
   "scanProblems": "Stellung prüfen: {problems}",
   "scanUsePosition": "Stellung übernehmen",
-  "scanFailed": "Bild konnte nicht gelesen werden: {error}"
+  "scanFailed": "Bild konnte nicht gelesen werden: {error}",
+  "engine": "Engine",
+  "rating": "Wertung",
+  "ghostTitle": "Dein Geist",
+  "ghostDescription": "Spielt deine Eröffnungen, danach wie ein Spieler deiner Wertung",
+  "ghostGames": "Aus {games} deiner Partien, {positions} Eröffnungsstellungen",
+  "ghostNoGames": "Spiele zuerst ein paar Partien: Der Geist lernt aus deinem Partieverlauf.",
+  "ghostRating": "Spielt wie: {elo}",
+  "ghostRatingUnmeasured": "Wertung noch nicht gemessen (spielt wie 1500)",
+  "ghostMeasure": "Meine Wertung messen",
+  "ghostMeasuring": "Lese deine Züge… {done} von {total}",
+  "ghostFavourite": "Deine liebsten ersten Züge: {moves}"
 }

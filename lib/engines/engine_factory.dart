@@ -17,6 +17,8 @@ import 'frozenight_engine.dart'
 import 'maia3_dart_engine.dart'; // pure Dart, one implementation for every platform
 import 'chessmamba_engine.dart'; // Dart + ONNX; native runtime where available
 import 'chess_lm_engine.dart'; // language-model bot zoo
+import 'ghost_engine.dart'; // plays like you: your openings, then Maia at your rating
+import 'searchless_engine.dart'; // DeepMind's searchless transformers
 
 import 'lynx_engine.dart'
     if (dart.library.js_interop) 'lynx_web_engine.dart';
@@ -47,6 +49,8 @@ ChessEngine createEngine(String name, {
       ); // MIT (pure Dart)
     case 'ChessMamba':
       return ChessMambaEngine(); // MIT, weights downloaded on first use
+    case ghostEngineName:
+      return GhostEngine(); // built from the player's own games
     case 'Lc0':
       return Lc0Engine(
         variantId: maia3Variant,
@@ -57,6 +61,8 @@ ChessEngine createEngine(String name, {
       // on native it is ignored.
       return LynxEngine(variantId: maia3Variant); // MIT
     default:
+      final sl = searchlessSizeNamed(name);
+      if (sl != null) return SearchlessEngine(sl); // Apache-2.0 / CC BY 4.0
       final lm = chessLmSpecNamed(name);
       if (lm != null) return ChessLmEngine(lm); // MIT / Apache-2.0 models
       return DartEngine(); // MIT, built-in
