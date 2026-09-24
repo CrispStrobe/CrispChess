@@ -151,6 +151,18 @@ weights entry below), not from the converter.
   wrote into GCC's own licensing, and no equivalent exception exists
   here.
 
+## ChessMamba (downloaded at runtime)
+
+- **Model and weights:** ChessMamba by TobiasLogic, MIT
+  (https://huggingface.co/TobiasLogic/chessmamba). Copyright (c) 2026 TobiasLogic.
+- **ONNX export:** https://huggingface.co/cstr/chessmamba-onnx (MIT, made by
+  `tool/kaggle/chess-lm-onnx/export_chess_lms.py`), downloaded on first use.
+- **Search:** `lib/engines/chessmamba/search.dart` is a Dart port of the
+  model's `search.py` (MIT, same author).
+
+MIT License text: see the model repository's LICENSE; the notice above must
+be kept in copies.
+
 ## Maia/Lc0 Neural Network Weights
 
 - **License: GPL-3.0-or-later.** Resolved 2026-09-03; this entry previously

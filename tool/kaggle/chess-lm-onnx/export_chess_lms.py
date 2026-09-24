@@ -168,10 +168,46 @@ def export_mamba(local, d, r):
     pol0, _, _, _ = sess.run(None, feed(0, 0, 0, 0, 1.0, zero.numpy()))
     b0 = chess.Board(); l0 = {m.from_square * 64 + m.to_square: b0.san(m) for m in b0.legal_moves}
     r["start_move"] = {"move": l0[max(l0, key=lambda i: pol0[0, i])]}
+    # Batched variant: expand several moves from the same (or different)
+    # states in one call, so the search pays for the weights once per node
+    # instead of once per child.
+    B = 4
+    torch.onnx.export(step, (L(0).repeat(B), L(0).repeat(B), L(0).repeat(B), L(0).repeat(B),
+                             torch.zeros(B, 1), torch.zeros(depth, B, inner, sdim)),
+        str(d / "model_batch.onnx"),
+        input_names=["from_sq", "to_sq", "promo", "ply", "is_start", "state"],
+        output_names=["policy", "promo_logits", "value", "new_state"],
+        dynamic_axes={"from_sq": {0: "b"}, "to_sq": {0: "b"}, "promo": {0: "b"}, "ply": {0: "b"},
+                      "is_start": {0: "b"}, "state": {1: "b"}, "policy": {0: "b"},
+                      "promo_logits": {0: "b"}, "value": {0: "b"}, "new_state": {1: "b"}},
+        opset_version=17, do_constant_folding=True, dynamo=False)
+    r["onnx_batch"] = graph_info(d / "model_batch.onnx")
+    sb = ort.InferenceSession(str(d / "model_batch.onnx"), so, providers=["CPUExecutionProvider"])
+    kids = [m for m in board.legal_moves][:10]
+    fb = {"from_sq": np.array([m.from_square for m in kids], np.int64),
+          "to_sq": np.array([m.to_square for m in kids], np.int64),
+          "promo": np.zeros(len(kids), np.int64),
+          "ply": np.full(len(kids), 31, np.int64),
+          "is_start": np.zeros((len(kids), 1), np.float32),
+          "state": np.repeat(h, len(kids), axis=1)}
+    pb, _, vb, hb = sb.run(None, fb)
+    bworst = 0.0
+    for i, m in enumerate(kids):
+        p1, _, v1, h1 = sess.run(None, feed(m.from_square, m.to_square, 0, 31, 0.0, h))
+        bworst = max(bworst, float(np.abs(pb[i] - p1[0]).max()), float(np.abs(hb[:, i] - h1[:, 0]).max()))
+    t0 = time.perf_counter()
+    for _ in range(5): sb.run(None, fb)
+    r["batch"] = {"max_abs_diff_vs_single": bworst, "batch10_ms_1thread": round((time.perf_counter() - t0) / 5 * 1000, 2)}
     r["status"] = "ok"
+    progress(f"ChessMamba batch: {r['batch']}")
     progress(f"ChessMamba: ok diff={worst:.2e} {r['latency']} start={r['start_move']} after30={r['move_after_30_plies']}")
 
+# Set to a list of repo ids to re-run only those models.
+ONLY: list[str] = []
+
 for repo, licence, fmt in MODELS:
+    if ONLY and repo not in ONLY:
+        continue
     name = repo.split("/")[1]; d = OUT / name; d.mkdir(exist_ok=True)
     r = report[name] = {"repo": repo, "licence": licence, "format": fmt}
     progress(f"{repo}: download")
