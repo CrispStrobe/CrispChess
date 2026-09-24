@@ -95,13 +95,20 @@ class _AboutScreenState extends State<AboutScreen> {
                   'weight data. The weights\' upstream license is '
                   'AGPL-3.0 — see THIRD_PARTY_LICENSES.md for details.'),
               SizedBox(height: 12),
-              _EngineInfo('ChessMamba', '~1100 ELO', 'MIT',
+              _EngineInfo('ChessMamba', '~800 ELO', 'MIT',
                   'By TobiasLogic. A selective state-space network (Mamba/S6) '
                   'that reads the game as a sequence of moves, never the board, '
                   'searched by its own policy-guided negamax. Games from the '
                   'starting position only; others go to the built-in engine.'),
               SizedBox(height: 12),
-              _EngineInfo('LM bot zoo', 'weak', 'MIT / Apache-2.0',
+              _EngineInfo('Searchless 9M / 136M / 270M', 'up to ~2900 ELO',
+                  'Apache-2.0 / CC BY 4.0',
+                  'DeepMind\'s "Grandmaster-Level Chess Without Search" '
+                  'transformers. No lookahead: the network judges every legal '
+                  'move once and plays the best. Weights CC BY 4.0, Google '
+                  'DeepMind.'),
+              SizedBox(height: 12),
+              _EngineInfo('LM bot zoo', '~400 ELO', 'MIT / Apache-2.0',
                   'Eight small chess language models from the Hugging Face '
                   'Hub, each by its own author (see NOTICE.md). They read the '
                   'game as text and choose among the legal moves only, so they '

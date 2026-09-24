@@ -8,6 +8,9 @@ import '../chess/game_state.dart' show ChessVariant;
 import '../engines/lynx_build.dart';
 import '../engines/chess_engine.dart' show thinkTimeForLevel;
 import '../engines/chess_lm_engine.dart';
+import '../engines/ghost_engine.dart' show ghostEngineName;
+import '../engines/searchless_engine.dart';
+import '../widgets/ghost_profile_card.dart';
 import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -219,6 +222,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ];
 
+    // Your Ghost — your openings, then Maia at your measured rating
+    engines.add(_EngineOption(
+      name: ghostEngineName,
+      description: AppLocalizations.of(context)?.ghostDescription ??
+          'Plays your openings, then like a player of your rating',
+      elo: 'you',
+      license: 'MIT',
+      available: true,
+    ));
+
     // Maia3 Dart — pure Dart port, works everywhere
     engines.add(_EngineOption(
       name: 'Maia3 Dart',
@@ -233,17 +246,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     engines.add(_EngineOption(
       name: 'ChessMamba',
       description: 'Mamba state-space net + its own search (downloads 67 MB)',
-      elo: '~1100',
+      elo: '~800',
       license: 'MIT',
       available: true,
     ));
+
+    // DeepMind's searchless transformers: one look per legal move, no search.
+    for (final s in availableSearchlessSizes) {
+      engines.add(_EngineOption(
+        name: s.engineName,
+        description: 'DeepMind transformer, no search (downloads ${s.downloadMb} MB)',
+        elo: switch (s) {
+          SearchlessSize.m270 => '~2900 (paper)',
+          _ => 'strong',
+        },
+        license: 'Apache-2.0 / CC BY 4.0',
+        available: true,
+      ));
+    }
 
     // The language-model bot zoo — tiny chess LMs from the Hub.
     for (final lm in chessLmZoo.where(chessLmAvailable)) {
       engines.add(_EngineOption(
         name: lm.name,
         description: '${lm.description} (by ${lm.author}, ${lm.downloadMb} MB)',
-        elo: 'weak',
+        elo: '~400',
         license: lm.license,
         available: true,
       ));
@@ -333,6 +360,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Skill Level $level  ·  Depth ${5 + level ~/ 4}';
       case 'Frozenight':
         return 'Depth ${2 + level ~/ 2} (search time ~${level}s)';
+      case final n when searchlessSizeNamed(n) != null:
+        final t = SearchlessEngine.temperatureFor(level);
+        return t == null
+            ? 'Always its best move'
+            : 'Softmax temperature ${t.toStringAsFixed(3)} over win probabilities';
       case final n when chessLmSpecNamed(n) != null:
         return 'Sampling temperature ${ChessLmEngine.temperatureFor(level).toStringAsFixed(2)} '
             '(lower plays its favourite move more often)';
@@ -440,6 +472,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
             ),
+
+          if (_selectedEngine == ghostEngineName) ...[
+            const SizedBox(height: 16),
+            const GhostProfileCard(),
+          ],
 
           // Maia3 variant selector (shown when a Maia engine is selected)
           if (_isMaiaEngine) ...[
