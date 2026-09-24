@@ -174,15 +174,36 @@ are no longer used — see the repo README. They are unrelated to licensing.
 
 ## Piece Themes
 
-All from Lichess (https://github.com/lichess-org/lila):
-- chessnut: MIT
-- fantasy: MIT
-- spatial: MIT
-- celtic: MIT
-- rhosgfx: CC0
-- kiwen-suwi: CC-BY 4.0
-- totoy: CC-BY 4.0
-- papercut: CC-BY 4.0
+All from Lichess (https://github.com/lichess-org/lila), authors and licences as
+in its COPYING.md:
+- chessnut: Apache-2.0, Alexis Luengas
+- fantasy, spatial, celtic: MIT, Maurizio Monge
+- rhosgfx: CC0 1.0, RhosGFX
+- kiwen-suwi: CC BY 4.0, neverRare
+- totoy: CC BY 4.0, Kosal Sen
+- papercut: CC BY 4.0, Nikolay Anzarov
+
+## Board-scanning model
+
+`assets/models/board_squares.onnx`: trained for this app (MIT) by
+`tool/board_vision/` on synthetic images rendered from:
+
+- the piece themes above;
+- Firi pieces: CC BY 4.0, James Faure
+  (https://github.com/jfaure/Firi-pieceset, as distributed by Lichess);
+  the SVGs are in `tool/board_vision/pieces/firi/`;
+- DejaVu Sans and DejaVu Serif: Bitstream Vera licence, DejaVu changes public
+  domain;
+- Noto Sans Symbols 2: SIL OFL 1.1, The Noto Project Authors;
+- JuliaMono: SIL OFL 1.1, The JuliaMono Project Authors;
+- Fairfax HD: SIL OFL 1.1, Kreative Software;
+- GNU Unifont 15.1.05: dual-licensed upstream (GPL-2.0+ with font embedding
+  exception, or SIL OFL 1.1); used under the SIL OFL 1.1.
+
+No pretrained weights, no photographs or third-party datasets, and no
+copyleft, share-alike or non-commercial sources. The fonts are fetched by
+`tool/board_vision/fonts/fetch.sh`, not committed. Details in
+`tool/board_vision/README.md`.
 
 ## Lc0 oracle test data
 

@@ -342,7 +342,7 @@ above) still uses `onnxruntime-web` in-process and hasn't had the same
 treatment applied yet — same underlying weight-license question, less
 isolation. Not yet addressed.
 
-Piece themes are from [Lichess](https://github.com/lichess-org/lila) under MIT, CC0, or CC-BY 4.0.
+Piece themes are from [Lichess](https://github.com/lichess-org/lila) under MIT, Apache-2.0, CC0 or CC BY 4.0; authors are credited in [NOTICE.md](NOTICE.md).
 
 ## Contributing
 

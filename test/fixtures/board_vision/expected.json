@@ -1,0 +1,30 @@
+{
+  "screen_chessnut": {
+    "placement": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R",
+    "flipped": false
+  },
+  "book_noto": {
+    "placement": "2r3k1/pp3ppp/4p3/3pP3/3P4/P4N2/1P3PPP/2R3K1",
+    "flipped": false
+  },
+  "flipped_dejavu": {
+    "placement": "r4rk1/1bq1bppp/p2ppn2/1p6/3NP3/1BN1B3/PPP1QPPP/2KR3R",
+    "flipped": true
+  },
+  "screenshot_papercut": {
+    "placement": "8/5pk1/6p1/2R5/5P2/6KP/r7/8",
+    "flipped": false
+  },
+  "lowres_book_juliamono": {
+    "placement": "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N2N2/PP2BPPP/R2QKB1R",
+    "flipped": false
+  },
+  "photo_firi": {
+    "placement": "6k1/5ppp/8/3Q4/8/8/5PPP/3r2K1",
+    "flipped": false
+  },
+  "two_diagrams": {
+    "placement": "r2q1rk1/pp1bbppp/2n1pn2/3p4/3P4/2NBPN2/PP3PPP/R2Q1RK1",
+    "flipped": false
+  }
+}
