@@ -515,5 +515,38 @@
     "placeholders": {
       "error": {}
     }
+  },
+  "engine": "Engine",
+  "rating": "Rating",
+  "ghostTitle": "Your Ghost",
+  "ghostDescription": "Plays your openings, then like a player of your rating",
+  "ghostGames": "Built from {games} of your games, {positions} opening positions",
+  "@ghostGames": {
+    "placeholders": {
+      "games": {},
+      "positions": {}
+    }
+  },
+  "ghostNoGames": "Play a few games first: the Ghost learns from your game history.",
+  "ghostRating": "Plays like: {elo}",
+  "@ghostRating": {
+    "placeholders": {
+      "elo": {}
+    }
+  },
+  "ghostRatingUnmeasured": "Rating not measured yet (plays like 1500)",
+  "ghostMeasure": "Measure my rating",
+  "ghostMeasuring": "Reading your moves… {done} of {total}",
+  "@ghostMeasuring": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "ghostFavourite": "Your favourite first moves: {moves}",
+  "@ghostFavourite": {
+    "placeholders": {
+      "moves": {}
+    }
   }
 }

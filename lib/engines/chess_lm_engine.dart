@@ -100,7 +100,9 @@ class ChessLmEngine implements ChessEngine {
   @override
   String get license => spec.license;
   @override
-  int get estimatedElo => 800;
+  // Measured about 400 (Maia-anchored round robin, 2026-09-24): they never
+  // beat Maia 1100 or the built-in engine at level 0.
+  int get estimatedElo => 400;
   @override
   EngineState get state => _stateNotifier.value;
   @override

@@ -1024,4 +1024,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String scanFailed(Object error) {
     return 'Could not read the image: $error';
   }
+
+  @override
+  String get engine => 'Engine';
+
+  @override
+  String get rating => 'Rating';
+
+  @override
+  String get ghostTitle => 'Your Ghost';
+
+  @override
+  String get ghostDescription =>
+      'Plays your openings, then like a player of your rating';
+
+  @override
+  String ghostGames(Object games, Object positions) {
+    return 'Built from $games of your games, $positions opening positions';
+  }
+
+  @override
+  String get ghostNoGames =>
+      'Play a few games first: the Ghost learns from your game history.';
+
+  @override
+  String ghostRating(Object elo) {
+    return 'Plays like: $elo';
+  }
+
+  @override
+  String get ghostRatingUnmeasured =>
+      'Rating not measured yet (plays like 1500)';
+
+  @override
+  String get ghostMeasure => 'Measure my rating';
+
+  @override
+  String ghostMeasuring(Object done, Object total) {
+    return 'Reading your moves… $done of $total';
+  }
+
+  @override
+  String ghostFavourite(Object moves) {
+    return 'Your favourite first moves: $moves';
+  }
 }

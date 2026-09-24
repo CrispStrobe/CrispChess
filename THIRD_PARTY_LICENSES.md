@@ -163,6 +163,15 @@ weights entry below), not from the converter.
 MIT License text: see the model repository's LICENSE; the notice above must
 be kept in copies.
 
+## Searchless chess transformers (downloaded at runtime)
+
+- **Weights:** Copyright 2024 DeepMind Technologies Limited, CC BY 4.0
+  (https://creativecommons.org/licenses/by/4.0/legalcode). Converted to ONNX
+  (and fp16 storage for 136M/270M) by `tool/kaggle/searchless-onnx/`; hosted at
+  https://huggingface.co/cstr/searchless-chess-onnx.
+- **Code the app follows** (tokenizer, action vocabulary, return buckets):
+  google-deepmind/searchless_chess, Apache-2.0.
+
 ## Language-model bot zoo (downloaded at runtime)
 
 Models by their authors, each under its own licence (Apache-2.0 or MIT, see

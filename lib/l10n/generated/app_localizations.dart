@@ -1952,6 +1952,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not read the image: {error}'**
   String scanFailed(Object error);
+
+  /// No description provided for @engine.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine'**
+  String get engine;
+
+  /// No description provided for @rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get rating;
+
+  /// No description provided for @ghostTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Ghost'**
+  String get ghostTitle;
+
+  /// No description provided for @ghostDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays your openings, then like a player of your rating'**
+  String get ghostDescription;
+
+  /// No description provided for @ghostGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Built from {games} of your games, {positions} opening positions'**
+  String ghostGames(Object games, Object positions);
+
+  /// No description provided for @ghostNoGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a few games first: the Ghost learns from your game history.'**
+  String get ghostNoGames;
+
+  /// No description provided for @ghostRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays like: {elo}'**
+  String ghostRating(Object elo);
+
+  /// No description provided for @ghostRatingUnmeasured.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating not measured yet (plays like 1500)'**
+  String get ghostRatingUnmeasured;
+
+  /// No description provided for @ghostMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure my rating'**
+  String get ghostMeasure;
+
+  /// No description provided for @ghostMeasuring.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your moves… {done} of {total}'**
+  String ghostMeasuring(Object done, Object total);
+
+  /// No description provided for @ghostFavourite.
+  ///
+  /// In en, this message translates to:
+  /// **'Your favourite first moves: {moves}'**
+  String ghostFavourite(Object moves);
 }
 
 class _AppLocalizationsDelegate

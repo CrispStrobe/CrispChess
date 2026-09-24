@@ -70,10 +70,10 @@ class ChessMambaEngine implements ChessEngine {
   String get version => '1.0';
   @override
   String get license => 'MIT';
-  // Measured: about even with the built-in engine at level 4 (12 games at
-  // 1 s a move), with or without its search.
+  // Measured 805 ± 105 in a Maia-anchored round robin (Maia at 1100 = 1100,
+  // 84 games, 2026-09-24); its search adds little over the network's choice.
   @override
-  int get estimatedElo => 1100;
+  int get estimatedElo => 800;
   @override
   EngineState get state => _stateNotifier.value;
   @override
