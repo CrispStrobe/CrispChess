@@ -2,11 +2,19 @@
 // init, bestMove) exactly as the app invokes it — not just the ONNX
 // interpreter in isolation. Requires network access to Hugging Face.
 import 'dart:io';
+import 'dart:math';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crispchess/engines/chess_engine.dart';
 import 'package:crispchess/engines/maia3_dart_engine.dart';
+import 'package:crispchess/engines/maia3_dart/encoding.dart';
+import 'package:crispchess/engines/maia3_dart/history.dart';
+import 'package:crispchess/engines/maia3_dart/onnx_model.dart';
+import 'package:crispchess/engines/maia3_dart/onnx_native_backend.dart';
+import 'package:crispchess/engines/maia3_dart/onnx_runtime_backend.dart';
+import 'package:crispchess/engines/maia3_dart/variants.dart';
+import 'package:crispchess/engines/uci_position.dart';
 
 Set<String> _legalMoves(String fen) => chess.Chess.fromFEN(fen)
     .generate_moves()
@@ -97,5 +105,89 @@ void main() {
 
     expect(second, first,
         reason: 'same position gave different moves — engine is not stateless');
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('movePolicy is a distribution over exactly the legal moves, '
+      'and it shifts with rating', () async {
+    final engine = Maia3DartEngine(variantId: '5m', playerElo: 1500);
+    await engine.initialize();
+    addTearDown(engine.dispose);
+
+    // Black to move, so the mirroring path is exercised too.
+    const command = 'position startpos moves e2e4 e7e5 g1f3';
+    final fen = chess.Chess()
+      ..move('e4')
+      ..move('e5')
+      ..move('Nf3');
+    final sw = Stopwatch()..start();
+    final low = await engine.movePolicy(command, elo: 800);
+    final high = await engine.movePolicy(command, elo: 2300);
+    print('Maia3 movePolicy: ${sw.elapsedMilliseconds ~/ 2} ms per pass');
+
+    for (final p in [low, high]) {
+      expect(p.keys.toSet(), _legalMoves(fen.fen));
+      expect(p.values.fold(0.0, (a, b) => a + b), closeTo(1.0, 1e-3));
+    }
+    // Same argmax as bestMove at the same rating.
+    final engine1500 = await engine.movePolicy(command, elo: 1500);
+    final top = engine1500.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    expect(await engine.bestMove(command), top.key);
+    // Rating conditioning must actually change the distribution.
+    final diff = low.keys
+        .map((k) => (low[k]! - high[k]!).abs())
+        .fold(0.0, (a, b) => a + b);
+    expect(diff, greaterThan(0.01));
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('native ONNX Runtime and the pure-Dart interpreter agree', () async {
+    final variant = getVariant('5m');
+    final native = Maia3NativeBackend(variant: variant);
+    try {
+      await native.load();
+    } catch (e) {
+      markTestSkipped('native ONNX Runtime not loadable here: $e');
+      return;
+    }
+    final dart = Maia3OnnxRuntimeBackend(variant: variant, isolateWorkers: 1);
+    await dart.load();
+    addTearDown(() async {
+      await native.close();
+      await dart.close();
+    });
+
+    for (final cmd in [
+      'position startpos',
+      'position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5',
+      'position fen 8/5k2/8/3K4/8/8/5P2/8 w - - 0 1',
+    ]) {
+      final tokens = buildHistoryTokens(resolveHistory(HistoryInput(
+          fen: fenHistoryFromPositionCommand(cmd, limit: 1).last)));
+      for (final elo in [900, 1900]) {
+        final a = await native.infer(tokens, elo, elo);
+        final b = await dart.infer(tokens, elo, elo);
+        expect(a.logitsMove.length, b.logitsMove.length);
+        var worst = 0.0;
+        for (var i = 0; i < a.logitsMove.length; i++) {
+          worst = max(worst, (a.logitsMove[i] - b.logitsMove[i]).abs());
+        }
+        for (var i = 0; i < 3; i++) {
+          worst = max(worst, (a.logitsValue[i] - b.logitsValue[i]).abs());
+        }
+        expect(worst, lessThan(1e-3), reason: '$cmd @ $elo');
+      }
+    }
+
+    final tokens = buildHistoryTokens(resolveHistory(HistoryInput(
+        fen: fenHistoryFromPositionCommand('position startpos', limit: 1).last)));
+    Future<int> timeIt(Maia3OnnxModel m) async {
+      final sw = Stopwatch()..start();
+      for (var i = 0; i < 10; i++) {
+        await m.infer(tokens, 1500, 1500);
+      }
+      return sw.elapsedMilliseconds ~/ 10;
+    }
+
+    print('Maia3 5M per pass: native ${await timeIt(native)} ms, '
+        'pure Dart ${await timeIt(dart)} ms');
   }, timeout: const Timeout(Duration(minutes: 3)));
 }
