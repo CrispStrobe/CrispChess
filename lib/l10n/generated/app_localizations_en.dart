@@ -874,4 +874,154 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameHistory => 'Game History';
+
+  @override
+  String get humanLens => 'Human Lens';
+
+  @override
+  String humanLensSubtitle(Object elo) {
+    return 'How players rated $elo see this position';
+  }
+
+  @override
+  String get humanLensLoading => 'Loading Maia (25 MB, first time only)…';
+
+  @override
+  String get humanLensThinking => 'Asking the players…';
+
+  @override
+  String get humanLensBestMove => 'Engine\'s move';
+
+  @override
+  String humanLensFoundBy(Object percent, Object elo) {
+    return '$percent% of $elo players find it';
+  }
+
+  @override
+  String humanLensNaturalFrom(Object elo) {
+    return 'Most players find it from about $elo';
+  }
+
+  @override
+  String get humanLensNeverNatural => 'Even at 2300 most players miss it';
+
+  @override
+  String get humanLensTrap => 'Trap';
+
+  @override
+  String humanLensTrapText(Object percent, Object elo, Object move) {
+    return '$percent% of $elo players play $move, and it\'s a mistake.';
+  }
+
+  @override
+  String humanLensCandidates(Object elo) {
+    return 'What $elo players play';
+  }
+
+  @override
+  String get humanLensByRating => 'Who finds the engine\'s move';
+
+  @override
+  String get humanLensUnsupported => 'Human Lens is for standard chess only.';
+
+  @override
+  String get humanLensGameOver =>
+      'The game is over, so there are no moves to look at.';
+
+  @override
+  String humanLensError(Object error) {
+    return 'Human Lens failed: $error';
+  }
+
+  @override
+  String get findabilityObvious => 'Obvious';
+
+  @override
+  String get findabilityNatural => 'Natural';
+
+  @override
+  String get findabilityFindable => 'Findable';
+
+  @override
+  String get findabilityHard => 'Hard';
+
+  @override
+  String get findabilityVeryHard => 'Very hard';
+
+  @override
+  String get humanReview => 'Human review';
+
+  @override
+  String get humanReviewIntro =>
+      'See the game the way Maia sees human players: which misses were hard to find, which were slips, and what rating your moves looked like.';
+
+  @override
+  String get humanReviewStart => 'Review with Maia';
+
+  @override
+  String humanReviewProgress(Object done, Object total) {
+    return 'Move $done of $total…';
+  }
+
+  @override
+  String humanReviewPlayedLike(Object elo) {
+    return 'Your moves looked like a player rated about $elo';
+  }
+
+  @override
+  String get humanReviewHardMiss => 'Hard to find';
+
+  @override
+  String get humanReviewSlip => 'Slip';
+
+  @override
+  String humanReviewMissText(
+      Object played, Object best, Object percent, Object elo) {
+    return '$played instead of $best: $percent% of $elo players find it';
+  }
+
+  @override
+  String get humanReviewNoMistakes => 'No costly misses in this game.';
+
+  @override
+  String get humanReviewRatingLabel => 'Compare with players rated';
+
+  @override
+  String get scanBoard => 'Scan board';
+
+  @override
+  String get scanBoardHint =>
+      'Choose a screenshot or a scanned book diagram. Photos of a physical board aren\'t supported yet.';
+
+  @override
+  String get scanPickImage => 'Choose image';
+
+  @override
+  String get scanRecognizing => 'Recognizing…';
+
+  @override
+  String get scanNoBoard =>
+      'No chessboard found. Drag a square around the board in the image.';
+
+  @override
+  String get scanDragHint =>
+      'Wrong area? Drag a square around the board in the image.';
+
+  @override
+  String scanUncertain(Object count) {
+    return '$count uncertain squares are highlighted. Check them.';
+  }
+
+  @override
+  String scanProblems(Object problems) {
+    return 'Check the position: $problems';
+  }
+
+  @override
+  String get scanUsePosition => 'Use position';
+
+  @override
+  String scanFailed(Object error) {
+    return 'Could not read the image: $error';
+  }
 }

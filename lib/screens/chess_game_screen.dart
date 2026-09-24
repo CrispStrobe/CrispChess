@@ -35,6 +35,8 @@ import 'about_screen.dart';
 import 'coordinate_trainer_screen.dart';
 import 'game_history_screen.dart';
 import 'game_summary_screen.dart';
+import 'human_lens_sheet.dart';
+import 'scan_board_screen.dart';
 import 'opening_explorer_screen.dart';
 import 'mistakes_screen.dart';
 import 'stats_screen.dart';
@@ -964,6 +966,24 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  /// Human Lens on the position on the board. Maia only knows standard chess,
+  /// so the variants get an explanation instead.
+  void _openHumanLens() {
+    if (_prefs.chessVariant != ChessVariant.standard) {
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l?.humanLensUnsupported ??
+              'Human Lens is for standard chess only.')));
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => HumanLensSheet(positionCommand: _game.positionCommand),
+    );
+  }
+
   void _showGameSummary() {
     Navigator.push(
       context,
@@ -978,6 +998,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               ? 'Human'
               : _engineService.engineName,
           tree: _game.tree,
+          positionCommand: _prefs.chessVariant == ChessVariant.standard
+              ? _game.positionCommand
+              : null,
+          playerIsWhite: !_state.playAsBlack,
         ),
       ),
     );
@@ -1229,6 +1253,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                         ),
                       );
                     },
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.groups, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: AppLocalizations.of(context)?.humanLens ??
+                        'Human Lens',
+                    onPressed: _openHumanLens,
                   ),
                   const SizedBox(width: 4),
                   IconButton(
@@ -2087,11 +2120,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
-  Future<void> _openPositionEditor() async {
+  /// Scan a diagram, check it in the editor, then play or analyse from it.
+  Future<void> _scanBoard() async {
+    final scanned = await Navigator.push<String>(context,
+        MaterialPageRoute(builder: (_) => const ScanBoardScreen()));
+    if (scanned != null && mounted) await _openPositionEditor(scanned);
+  }
+
+  Future<void> _openPositionEditor([String? initialFen]) async {
     final fen = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => PositionEditorScreen(initialFen: _game.currentFEN),
+        builder: (_) =>
+            PositionEditorScreen(initialFen: initialFen ?? _game.currentFEN),
       ),
     );
     if (fen != null && mounted) {
@@ -2202,6 +2243,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           item(Icons.paste, l?.pastePgn ?? 'Paste PGN', _importPgn),
           item(Icons.input, l?.loadFen ?? 'Load FEN', _loadFen),
           item(Icons.grid_on, l?.setupPosition ?? 'Setup Position', _openPositionEditor),
+          item(Icons.document_scanner, l?.scanBoard ?? 'Scan board', _scanBoard),
           item(Icons.storage, l?.pgnDatabase ?? 'PGN Database', _openPgnDatabase),
         ]),
         // 4. Board Tools
@@ -2245,6 +2287,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               ),
             );
           }),
+          item(Icons.groups, l?.humanLens ?? 'Human Lens', _openHumanLens),
           item(Icons.sports_esports, l?.engineVsEngine ?? 'Engine vs Engine', () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const EngineMatchScreen()));
           }),
