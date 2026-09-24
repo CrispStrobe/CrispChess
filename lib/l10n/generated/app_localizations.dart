@@ -1711,6 +1711,247 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Game History'**
   String get gameHistory;
+
+  /// No description provided for @humanLens.
+  ///
+  /// In en, this message translates to:
+  /// **'Human Lens'**
+  String get humanLens;
+
+  /// No description provided for @humanLensSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How players rated {elo} see this position'**
+  String humanLensSubtitle(Object elo);
+
+  /// No description provided for @humanLensLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Maia (25 MB, first time only)…'**
+  String get humanLensLoading;
+
+  /// No description provided for @humanLensThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking the players…'**
+  String get humanLensThinking;
+
+  /// No description provided for @humanLensBestMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine\'s move'**
+  String get humanLensBestMove;
+
+  /// No description provided for @humanLensFoundBy.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% of {elo} players find it'**
+  String humanLensFoundBy(Object percent, Object elo);
+
+  /// No description provided for @humanLensNaturalFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Most players find it from about {elo}'**
+  String humanLensNaturalFrom(Object elo);
+
+  /// No description provided for @humanLensNeverNatural.
+  ///
+  /// In en, this message translates to:
+  /// **'Even at 2300 most players miss it'**
+  String get humanLensNeverNatural;
+
+  /// No description provided for @humanLensTrap.
+  ///
+  /// In en, this message translates to:
+  /// **'Trap'**
+  String get humanLensTrap;
+
+  /// No description provided for @humanLensTrapText.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% of {elo} players play {move}, and it\'s a mistake.'**
+  String humanLensTrapText(Object percent, Object elo, Object move);
+
+  /// No description provided for @humanLensCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'What {elo} players play'**
+  String humanLensCandidates(Object elo);
+
+  /// No description provided for @humanLensByRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Who finds the engine\'s move'**
+  String get humanLensByRating;
+
+  /// No description provided for @humanLensUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Human Lens is for standard chess only.'**
+  String get humanLensUnsupported;
+
+  /// No description provided for @humanLensGameOver.
+  ///
+  /// In en, this message translates to:
+  /// **'The game is over, so there are no moves to look at.'**
+  String get humanLensGameOver;
+
+  /// No description provided for @humanLensError.
+  ///
+  /// In en, this message translates to:
+  /// **'Human Lens failed: {error}'**
+  String humanLensError(Object error);
+
+  /// No description provided for @findabilityObvious.
+  ///
+  /// In en, this message translates to:
+  /// **'Obvious'**
+  String get findabilityObvious;
+
+  /// No description provided for @findabilityNatural.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural'**
+  String get findabilityNatural;
+
+  /// No description provided for @findabilityFindable.
+  ///
+  /// In en, this message translates to:
+  /// **'Findable'**
+  String get findabilityFindable;
+
+  /// No description provided for @findabilityHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get findabilityHard;
+
+  /// No description provided for @findabilityVeryHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Very hard'**
+  String get findabilityVeryHard;
+
+  /// No description provided for @humanReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Human review'**
+  String get humanReview;
+
+  /// No description provided for @humanReviewIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'See the game the way Maia sees human players: which misses were hard to find, which were slips, and what rating your moves looked like.'**
+  String get humanReviewIntro;
+
+  /// No description provided for @humanReviewStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Review with Maia'**
+  String get humanReviewStart;
+
+  /// No description provided for @humanReviewProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {done} of {total}…'**
+  String humanReviewProgress(Object done, Object total);
+
+  /// No description provided for @humanReviewPlayedLike.
+  ///
+  /// In en, this message translates to:
+  /// **'Your moves looked like a player rated about {elo}'**
+  String humanReviewPlayedLike(Object elo);
+
+  /// No description provided for @humanReviewHardMiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard to find'**
+  String get humanReviewHardMiss;
+
+  /// No description provided for @humanReviewSlip.
+  ///
+  /// In en, this message translates to:
+  /// **'Slip'**
+  String get humanReviewSlip;
+
+  /// No description provided for @humanReviewMissText.
+  ///
+  /// In en, this message translates to:
+  /// **'{played} instead of {best}: {percent}% of {elo} players find it'**
+  String humanReviewMissText(
+      Object played, Object best, Object percent, Object elo);
+
+  /// No description provided for @humanReviewNoMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'No costly misses in this game.'**
+  String get humanReviewNoMistakes;
+
+  /// No description provided for @humanReviewRatingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare with players rated'**
+  String get humanReviewRatingLabel;
+
+  /// No description provided for @scanBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan board'**
+  String get scanBoard;
+
+  /// No description provided for @scanBoardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a screenshot or a scanned book diagram. Photos of a physical board aren\'t supported yet.'**
+  String get scanBoardHint;
+
+  /// No description provided for @scanPickImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose image'**
+  String get scanPickImage;
+
+  /// No description provided for @scanRecognizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognizing…'**
+  String get scanRecognizing;
+
+  /// No description provided for @scanNoBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'No chessboard found. Drag a square around the board in the image.'**
+  String get scanNoBoard;
+
+  /// No description provided for @scanDragHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong area? Drag a square around the board in the image.'**
+  String get scanDragHint;
+
+  /// No description provided for @scanUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} uncertain squares are highlighted. Check them.'**
+  String scanUncertain(Object count);
+
+  /// No description provided for @scanProblems.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the position: {problems}'**
+  String scanProblems(Object problems);
+
+  /// No description provided for @scanUsePosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Use position'**
+  String get scanUsePosition;
+
+  /// No description provided for @scanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the image: {error}'**
+  String scanFailed(Object error);
 }
 
 class _AppLocalizationsDelegate

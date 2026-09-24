@@ -29,6 +29,7 @@ dependencies:
   package_info_plus: ^10.2.0
   protobuf: ^6.0.0
   fixnum: ^1.1.1
+  file_picker: ^13.1.0
 
 dev_dependencies:
   flutter_test:
@@ -65,3 +66,4 @@ flutter:
     - assets/pieces/totoy/
     - assets/pieces/papercut/
     - assets/puzzles.json
+    - assets/models/
