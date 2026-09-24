@@ -16,6 +16,7 @@ import 'frozenight_engine.dart'
 
 import 'maia3_dart_engine.dart'; // pure Dart, one implementation for every platform
 import 'chessmamba_engine.dart'; // Dart + ONNX; native runtime where available
+import 'chess_lm_engine.dart'; // language-model bot zoo
 
 import 'lynx_engine.dart'
     if (dart.library.js_interop) 'lynx_web_engine.dart';
@@ -56,6 +57,8 @@ ChessEngine createEngine(String name, {
       // on native it is ignored.
       return LynxEngine(variantId: maia3Variant); // MIT
     default:
+      final lm = chessLmSpecNamed(name);
+      if (lm != null) return ChessLmEngine(lm); // MIT / Apache-2.0 models
       return DartEngine(); // MIT, built-in
   }
 }

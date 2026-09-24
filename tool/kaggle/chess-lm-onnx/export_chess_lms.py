@@ -28,8 +28,154 @@ MODELS = [
     ("mlabonne/chesspythia-70m", "apache-2.0", "text"),
     ("nsarrazin/chessformer",    "mit",        "uci-token"),
     ("TobiasLogic/chessmamba",   "mit",        "mamba-step"),
+    # The permissively licensed entries of mlabonne's Chess LLM Arena.
+    ("FlameF0X/ChessSLM-PM",            "apache-2.0", "text"),
+    ("mlabonne/grandpythia-200k-70m",   "apache-2.0", "text"),
+    ("bharathrajcl/chess_llama_68m",    "apache-2.0", "text"),
+    ("nlpguy/smolchess-v2",             "apache-2.0", "text"),
+    ("nlpguy/amdchess-v9",              "apache-2.0", "text"),
+    ("DedeProGames/dialochess",         "mit",        "text"),
+    ("DedeProGames/Chesser-248K-Mini",  "apache-2.0", "text"),
 ]
+
+# Graphs above this size (fp32) also get an fp16-storage copy.
+FP16_ABOVE_BYTES = 250_000_000
+
+# Prompt formats scored on real games; {moves} is the game so far.
+FORMATS = {
+    "arena":   "1.e4 e5 2.Nf3",     # the Chess LLM Arena / ChessAggro training format
+    "spaced":  "1. e4 e5 2. Nf3",   # PGN
+    "plain":   "e4 e5 Nf3",
+    "blind":   "1.",                # what the arena actually feeds: no history
+}
 report = {}
+
+def fp16_storage(src, dst):
+    """Weights stored as fp16, each followed by a Cast to fp32: half the
+    download, and both the app's runtimes still compute in fp32."""
+    from onnx import helper, numpy_helper, TensorProto
+    m = onnx.load(str(src))
+    g = m.graph
+    new_inits, casts = [], []
+    for init in list(g.initializer):
+        if init.data_type == TensorProto.FLOAT and np.prod(init.dims) >= 1024:
+            arr = numpy_helper.to_array(init).astype(np.float16)
+            h = numpy_helper.from_array(arr, init.name + "_fp16")
+            new_inits.append(h)
+            casts.append(helper.make_node("Cast", [h.name], [init.name], to=TensorProto.FLOAT,
+                                          name=init.name + "_cast"))
+        else:
+            new_inits.append(init)
+    del g.initializer[:]
+    g.initializer.extend(new_inits)
+    nodes = casts + list(g.node)
+    del g.node[:]
+    g.node.extend(nodes)
+    onnx.save(m, str(dst))
+
+
+def lichess_games(n_per_user=6):
+    """CC0 games of the lichess Maia bots (mostly club players' games against
+    them), as lists of SAN moves. Measurement data only, never shipped."""
+    import urllib.request, io, chess.pgn
+    games = []
+    for user in ("maia1", "maia5", "maia9"):
+        url = f"https://lichess.org/api/games/user/{user}?max={n_per_user}&moves=true&clocks=false&evals=false&opening=false"
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/x-chess-pgn"})
+            txt = urllib.request.urlopen(req, timeout=60).read().decode()
+        except Exception as e:
+            progress(f"lichess fetch {user} failed: {e!r}"); continue
+        f = io.StringIO(txt)
+        while (g := chess.pgn.read_game(f)) is not None:
+            b = g.board(); sans = []
+            for mv in g.mainline_moves():
+                sans.append(b.san(mv)); b.push(mv)
+            if len(sans) >= 20: games.append(sans)
+    return games
+
+
+def render(fmt, sans):
+    """The game so far in [fmt], ending where the next move goes."""
+    if fmt == "blind":
+        return "1."
+    parts = []
+    for i, san in enumerate(sans):
+        san = san.rstrip("+#")
+        if i % 2 == 0:
+            parts.append(f"{i // 2 + 1}.{san}" if fmt == "arena" else
+                         f"{i // 2 + 1}. {san}" if fmt == "spaced" else san)
+        else:
+            parts.append(san)
+    nxt = len(sans)
+    if fmt in ("arena", "spaced") and nxt % 2 == 0:
+        parts.append(f"{nxt // 2 + 1}." if fmt == "arena" else f"{nxt // 2 + 1}.")
+        text = " ".join(parts)
+        return text  # "... 3." -> next token is the move (arena: no space; spaced: " Nf3")
+    return " ".join(parts)
+
+
+def move_text(fmt, prompt, san):
+    san = san.rstrip("+#")
+    if fmt == "blind":
+        return san
+    if fmt == "arena" and prompt.endswith("."):
+        return san
+    return " " + san if prompt else san
+
+
+def score_formats(model, tok, games, positions_per_game=6):
+    """Per format: share of positions where the actual move is the model's
+    top legal choice, and mean probability given to it among legal moves."""
+    out = {}
+    rng = np.random.default_rng(0)
+    picks = []
+    for gi, g in enumerate(games):
+        plies = sorted(rng.choice(np.arange(2, min(len(g), 80)), size=min(positions_per_game, min(len(g), 80) - 2), replace=False))
+        picks += [(gi, p) for p in plies]
+    pad = tok.pad_token_id if tok.pad_token_id is not None else (tok.eos_token_id or 0)
+    for fmt in FORMATS:
+        top1 = 0; probs = []
+        t0 = time.time()
+        for gi, ply in picks:
+            sans = games[gi][:ply]
+            board = chess.Board()
+            for s_ in sans: board.push_san(s_)
+            actual = games[gi][ply]
+            legal = [board.san(m) for m in board.legal_moves]
+            prompt = render(fmt, sans)
+            p_ids = tok(prompt, add_special_tokens=True).input_ids
+            seqs = []
+            for san in legal:
+                full = tok(prompt + move_text(fmt, prompt, san), add_special_tokens=True).input_ids
+                # The move's tokens are what follows the prompt's; recompute the
+                # split on the full string to be robust to merges across it.
+                k = len(p_ids)
+                while k > 0 and full[:k] != p_ids[:k]: k -= 1
+                seqs.append((full, k))
+            L = max(len(f) for f, _ in seqs)
+            ids = torch.full((len(seqs), L), pad, dtype=torch.long)
+            mask = torch.zeros((len(seqs), L), dtype=torch.long)
+            for i, (f, _) in enumerate(seqs):
+                ids[i, :len(f)] = torch.tensor(f); mask[i, :len(f)] = 1
+            lp = torch.log_softmax(model(input_ids=ids, attention_mask=mask, use_cache=False).logits.float(), -1)
+            scores = []
+            for i, (f, k) in enumerate(seqs):
+                scores.append(sum(lp[i, j - 1, f[j]].item() for j in range(max(k, 1), len(f))))
+            sc = np.array(scores); sc = np.exp(sc - sc.max()); sc /= sc.sum()
+            ai = legal.index(actual)
+            top1 += int(np.argmax(sc) == ai); probs.append(float(sc[ai]))
+        out[fmt] = {"top1": round(top1 / len(picks), 4), "mean_prob": round(float(np.mean(probs)), 4),
+                    "positions": len(picks), "secs": round(time.time() - t0, 1)}
+        progress(f"   format {fmt}: {out[fmt]}")
+    return out
+
+
+TOKENIZER_PROBES = ["1.", "1.e4", "1.e4 e5 2.Nf3 Nc6 3.Bb5", "1. e4 e5 2. Nf3 Nc6 3. Bb5",
+                    "e4 e5 Nf3 Nc6", " Nf3", " O-O", " exd8=Q", " Qxh7", "Bxf7",
+                    "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Be7 5.e3 O-O 6.Nf3 Nbd7 7.Rc1",
+                    "e2e4 e7e5 g1f3", "12.Nxe5 dxe5 13.Qh5+"]
+
 
 def progress(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
@@ -205,6 +351,9 @@ def export_mamba(local, d, r):
 # Set to a list of repo ids to re-run only those models.
 ONLY: list[str] = []
 
+GAMES = lichess_games()
+progress(f"{len(GAMES)} lichess games for format scoring")
+
 for repo, licence, fmt in MODELS:
     if ONLY and repo not in ONLY:
         continue
@@ -232,6 +381,11 @@ for repo, licence, fmt in MODELS:
         tok = AutoTokenizer.from_pretrained(local)
         r["tokenizer_class"] = type(tok).__name__
         r["tokenizer_sample"] = tok.tokenize("1. e4 e5 2. Nf3 Nc6") if fmt == "text" else None
+        # Reference encodings for the app's tokenizers: with and without the
+        # special tokens the tokenizer adds by default.
+        (d / "tokenizer_probes.json").write_text(json.dumps([
+            {"text": t, "ids": tok(t, add_special_tokens=False).input_ids,
+             "ids_default": tok(t).input_ids} for t in TOKENIZER_PROBES], indent=0))
 
         published = local / "onnx" / "model.onnx"
         if published.exists():
@@ -247,6 +401,16 @@ for repo, licence, fmt in MODELS:
                 opset_version=17, do_constant_folding=True, dynamo=False)
         model.eval()  # export must not leave dropout switched on for the reference
         r["onnx"] = graph_info(d / "model.onnx")
+        if r["onnx"]["bytes"] > FP16_ABOVE_BYTES:
+            fp16_storage(d / "model.onnx", d / "model_fp16.onnx")
+            so16 = ort.SessionOptions(); so16.intra_op_num_threads = 1
+            s16 = ort.InferenceSession(str(d / "model_fp16.onnx"), so16, providers=["CPUExecutionProvider"])
+            x = torch.randint(0, vocab, (1, 24))
+            ref = model(input_ids=x, attention_mask=torch.ones_like(x), use_cache=False).logits.numpy()
+            got = s16.run(None, {s16.get_inputs()[0].name: x.numpy().astype(np.int64)})[0]
+            r["fp16"] = {"bytes": (d / "model_fp16.onnx").stat().st_size,
+                         "max_abs_diff": float(np.abs(ref - got).max())}
+            progress(f"{repo}: fp16 storage {r['fp16']}")
         progress(f"{repo}: verify with onnxruntime")
         r["max_abs_diff"], r["latency"] = ort_check(d / "model.onnx", model, vocab)
         if r["max_abs_diff"] > 1e-3:
@@ -266,6 +430,10 @@ for repo, licence, fmt in MODELS:
                 r["dynamo_error"] = repr(e)[:800]
         progress(f"{repo}: diffs {r['latency'].get('diff_by_len')}")
         if fmt == "text":
+            if GAMES:
+                torch.set_num_threads(os.cpu_count() or 4)
+                r["formats"] = score_formats(model, tok, GAMES)
+                r["best_format"] = max(r["formats"], key=lambda f: r["formats"][f]["mean_prob"])
             r["start_move"] = text_move_choice(model, tok)
             r["ruy_lopez_move4"] = text_move_choice(model, tok, "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.",
                                                      board_moves="e4 e5 Nf3 Nc6 Bb5 a6")

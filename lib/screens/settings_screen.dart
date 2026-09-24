@@ -7,6 +7,7 @@ import '../chess/board_theme.dart';
 import '../chess/game_state.dart' show ChessVariant;
 import '../engines/lynx_build.dart';
 import '../engines/chess_engine.dart' show thinkTimeForLevel;
+import '../engines/chess_lm_engine.dart';
 import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -237,6 +238,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       available: true,
     ));
 
+    // The language-model bot zoo — tiny chess LMs from the Hub.
+    for (final lm in chessLmZoo.where(chessLmAvailable)) {
+      engines.add(_EngineOption(
+        name: lm.name,
+        description: '${lm.description} (by ${lm.author}, ${lm.downloadMb} MB)',
+        elo: 'weak',
+        license: lm.license,
+        available: true,
+      ));
+    }
+
     // Frozenight — MIT, available on all platforms
     engines.add(_EngineOption(
       name: 'Frozenight',
@@ -321,6 +333,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Skill Level $level  ·  Depth ${5 + level ~/ 4}';
       case 'Frozenight':
         return 'Depth ${2 + level ~/ 2} (search time ~${level}s)';
+      case final n when chessLmSpecNamed(n) != null:
+        return 'Sampling temperature ${ChessLmEngine.temperatureFor(level).toStringAsFixed(2)} '
+            '(lower plays its favourite move more often)';
       case 'ChessMamba':
         return level <= 3
             ? 'Network instinct only (no search)'

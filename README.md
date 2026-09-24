@@ -20,6 +20,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 | **Stockfish** | GPL-3.0 | ~3200–3600 | All | Downloaded separately, never linked |
 | **Lc0** | GPL-3.0 weights | ~1100–1900 | All | MCTS + Maia net, downloaded separately |
 | **ChessMamba** | MIT | ~1100 | All | State-space net reading the move sequence, own search; downloaded (67 MB) |
+| **LM bot zoo** | MIT / Apache-2.0 (per model) | weak | All (4) / Desktop (8) | Eight small chess language models from the Hub, downloaded on demand |
 | **Custom UCI** | Any | Any | Desktop/Mobile | Load any engine binary from disk |
 
 - **Built-in** — pure Dart engine with alpha-beta pruning, null move pruning, principal variation search, transposition table, quiescence search with MVV-LVA + delta pruning, and piece-square table evaluation. Works everywhere including Web WASM.
@@ -29,6 +30,7 @@ CrispChess uses a plugin architecture that lets you swap between chess engines a
 - **Stockfish** — strongest traditional engine. Runs as Web Worker (web), process (desktop/Android), or JavaScriptCore (iOS). Downloaded at runtime.
 - **Lc0** — AlphaZero-style MCTS with Maia weights for human-like play. Runs everywhere: ONNX Runtime Web in the browser, native ONNX Runtime with a pure-Dart fallback elsewhere.
 - **ChessMamba** — [TobiasLogic's](https://huggingface.co/TobiasLogic/chessmamba) selective state-space network (Mamba/S6, 16.8M parameters). It never sees the board: it reads the game as a sequence of moves and carries a fixed-size state from move to move, so a move costs the same at move 5 as at move 50. Played with its own policy-guided negamax, expanding a node's candidate moves in one batched call. Games from the starting position only; others go to the built-in engine. Measured about even with the built-in engine at level 4; its search adds little over the network's first choice.
+- **LM bot zoo** — eight small chess *language models* from the Hugging Face Hub (see NOTICE.md for authors), each exported with a KV cache and tokenized in Dart exactly as upstream. A bot writes the game as PGN text and picks among the legal moves by how likely it finds each one's text, so it can never play an illegal move. Given the real game, the best of them (Chess Llama 68M) plays the move a human played in 41% of positions from real Lichess games, against 1-9% for the blind prompt the Chess LLM Arena uses. Weak, odd and human-ish opponents, not engines.
 - **Custom UCI** — load any UCI engine via the Engine Manager (desktop/mobile only). Auto-detects engine identity and options.
 
 GPL-3.0 engines are never compiled into the app binary. They run as separate processes or are downloaded at runtime, keeping the app itself MIT-licensed.

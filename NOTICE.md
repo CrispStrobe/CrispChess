@@ -60,6 +60,24 @@ The ChessMamba engine uses the model, weights and search design of
 [cstr/chessmamba-onnx](https://huggingface.co/cstr/chessmamba-onnx); the
 search is a Dart port of its `search.py`.
 
+## Language-model bot zoo
+
+The "LM:" engines are small chess language models by their authors below,
+converted to ONNX with a KV cache and downloaded at run time from
+[cstr/chess-lm-zoo-onnx](https://huggingface.co/cstr/chess-lm-zoo-onnx). Each
+keeps its licence; only MIT and Apache-2.0 models are included.
+
+| Engine | Model | Author | Licence |
+|---|---|---|---|
+| LM: Chess Llama 68M | [bharathrajcl/chess_llama_68m](https://huggingface.co/bharathrajcl/chess_llama_68m) | bharathrajcl | Apache-2.0 |
+| LM: ChessSLM-PM | [FlameF0X/ChessSLM-PM](https://huggingface.co/FlameF0X/ChessSLM-PM) | FlameF0X | Apache-2.0 |
+| LM: AMD Chess | [nlpguy/amdchess-v9](https://huggingface.co/nlpguy/amdchess-v9) | nlpguy | Apache-2.0 |
+| LM: GrandPythia | [mlabonne/grandpythia-200k-70m](https://huggingface.co/mlabonne/grandpythia-200k-70m) | Maxime Labonne | Apache-2.0 |
+| LM: DialoChess | [DedeProGames/dialochess](https://huggingface.co/DedeProGames/dialochess) | DedeProGames | MIT |
+| LM: SmolChess | [nlpguy/smolchess-v2](https://huggingface.co/nlpguy/smolchess-v2) | nlpguy | Apache-2.0 |
+| LM: Chesser | [DedeProGames/Chesser-248K-Mini](https://huggingface.co/DedeProGames/Chesser-248K-Mini) | DedeProGames | Apache-2.0 |
+| LM: Chessformer | [nsarrazin/chessformer](https://huggingface.co/nsarrazin/chessformer) | nsarrazin | MIT |
+
 ## Board-scanning model
 
 `assets/models/board_squares.onnx` was trained for this app from scratch
