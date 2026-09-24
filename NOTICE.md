@@ -52,6 +52,14 @@ Piece SVG themes are from [Lichess](https://github.com/lichess-org/lila):
 Authors and licences as listed in Lichess's
 [COPYING.md](https://github.com/lichess-org/lila/blob/master/COPYING.md).
 
+## ChessMamba
+
+The ChessMamba engine uses the model, weights and search design of
+[ChessMamba](https://huggingface.co/TobiasLogic/chessmamba) by TobiasLogic
+(MIT). Its ONNX export is downloaded at run time from
+[cstr/chessmamba-onnx](https://huggingface.co/cstr/chessmamba-onnx); the
+search is a Dart port of its `search.py`.
+
 ## Board-scanning model
 
 `assets/models/board_squares.onnx` was trained for this app from scratch

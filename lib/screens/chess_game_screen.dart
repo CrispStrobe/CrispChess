@@ -1577,7 +1577,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   Future<void> _startMultiEngineAnalysis() async {
     // Create a second engine for comparison
-    final engines = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'Lc0'];
+    final engines = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0'];
     final currentEngine = _engineService.engineName;
 
     final selected = await showDialog<List<String>>(
