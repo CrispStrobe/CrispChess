@@ -1,0 +1,14 @@
+{
+  "id": "chr1s4/crispchess-voice-grammar",
+  "title": "CrispChess Voice Grammar",
+  "code_file": "voice_grammar.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "true",
+  "competition_sources": [],
+  "dataset_sources": ["chr1s4/crispchess-voice-test"],
+  "kernel_sources": [],
+  "model_sources": []
+}
