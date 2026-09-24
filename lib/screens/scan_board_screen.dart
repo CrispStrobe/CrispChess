@@ -9,7 +9,9 @@ import 'package:flutter/services.dart';
 import '../chess/board_annotations.dart';
 import '../chess/chess_game.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../engines/maia3_dart/onnx/model_fetch.dart';
 import '../vision/board_recognizer.dart';
+import '../vision/photo/board_photo_recognizer.dart';
 import '../widgets/chess_board.dart';
 
 /// Recognition off the UI isolate. The model is 277 KB, so loading it per job
@@ -22,6 +24,17 @@ Future<BoardRecognition> _recognizeJob(
     return await recognizer.recognize(job.rgba, job.w, job.h, crop: job.crop);
   } finally {
     recognizer.dispose();
+  }
+}
+
+/// Photo recognition off the UI isolate: locate the board, read the squares.
+Future<BoardPhotoResult> _recognizePhotoJob(
+    ({Uint8List occ, Uint8List pieces, Uint8List rgba, int w, int h}) j) async {
+  final r = BoardPhotoRecognizer(BoardPhotoModels(occupancy: j.occ, pieces: j.pieces));
+  try {
+    return await r.recognize(j.rgba, j.w, j.h);
+  } finally {
+    r.dispose();
   }
 }
 
@@ -57,6 +70,11 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
   static const _maxSide = 1600;
 
   Uint8List? _model;
+  Uint8List? _photoOcc, _photoPieces;
+
+  /// Photo of a physical board (perspective, 3D pieces) instead of a diagram.
+  bool _photoMode = false;
+  BoardPhotoResult? _photo;
   ui.Image? _image;
   Uint8List? _rgba;
   BoardRecognition? _result;
@@ -80,10 +98,16 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
       _busy = true;
       _error = null;
       _result = null;
+      _photo = null;
       _notFound = false;
       _dragRect = null;
     });
     try {
+      if (_photoMode) {
+        // Downloaded once (12 MB), then cached like the engines' models.
+        _photoOcc ??= await fetchModelBytes(photoOccupancyUrl, 'board_photo_occupancy.onnx');
+        _photoPieces ??= await fetchModelBytes(photoPiecesUrl, 'board_photo_pieces.onnx');
+      }
       _model ??= (await rootBundle.load('assets/models/board_squares.onnx'))
           .buffer
           .asUint8List();
@@ -94,7 +118,11 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
         _image = image;
         _rgba = data!.buffer.asUint8List();
       });
-      await _recognize(null);
+      if (_photoMode) {
+        await _recognizePhoto();
+      } else {
+        await _recognize(null);
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
@@ -143,6 +171,41 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
     }
   }
 
+  Future<void> _recognizePhoto() async {
+    final image = _image, rgba = _rgba;
+    if (image == null || rgba == null) return;
+    setState(() {
+      _busy = true;
+      _notFound = false;
+    });
+    try {
+      final photo = await compute(_recognizePhotoJob, (
+        occ: _photoOcc!,
+        pieces: _photoPieces!,
+        rgba: rgba,
+        w: image.width,
+        h: image.height
+      ));
+      if (mounted) {
+        setState(() {
+          _photo = photo;
+          _result = photo.toBoardRecognition();
+        });
+      }
+    } on BoardNotLocatedException {
+      if (mounted) {
+        setState(() {
+          _result = null;
+          _notFound = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   String get _fen {
     final r = _result!;
     return '${r.placement} ${_whiteToMove ? 'w' : 'b'} '
@@ -161,6 +224,35 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
         children: [
           Text(l?.scanBoardHint ??
               'Choose a screenshot or a scanned book diagram.'),
+          const SizedBox(height: 12),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                  value: false,
+                  icon: const Icon(Icons.grid_on),
+                  label: Text(l?.scanModeDiagram ?? 'Diagram')),
+              ButtonSegment(
+                  value: true,
+                  icon: const Icon(Icons.photo_camera),
+                  label: Text(l?.scanModePhoto ?? 'Photo')),
+            ],
+            selected: {_photoMode},
+            onSelectionChanged: _busy
+                ? null
+                : (s) => setState(() {
+                      _photoMode = s.first;
+                      _image = null;
+                      _result = null;
+                      _photo = null;
+                    }),
+          ),
+          if (_photoMode) ...[
+            const SizedBox(height: 6),
+            Text(
+                l?.scanPhotoHint ??
+                    'Photograph the whole board from a player\'s side.',
+                style: theme.textTheme.bodySmall),
+          ],
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _busy ? null : _pick,
@@ -182,8 +274,13 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
             const SizedBox(height: 16),
             Text(
               _notFound
-                  ? l?.scanNoBoard ?? 'No chessboard found. Drag a square.'
-                  : l?.scanDragHint ?? 'Wrong area? Drag a square around it.',
+                  ? (_photoMode
+                      ? l?.scanPhotoNoBoard ??
+                          'No board found. Photograph the whole board, with its grid visible.'
+                      : l?.scanNoBoard ?? 'No chessboard found. Drag a square.')
+                  : (_photoMode
+                      ? ''
+                      : l?.scanDragHint ?? 'Wrong area? Drag a square around it.'),
               style: _notFound
                   ? TextStyle(color: theme.colorScheme.error)
                   : theme.textTheme.bodySmall,
@@ -196,6 +293,11 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
             _boardPreview(r),
             const SizedBox(height: 8),
             ..._warnings(l, theme, r),
+            if (_photo != null && _photo!.orientationConfidence < 0.3)
+              Text(
+                  l?.scanOrientationUnsure ??
+                      'Check the orientation: rotate until White is at the bottom.',
+                  style: TextStyle(color: Colors.orange.shade800)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -215,11 +317,21 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
                   onSelectionChanged: (s) =>
                       setState(() => _whiteToMove = s.first),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => setState(() => _result = r.rotated()),
-                  icon: const Icon(Icons.swap_vert),
-                  label: Text(l?.flipBoard ?? 'Flip board'),
-                ),
+                if (_photo != null)
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() {
+                      _photo = _photo!.rotated(1);
+                      _result = _photo!.toBoardRecognition();
+                    }),
+                    icon: const Icon(Icons.rotate_90_degrees_cw),
+                    label: Text(l?.scanRotate ?? 'Rotate 90°'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _result = r.rotated()),
+                    icon: const Icon(Icons.swap_vert),
+                    label: Text(l?.flipBoard ?? 'Flip board'),
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -251,20 +363,23 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
         return BoardRect(left, top, side, side);
       }
 
-      final shown = _dragRect ?? _result?.rect;
+      final shown = _photo != null ? null : _dragRect ?? _result?.rect;
+      // A photo is in perspective: outline the four corners the locator
+      // found. Drag-to-crop is for flat diagrams only.
+      final drag = !_busy && !_photoMode;
       return Center(
         child: GestureDetector(
-          onPanStart: _busy
+          onPanStart: !drag
               ? null
               : (d) => setState(() {
                     _dragStart = toImage(d.localPosition);
                     _dragRect = null;
                   }),
-          onPanUpdate: _busy || _dragStart == null
+          onPanUpdate: !drag || _dragStart == null
               ? null
               : (d) => setState(() => _dragRect =
                   squareBetween(_dragStart!, toImage(d.localPosition))),
-          onPanEnd: _busy
+          onPanEnd: !drag
               ? null
               : (_) {
                   final crop = _dragRect;
@@ -276,6 +391,14 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
             height: h,
             child: Stack(children: [
               Positioned.fill(child: RawImage(image: image, fit: BoxFit.fill)),
+              if (_photo != null)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _CornersPainter(
+                        [for (final c in _photo!.corners) Offset(c.x * scale, c.y * scale)],
+                        theme.colorScheme.primary),
+                  ),
+                ),
               if (shown != null)
                 Positioned(
                   left: shown.left * scale,
@@ -366,4 +489,27 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
       _ => code,
     };
   }
+}
+
+/// The board's outline in a photo: the four corners the locator found.
+class _CornersPainter extends CustomPainter {
+  final List<Offset> corners;
+  final Color color;
+  _CornersPainter(this.corners, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (corners.length != 4) return;
+    final path = Path()..addPolygon(corners, true);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
+  }
+
+  @override
+  bool shouldRepaint(_CornersPainter old) =>
+      old.corners != corners || old.color != color;
 }

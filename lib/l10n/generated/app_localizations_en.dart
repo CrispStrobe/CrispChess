@@ -1068,4 +1068,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String ghostFavourite(Object moves) {
     return 'Your favourite first moves: $moves';
   }
+
+  @override
+  String get scanModeDiagram => 'Diagram';
+
+  @override
+  String get scanModePhoto => 'Photo';
+
+  @override
+  String get scanPhotoHint =>
+      'Photograph the whole board from a player\'s side, grid lines visible. Works best with standard tournament-style pieces.';
+
+  @override
+  String get scanPhotoNoBoard =>
+      'No board found. Photograph the whole board, with its grid visible.';
+
+  @override
+  String get scanRotate => 'Rotate 90°';
+
+  @override
+  String get scanOrientationUnsure =>
+      'Check the orientation: rotate until White is at the bottom.';
 }

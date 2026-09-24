@@ -325,5 +325,11 @@
   "ghostRatingUnmeasured": "Wertung noch nicht gemessen (spielt wie 1500)",
   "ghostMeasure": "Meine Wertung messen",
   "ghostMeasuring": "Lese deine Züge… {done} von {total}",
-  "ghostFavourite": "Deine liebsten ersten Züge: {moves}"
+  "ghostFavourite": "Deine liebsten ersten Züge: {moves}",
+  "scanModeDiagram": "Diagramm",
+  "scanModePhoto": "Foto",
+  "scanPhotoHint": "Fotografiere das ganze Brett von der Seite eines Spielers, mit sichtbaren Linien. Am besten mit Standard-Turnierfiguren.",
+  "scanPhotoNoBoard": "Kein Brett gefunden. Fotografiere das ganze Brett mit sichtbaren Linien.",
+  "scanRotate": "90° drehen",
+  "scanOrientationUnsure": "Ausrichtung prüfen: drehen, bis Weiß unten steht."
 }

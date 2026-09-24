@@ -235,6 +235,16 @@ copyleft, share-alike or non-commercial sources. The fonts are fetched by
 `tool/board_vision/fonts/fetch.sh`, not committed. Details in
 `tool/board_vision/README.md`.
 
+## Photo-scanning models
+
+`board_photo_occupancy.onnx` and `board_photo_pieces.onnx` (downloaded at
+runtime from https://huggingface.co/cstr/chess-board-photo-onnx):
+trained for this app (MIT) by `tool/board_photo/kaggle/`; localisation and
+crops ported from chesscog (MIT). Training data: chesscog renders (CC BY 4.0),
+samryan18/chess-dataset (MIT), Roboflow chess-pieces-mjzgj (CC BY 4.0);
+initial weights: torchvision MobileNetV3-Small (BSD-3, ImageNet-trained). See
+NOTICE.md for authors.
+
 ## Lc0 oracle test data
 
 `tool/oracle/` checks this app's Lc0 implementation against lc0 itself. It

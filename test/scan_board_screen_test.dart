@@ -41,4 +41,17 @@ void main() {
     expect(find.text('Choose image'), findsOneWidget);
     expect(find.text('Use position'), findsNothing);
   });
+
+  testWidgets('photo mode explains how to take the picture', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: ScanBoardScreen(),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Photograph the whole board'), findsNothing);
+    await tester.tap(find.text('Photo'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Photograph the whole board'), findsOneWidget);
+  });
 }

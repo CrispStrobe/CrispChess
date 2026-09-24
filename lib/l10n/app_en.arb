@@ -548,5 +548,11 @@
     "placeholders": {
       "moves": {}
     }
-  }
+  },
+  "scanModeDiagram": "Diagram",
+  "scanModePhoto": "Photo",
+  "scanPhotoHint": "Photograph the whole board from a player's side, grid lines visible. Works best with standard tournament-style pieces.",
+  "scanPhotoNoBoard": "No board found. Photograph the whole board, with its grid visible.",
+  "scanRotate": "Rotate 90°",
+  "scanOrientationUnsure": "Check the orientation: rotate until White is at the bottom."
 }

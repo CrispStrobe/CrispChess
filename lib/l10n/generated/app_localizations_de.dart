@@ -1075,4 +1075,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String ghostFavourite(Object moves) {
     return 'Deine liebsten ersten Züge: $moves';
   }
+
+  @override
+  String get scanModeDiagram => 'Diagramm';
+
+  @override
+  String get scanModePhoto => 'Foto';
+
+  @override
+  String get scanPhotoHint =>
+      'Fotografiere das ganze Brett von der Seite eines Spielers, mit sichtbaren Linien. Am besten mit Standard-Turnierfiguren.';
+
+  @override
+  String get scanPhotoNoBoard =>
+      'Kein Brett gefunden. Fotografiere das ganze Brett mit sichtbaren Linien.';
+
+  @override
+  String get scanRotate => '90° drehen';
+
+  @override
+  String get scanOrientationUnsure =>
+      'Ausrichtung prüfen: drehen, bis Weiß unten steht.';
 }

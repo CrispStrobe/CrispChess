@@ -108,6 +108,21 @@ share-alike or non-commercial source, no photographs or third-party datasets:
 | [Fairfax HD](https://github.com/kreativekorp/open-relay) | Kreative Software | SIL OFL 1.1 |
 | [GNU Unifont](https://unifoundry.com/unifont/) 15.1.05 | Roman Czyborra, Paul Hardy et al. | SIL OFL 1.1 (upstream dual licence; the OFL option is used) |
 
+## Photo scanning (real boards)
+
+Photo mode's board localisation and square crops are ports of
+[chesscog](https://github.com/georg-wolflein/chesscog) (Georg Wölflein and
+Ognjen Arandjelović, *J. Imaging* 2021; MIT). Its two classifiers
+(MobileNetV3-Small, downloaded on first use from
+[cstr/chess-board-photo-onnx](https://huggingface.co/cstr/chess-board-photo-onnx), initialised from
+torchvision's ImageNet weights, BSD-3) were trained for this app on:
+
+- chesscog's synthetic renders (OSF xf3ka), CC BY 4.0;
+- [samryan18/chess-dataset](https://github.com/samryan18/chess-dataset),
+  © 2019 Samuel Ryan, Mukund Venkateswaran, Kurt Convey, Michael Deng, MIT
+  (also the two test photos in `test/fixtures/board_photo/`);
+- Roboflow 100 "chess pieces" (`chess-pieces-mjzgj`), CC BY 4.0.
+
 ## Chess puzzle data
 
 Puzzles are from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0).
