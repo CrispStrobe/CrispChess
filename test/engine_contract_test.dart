@@ -125,7 +125,7 @@ void main() {
 
     test('all engine names create without error', () {
       for (final name in ['Built-in', 'Stockfish', 'Frozenight',
-                           'Maia3', 'Maia3 Dart', 'Lc0']) {
+                           'Maia3', 'Maia3 Dart', 'ChessMamba', 'Lc0']) {
         expect(() => createEngine(name), returnsNormally,
             reason: '$name should create without error');
       }

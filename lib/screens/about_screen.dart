@@ -95,6 +95,12 @@ class _AboutScreenState extends State<AboutScreen> {
                   'weight data. The weights\' upstream license is '
                   'AGPL-3.0 — see THIRD_PARTY_LICENSES.md for details.'),
               SizedBox(height: 12),
+              _EngineInfo('ChessMamba', '~1100 ELO', 'MIT',
+                  'By TobiasLogic. A selective state-space network (Mamba/S6) '
+                  'that reads the game as a sequence of moves, never the board, '
+                  'searched by its own policy-guided negamax. Games from the '
+                  'starting position only; others go to the built-in engine.'),
+              SizedBox(height: 12),
               _EngineInfo('Lc0', '~1100-1900 ELO', 'GPL-3.0',
                   'MCTS + Maia neural network. AlphaZero-style search. '
                   'Downloaded at runtime, never compiled into app.'),

@@ -15,6 +15,7 @@ import 'frozenight_engine.dart'
     if (dart.library.js_interop) 'frozenight_web_engine.dart';
 
 import 'maia3_dart_engine.dart'; // pure Dart, one implementation for every platform
+import 'chessmamba_engine.dart'; // Dart + ONNX; native runtime where available
 
 import 'lynx_engine.dart'
     if (dart.library.js_interop) 'lynx_web_engine.dart';
@@ -43,6 +44,8 @@ ChessEngine createEngine(String name, {
         variantId: maia3Variant ?? '5m',
         playerElo: playerElo ?? 1500,
       ); // MIT (pure Dart)
+    case 'ChessMamba':
+      return ChessMambaEngine(); // MIT, weights downloaded on first use
     case 'Lc0':
       return Lc0Engine(
         variantId: maia3Variant,

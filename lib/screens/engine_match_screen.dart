@@ -34,7 +34,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
   int _currentGame = 0;
   int _currentMoveCount = 0;
 
-  static const _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'Lc0'];
+  static const _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0'];
 
   @override
   void dispose() {

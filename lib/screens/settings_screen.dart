@@ -6,6 +6,7 @@ import '../chess/chess_clock.dart';
 import '../chess/board_theme.dart';
 import '../chess/game_state.dart' show ChessVariant;
 import '../engines/lynx_build.dart';
+import '../engines/chess_engine.dart' show thinkTimeForLevel;
 import 'engine_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -227,6 +228,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       hasVariants: true,
     ));
 
+    // ChessMamba — MIT state-space net that reads the game as a move sequence
+    engines.add(_EngineOption(
+      name: 'ChessMamba',
+      description: 'Mamba state-space net + its own search (downloads 67 MB)',
+      elo: '~1100',
+      license: 'MIT',
+      available: true,
+    ));
+
     // Frozenight — MIT, available on all platforms
     engines.add(_EngineOption(
       name: 'Frozenight',
@@ -311,6 +321,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Skill Level $level  ·  Depth ${5 + level ~/ 4}';
       case 'Frozenight':
         return 'Depth ${2 + level ~/ 2} (search time ~${level}s)';
+      case 'ChessMamba':
+        return level <= 3
+            ? 'Network instinct only (no search)'
+            : 'Policy-guided search, ~${thinkTimeForLevel(level).inMilliseconds} ms a move';
       default:
         return 'Level $level';
     }
@@ -650,6 +664,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         DropdownMenuItem(value: 'same', child: Text(l?.sameAsOpponent ?? 'Same as opponent', style: const TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Built-in', child: Text('Built-in', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Maia3 Dart', child: Text('Maia3 Dart', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'ChessMamba', child: Text('ChessMamba', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Lc0', child: Text('Lc0', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Frozenight', child: Text('Frozenight', style: TextStyle(fontSize: 13))),
                         DropdownMenuItem(value: 'Lynx', child: Text('Lynx', style: TextStyle(fontSize: 13))),
