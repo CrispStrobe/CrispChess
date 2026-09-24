@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chess/chess.dart' as chess_lib;
 
 import '../chess/human_lens.dart';
+import '../chess/player_profile.dart';
 import '../engines/chess_engine.dart';
 import '../engines/dart_engine.dart';
 import '../engines/maia3_dart_engine.dart';
@@ -86,6 +87,38 @@ class HumanLensService {
           onProgress: onProgress,
           cancelled: cancelled,
         );
+      });
+
+  /// The rating whose players' choices best explain [moves] — Maia's
+  /// probability of each move across the rating ladder, no engine needed.
+  /// Uses at most [maxMoves] of them (the first ones: newest games first).
+  Future<int?> estimatePlayerElo(
+    List<PlayerMove> moves, {
+    int maxMoves = 120,
+    void Function(int done, int total)? onProgress,
+    bool Function()? cancelled,
+  }) =>
+      _exclusive(() async {
+        final use = moves.take(maxMoves).toList();
+        final reviews = <HumanMoveReview>[];
+        for (var i = 0; i < use.length; i++) {
+          if (cancelled?.call() ?? false) break;
+          final byElo = <int, double>{};
+          for (final e in defaultEloLadder) {
+            final p = await _maia!.movePolicy(use[i].positionCommand, elo: e);
+            byElo[e] = p[use[i].move] ?? 0;
+          }
+          reviews.add(HumanMoveReview(
+            ply: i,
+            played: use[i].move,
+            bestMove: null,
+            playedProbability: 0,
+            bestProbability: 0,
+            playedByElo: byElo,
+          ));
+          onProgress?.call(i + 1, use.length);
+        }
+        return estimateElo(reviews);
       });
 
   HumanLens _lens(List<int> ladder, {required int depth}) => HumanLens(
