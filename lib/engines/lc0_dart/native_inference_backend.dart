@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:onnxruntime/onnxruntime.dart';
 
+import '../ort_fast_io.dart';
 import 'inference_backend.dart';
 
 /// Microsoft's optimized native runtime. Input and output values are released
@@ -29,41 +30,25 @@ class NativeLc0InferenceBackend implements Lc0InferenceBackend {
   @override
   Future<Map<String, Float32List>> run(
       Float32List planes, int batchSize) async {
-    final input =
-        OrtValueTensor.createTensorWithDataList(planes, [batchSize, 112, 8, 8]);
+    final feeds = OrtInputs()
+      ..add('/input/planes', planes, [batchSize, 112, 8, 8]);
     List<OrtValue?> outputs = const [];
     try {
       outputs = _session.run(
         _runOptions,
-        {'/input/planes': input},
+        feeds.values,
         ['/output/policy', '/output/wdl'],
       );
       return {
-        '/output/policy': _floats(outputs[0]!),
-        '/output/wdl': _floats(outputs[1]!),
+        '/output/policy': ortAllFloats(outputs[0]!),
+        '/output/wdl': ortAllFloats(outputs[1]!),
       };
     } finally {
-      input.release();
+      feeds.release();
       for (final output in outputs) {
         output?.release();
       }
     }
-  }
-
-  static Float32List _floats(OrtValue value) {
-    final result = <double>[];
-    void flatten(Object? item) {
-      if (item is num) {
-        result.add(item.toDouble());
-      } else if (item is List) {
-        for (final child in item) {
-          flatten(child);
-        }
-      }
-    }
-
-    flatten(value.value);
-    return Float32List.fromList(result);
   }
 
   @override

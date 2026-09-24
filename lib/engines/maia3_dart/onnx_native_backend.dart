@@ -10,6 +10,8 @@ import 'dart:typed_data';
 
 import 'package:onnxruntime/onnxruntime.dart';
 
+import '../ort_fast_io.dart';
+
 import 'onnx/model_fetch.dart';
 import 'onnx_model.dart';
 import 'variants.dart';
@@ -61,45 +63,24 @@ class Maia3NativeBackend extends Maia3OnnxModel {
     if (session == null) throw StateError('Model not loaded');
     // The int32 exports declare the ratings as int32; the pure-Dart
     // interpreter tolerates int64 there, native ONNX Runtime does not.
-    final inputs = {
-      'tokens': OrtValueTensor.createTensorWithDataList(tokens, [1, 64, 96]),
-      'self_elo':
-          OrtValueTensor.createTensorWithDataList(Int32List.fromList([selfElo]), [1]),
-      'oppo_elo':
-          OrtValueTensor.createTensorWithDataList(Int32List.fromList([oppoElo]), [1]),
-    };
+    final feeds = OrtInputs()
+      ..add('tokens', tokens, [1, 64, 96])
+      ..add('self_elo', Int32List.fromList([selfElo]), [1])
+      ..add('oppo_elo', Int32List.fromList([oppoElo]), [1]);
     List<OrtValue?> outputs = const [];
     try {
       outputs =
-          session.run(_runOptions!, inputs, ['logits_move', 'logits_value']);
+          session.run(_runOptions!, feeds.values, ['logits_move', 'logits_value']);
       return InferenceResult(
-        logitsMove: _floats(outputs[0]!),
-        logitsValue: _floats(outputs[1]!),
+        logitsMove: ortAllFloats(outputs[0]!),
+        logitsValue: ortAllFloats(outputs[1]!),
       );
     } finally {
-      for (final v in inputs.values) {
-        v.release();
-      }
+      feeds.release();
       for (final o in outputs) {
         o?.release();
       }
     }
-  }
-
-  static Float32List _floats(OrtValue value) {
-    final out = <double>[];
-    void flatten(Object? item) {
-      if (item is num) {
-        out.add(item.toDouble());
-      } else if (item is List) {
-        for (final child in item) {
-          flatten(child);
-        }
-      }
-    }
-
-    flatten(value.value);
-    return Float32List.fromList(out);
   }
 
   @override
