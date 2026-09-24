@@ -878,4 +878,157 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get gameHistory => 'Partieverlauf';
+
+  @override
+  String get humanLens => 'Human Lens';
+
+  @override
+  String humanLensSubtitle(Object elo) {
+    return 'Wie Spieler mit $elo diese Stellung sehen';
+  }
+
+  @override
+  String get humanLensLoading =>
+      'Maia wird geladen (25 MB, nur beim ersten Mal)…';
+
+  @override
+  String get humanLensThinking => 'Die Spieler werden befragt…';
+
+  @override
+  String get humanLensBestMove => 'Zug der Engine';
+
+  @override
+  String humanLensFoundBy(Object percent, Object elo) {
+    return '$percent % der Spieler mit $elo finden ihn';
+  }
+
+  @override
+  String humanLensNaturalFrom(Object elo) {
+    return 'Ab etwa $elo findet ihn die Mehrheit';
+  }
+
+  @override
+  String get humanLensNeverNatural =>
+      'Selbst mit 2300 übersieht ihn die Mehrheit';
+
+  @override
+  String get humanLensTrap => 'Falle';
+
+  @override
+  String humanLensTrapText(Object percent, Object elo, Object move) {
+    return '$percent % der Spieler mit $elo spielen $move, und das ist ein Fehler.';
+  }
+
+  @override
+  String humanLensCandidates(Object elo) {
+    return 'Was Spieler mit $elo spielen';
+  }
+
+  @override
+  String get humanLensByRating => 'Wer den Engine-Zug findet';
+
+  @override
+  String get humanLensUnsupported =>
+      'Human Lens gibt es nur für Standardschach.';
+
+  @override
+  String get humanLensGameOver =>
+      'Die Partie ist vorbei, es gibt keine Züge mehr.';
+
+  @override
+  String humanLensError(Object error) {
+    return 'Human Lens fehlgeschlagen: $error';
+  }
+
+  @override
+  String get findabilityObvious => 'Naheliegend';
+
+  @override
+  String get findabilityNatural => 'Natürlich';
+
+  @override
+  String get findabilityFindable => 'Auffindbar';
+
+  @override
+  String get findabilityHard => 'Schwer';
+
+  @override
+  String get findabilityVeryHard => 'Sehr schwer';
+
+  @override
+  String get humanReview => 'Menschliche Analyse';
+
+  @override
+  String get humanReviewIntro =>
+      'Sieh die Partie so, wie Maia menschliche Spieler sieht: welche Fehler schwer zu vermeiden waren, welche Patzer waren und welcher Wertung deine Züge ähneln.';
+
+  @override
+  String get humanReviewStart => 'Mit Maia analysieren';
+
+  @override
+  String humanReviewProgress(Object done, Object total) {
+    return 'Zug $done von $total…';
+  }
+
+  @override
+  String humanReviewPlayedLike(Object elo) {
+    return 'Deine Züge ähneln einem Spieler mit etwa $elo';
+  }
+
+  @override
+  String get humanReviewHardMiss => 'Schwer zu finden';
+
+  @override
+  String get humanReviewSlip => 'Patzer';
+
+  @override
+  String humanReviewMissText(
+      Object played, Object best, Object percent, Object elo) {
+    return '$played statt $best: $percent % der Spieler mit $elo finden ihn';
+  }
+
+  @override
+  String get humanReviewNoMistakes => 'Keine teuren Fehler in dieser Partie.';
+
+  @override
+  String get humanReviewRatingLabel => 'Vergleich mit Spielern mit';
+
+  @override
+  String get scanBoard => 'Brett scannen';
+
+  @override
+  String get scanBoardHint =>
+      'Wähle einen Screenshot oder ein gescanntes Buchdiagramm. Fotos eines echten Bretts werden noch nicht unterstützt.';
+
+  @override
+  String get scanPickImage => 'Bild wählen';
+
+  @override
+  String get scanRecognizing => 'Erkenne…';
+
+  @override
+  String get scanNoBoard =>
+      'Kein Schachbrett gefunden. Ziehe auf dem Bild ein Quadrat um das Brett.';
+
+  @override
+  String get scanDragHint =>
+      'Falscher Bereich? Ziehe auf dem Bild ein Quadrat um das Brett.';
+
+  @override
+  String scanUncertain(Object count) {
+    return '$count unsichere Felder sind markiert. Bitte prüfen.';
+  }
+
+  @override
+  String scanProblems(Object problems) {
+    return 'Stellung prüfen: $problems';
+  }
+
+  @override
+  String get scanUsePosition => 'Stellung übernehmen';
+
+  @override
+  String scanFailed(Object error) {
+    return 'Bild konnte nicht gelesen werden: $error';
+  }
 }

@@ -5,6 +5,7 @@ import '../chess/game_tree.dart';
 import '../chess/move_analyzer.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
+import '../widgets/human_review_card.dart';
 
 /// Post-game summary screen showing accuracy, eval chart, and key moments.
 class GameSummaryScreen extends StatefulWidget {
@@ -17,6 +18,13 @@ class GameSummaryScreen extends StatefulWidget {
   /// Game tree for interactive position replay.
   final GameTree? tree;
 
+  /// UCI `position` command of the final position. Enables the human review;
+  /// leave null for games Maia cannot read (the variants).
+  final String? positionCommand;
+
+  /// Side whose moves the human review looks at.
+  final bool playerIsWhite;
+
   const GameSummaryScreen({
     super.key,
     required this.movesSan,
@@ -26,6 +34,8 @@ class GameSummaryScreen extends StatefulWidget {
     this.winner,
     required this.engineName,
     this.tree,
+    this.positionCommand,
+    this.playerIsWhite = true,
   });
 
   @override
@@ -209,6 +219,18 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
             ),
 
           const SizedBox(height: 12),
+
+          if (widget.positionCommand != null) ...[
+            HumanReviewCard(
+              positionCommand: widget.positionCommand!,
+              playerIsWhite: widget.playerIsWhite,
+              // The position the player faced, before the missed move.
+              onShowPly: widget.tree == null
+                  ? null
+                  : (ply) => _showPosition(ply - 1),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Best move
           if (bestMoveStr != null)

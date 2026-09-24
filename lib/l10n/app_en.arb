@@ -408,5 +408,112 @@
   "progressMenu": "Progress",
   "openingExplorer": "Opening Explorer",
   "coordinateTrainer": "Coordinate Trainer",
-  "gameHistory": "Game History"
+  "gameHistory": "Game History",
+  "humanLens": "Human Lens",
+  "humanLensSubtitle": "How players rated {elo} see this position",
+  "@humanLensSubtitle": {
+    "placeholders": {
+      "elo": {}
+    }
+  },
+  "humanLensLoading": "Loading Maia (25 MB, first time only)…",
+  "humanLensThinking": "Asking the players…",
+  "humanLensBestMove": "Engine's move",
+  "humanLensFoundBy": "{percent}% of {elo} players find it",
+  "@humanLensFoundBy": {
+    "placeholders": {
+      "percent": {},
+      "elo": {}
+    }
+  },
+  "humanLensNaturalFrom": "Most players find it from about {elo}",
+  "@humanLensNaturalFrom": {
+    "placeholders": {
+      "elo": {}
+    }
+  },
+  "humanLensNeverNatural": "Even at 2300 most players miss it",
+  "humanLensTrap": "Trap",
+  "humanLensTrapText": "{percent}% of {elo} players play {move}, and it's a mistake.",
+  "@humanLensTrapText": {
+    "placeholders": {
+      "percent": {},
+      "elo": {},
+      "move": {}
+    }
+  },
+  "humanLensCandidates": "What {elo} players play",
+  "@humanLensCandidates": {
+    "placeholders": {
+      "elo": {}
+    }
+  },
+  "humanLensByRating": "Who finds the engine's move",
+  "humanLensUnsupported": "Human Lens is for standard chess only.",
+  "humanLensGameOver": "The game is over, so there are no moves to look at.",
+  "humanLensError": "Human Lens failed: {error}",
+  "@humanLensError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "findabilityObvious": "Obvious",
+  "findabilityNatural": "Natural",
+  "findabilityFindable": "Findable",
+  "findabilityHard": "Hard",
+  "findabilityVeryHard": "Very hard",
+  "humanReview": "Human review",
+  "humanReviewIntro": "See the game the way Maia sees human players: which misses were hard to find, which were slips, and what rating your moves looked like.",
+  "humanReviewStart": "Review with Maia",
+  "humanReviewProgress": "Move {done} of {total}…",
+  "@humanReviewProgress": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "humanReviewPlayedLike": "Your moves looked like a player rated about {elo}",
+  "@humanReviewPlayedLike": {
+    "placeholders": {
+      "elo": {}
+    }
+  },
+  "humanReviewHardMiss": "Hard to find",
+  "humanReviewSlip": "Slip",
+  "humanReviewMissText": "{played} instead of {best}: {percent}% of {elo} players find it",
+  "@humanReviewMissText": {
+    "placeholders": {
+      "played": {},
+      "best": {},
+      "percent": {},
+      "elo": {}
+    }
+  },
+  "humanReviewNoMistakes": "No costly misses in this game.",
+  "humanReviewRatingLabel": "Compare with players rated",
+  "scanBoard": "Scan board",
+  "scanBoardHint": "Choose a screenshot or a scanned book diagram. Photos of a physical board aren't supported yet.",
+  "scanPickImage": "Choose image",
+  "scanRecognizing": "Recognizing…",
+  "scanNoBoard": "No chessboard found. Drag a square around the board in the image.",
+  "scanDragHint": "Wrong area? Drag a square around the board in the image.",
+  "scanUncertain": "{count} uncertain squares are highlighted. Check them.",
+  "@scanUncertain": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scanProblems": "Check the position: {problems}",
+  "@scanProblems": {
+    "placeholders": {
+      "problems": {}
+    }
+  },
+  "scanUsePosition": "Use position",
+  "scanFailed": "Could not read the image: {error}",
+  "@scanFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../chess/chess_game.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'scan_board_screen.dart';
 
 /// Board setup / position editor screen.
 ///
@@ -152,6 +153,20 @@ class _PositionEditorScreenState extends State<PositionEditorScreen> {
       appBar: AppBar(
         title: Text(l?.positionEditor ?? 'Position Editor'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.document_scanner),
+            tooltip: l?.scanBoard ?? 'Scan board',
+            onPressed: () async {
+              final fen = await Navigator.push<String>(context,
+                  MaterialPageRoute(builder: (_) => const ScanBoardScreen()));
+              if (fen != null && mounted) {
+                setState(() {
+                  _parseFen(fen);
+                  _selectedPiece = null;
+                });
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.restart_alt),
             tooltip: l?.startingPosition ?? 'Starting position',
