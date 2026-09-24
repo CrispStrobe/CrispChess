@@ -163,6 +163,15 @@ weights entry below), not from the converter.
 MIT License text: see the model repository's LICENSE; the notice above must
 be kept in copies.
 
+## Language-model bot zoo (downloaded at runtime)
+
+Models by their authors, each under its own licence (Apache-2.0 or MIT, see
+NOTICE.md for the list), converted by `tool/kaggle/chess-lm-kv/` and hosted
+unmodified in weights at https://huggingface.co/cstr/chess-lm-zoo-onnx, which
+carries the Apache-2.0 text and each upstream model card. The Dart tokenizers
+in `lib/engines/chesslm/tokenizer.dart` are original code reading the models'
+`tokenizer.json` files.
+
 ## Maia/Lc0 Neural Network Weights
 
 - **License: GPL-3.0-or-later.** Resolved 2026-09-03; this entry previously

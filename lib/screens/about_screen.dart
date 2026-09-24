@@ -101,6 +101,12 @@ class _AboutScreenState extends State<AboutScreen> {
                   'searched by its own policy-guided negamax. Games from the '
                   'starting position only; others go to the built-in engine.'),
               SizedBox(height: 12),
+              _EngineInfo('LM bot zoo', 'weak', 'MIT / Apache-2.0',
+                  'Eight small chess language models from the Hugging Face '
+                  'Hub, each by its own author (see NOTICE.md). They read the '
+                  'game as text and choose among the legal moves only, so they '
+                  'never play an illegal move. Games from the starting position.'),
+              SizedBox(height: 12),
               _EngineInfo('Lc0', '~1100-1900 ELO', 'GPL-3.0',
                   'MCTS + Maia neural network. AlphaZero-style search. '
                   'Downloaded at runtime, never compiled into app.'),

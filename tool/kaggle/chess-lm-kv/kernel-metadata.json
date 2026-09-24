@@ -1,0 +1,14 @@
+{
+  "id": "chr1s4/crispchess-chess-lm-kv-export",
+  "title": "CrispChess Chess LM KV Export",
+  "code_file": "export_chess_lm_kv.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "true",
+  "competition_sources": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../engines/engine_factory.dart';
+import '../engines/chess_lm_engine.dart' show availableChessLmNames;
 import '../services/engine_match_service.dart';
 import '../chess/chess_game.dart';
 import '../widgets/chess_board.dart';
@@ -34,7 +35,7 @@ class _EngineMatchScreenState extends State<EngineMatchScreen> {
   int _currentGame = 0;
   int _currentMoveCount = 0;
 
-  static const _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0'];
+  static final _engineNames = ['Built-in', 'Frozenight', 'Stockfish', 'Maia3 Dart', 'ChessMamba', 'Lc0', ...availableChessLmNames];
 
   @override
   void dispose() {
