@@ -134,7 +134,7 @@ packages:
     description:
       path: "flutter/crispasr"
       ref: "feat/whisper-score-texts"
-      resolved-ref: "7bf34f2b7d7d4700a76a48193f6e1c280fc7e729"
+      resolved-ref: "93d10a597643618924e201e47b673e123936ae89"
       url: "https://github.com/CrispStrobe/CrispASR.git"
     source: git
     version: "0.8.36"

@@ -69,14 +69,21 @@ bool isConfident(List<VoiceCandidate> ranked, {double margin = voiceConfidentMar
     ranked.first.score.isFinite &&
     (ranked.length == 1 || ranked.first.score - ranked[1].score >= margin);
 
-/// Default lead for [isConfident].
-const voiceConfidentMargin = 0.3;
+/// Default lead for [isConfident]. Calibrated on 52 Piper TTS utterances
+/// (Whisper base, English primed, German not): at 0.5 the app plays 36 moves
+/// by itself, 2 of them wrong, and asks about 16; at 0.3 it played 43 with 6
+/// wrong. Asking costs a tap, a wrong move costs an undo.
+const voiceConfidentMargin = 0.5;
 
-/// Text that primes the recogniser for chess moves in [lang]: a few example
-/// phrases in the style of [spokenMoves].
-String voicePrompt(VoiceLanguage lang) => switch (lang) {
+/// Text that primes the recogniser for chess moves in [lang] (a few example
+/// phrases in the style of [spokenMoves]), or null to score unprimed.
+///
+/// Measured on Piper TTS speech with Whisper base (26 utterances per
+/// language): priming lifted English from 23 to 24 correct and dropped German
+/// from 19 to 15, so German goes unprimed.
+String? voicePrompt(VoiceLanguage lang) => switch (lang) {
       VoiceLanguage.english => 'Chess moves: knight f3, bishop c4, e4, castles kingside.',
-      VoiceLanguage.german => 'Schachzüge: Springer f3, Läufer c4, e4, kurze Rochade.',
+      VoiceLanguage.german => null,
     };
 
 /// The Whisper language code for [lang].
