@@ -83,3 +83,4 @@ store/*
 !store/listing.md
 !store/screenshots/
 web/ort/
+pubspec_overrides.yaml

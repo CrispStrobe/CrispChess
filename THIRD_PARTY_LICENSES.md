@@ -245,6 +245,20 @@ samryan18/chess-dataset (MIT), Roboflow chess-pieces-mjzgj (CC BY 4.0);
 initial weights: torchvision MobileNetV3-Small (BSD-3, ImageNet-trained). See
 NOTICE.md for authors.
 
+## Voice moves: CrispASR and Whisper
+
+- **CrispASR** (`libcrispasr`, bundled in the desktop releases; Dart package
+  `crispasr`): MIT, https://github.com/CrispStrobe/CrispASR. Includes ggml
+  (MIT) and miniaudio (public domain / MIT-0) for the microphone.
+- **Whisper model weights** (`ggml-base.bin`, downloaded at runtime from
+  https://huggingface.co/ggerganov/whisper.cpp): MIT, OpenAI.
+- **Linux bundle only**, pulled in by CrispASR's prebuilt library:
+  OpenBLAS (`libopenblas`, BSD-3-Clause); the GCC runtime libraries
+  `libgomp` and `libgfortran` (GPL-3.0 with the GCC Runtime Library
+  Exception, which permits distributing them with software under any
+  licence) and `libquadmath` (LGPL-2.1, loaded as an unmodified shared
+  library).
+
 ## Lc0 oracle test data
 
 `tool/oracle/` checks this app's Lc0 implementation against lc0 itself. It

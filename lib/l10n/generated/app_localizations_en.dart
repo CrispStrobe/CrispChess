@@ -1089,4 +1089,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scanOrientationUnsure =>
       'Check the orientation: rotate until White is at the bottom.';
+
+  @override
+  String get voiceMove => 'Speak a move (V)';
+
+  @override
+  String get voiceListening =>
+      'Listening — say your move, then tap the microphone';
+
+  @override
+  String get voiceRecognizing => 'Recognising…';
+
+  @override
+  String voiceLoading(Object mb) {
+    return 'Loading the speech model ($mb MB, once)…';
+  }
+
+  @override
+  String get voiceNoMove => 'No move recognised — try again';
+
+  @override
+  String voiceHeard(Object move) {
+    return 'Heard: $move';
+  }
+
+  @override
+  String get voiceWhichMove => 'Which move did you mean?';
+
+  @override
+  String voiceFailed(Object error) {
+    return 'Voice input failed: $error';
+  }
 }

@@ -2054,6 +2054,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check the orientation: rotate until White is at the bottom.'**
   String get scanOrientationUnsure;
+
+  /// No description provided for @voiceMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak a move (V)'**
+  String get voiceMove;
+
+  /// No description provided for @voiceListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening — say your move, then tap the microphone'**
+  String get voiceListening;
+
+  /// No description provided for @voiceRecognizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognising…'**
+  String get voiceRecognizing;
+
+  /// No description provided for @voiceLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the speech model ({mb} MB, once)…'**
+  String voiceLoading(Object mb);
+
+  /// No description provided for @voiceNoMove.
+  ///
+  /// In en, this message translates to:
+  /// **'No move recognised — try again'**
+  String get voiceNoMove;
+
+  /// No description provided for @voiceHeard.
+  ///
+  /// In en, this message translates to:
+  /// **'Heard: {move}'**
+  String voiceHeard(Object move);
+
+  /// No description provided for @voiceWhichMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Which move did you mean?'**
+  String get voiceWhichMove;
+
+  /// No description provided for @voiceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input failed: {error}'**
+  String voiceFailed(Object error);
 }
 
 class _AppLocalizationsDelegate

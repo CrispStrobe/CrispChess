@@ -123,6 +123,12 @@ torchvision's ImageNet weights, BSD-3) were trained for this app on:
   (also the two test photos in `test/fixtures/board_photo/`);
 - Roboflow 100 "chess pieces" (`chess-pieces-mjzgj`), CC BY 4.0.
 
+## Voice moves
+
+Speech recognition by CrispASR (MIT, CrispStrobe) running OpenAI's Whisper
+(MIT). The spoken move is matched against the legal moves of the position by
+scoring each move's phrases, on the device; no audio leaves it.
+
 ## Chess puzzle data
 
 Puzzles are from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0).

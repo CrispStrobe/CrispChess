@@ -45,15 +45,22 @@ String _cacheName(String url, String cacheFileName) {
       : '$cacheFileName-$tag';
 }
 
-Future<Uint8List> fetchModelBytes(String url, String cacheFileName) async {
+Future<Uint8List> fetchModelBytes(String url, String cacheFileName) async =>
+    File(await fetchModelFile(url, cacheFileName)).readAsBytes();
+
+/// Downloads [url] once into the model cache and returns the file's path,
+/// for native libraries that load a model from disk themselves.
+///
+/// The download goes to a temporary file that is renamed only when complete,
+/// so an interrupted download is not mistaken for the model next time.
+Future<String> fetchModelFile(String url, String cacheFileName,
+    {void Function(int received, int? total)? onProgress}) async {
   final modelDir = await _modelDir();
   if (!modelDir.existsSync()) modelDir.createSync(recursive: true);
   final file = File('${modelDir.path}/${_cacheName(url, cacheFileName)}');
+  if (file.existsSync()) return file.path;
 
-  if (file.existsSync()) {
-    return file.readAsBytes();
-  }
-
+  final part = File('${file.path}.part');
   final client = HttpClient();
   try {
     var request = await client.getUrl(Uri.parse(url));
@@ -62,14 +69,33 @@ Future<Uint8List> fetchModelBytes(String url, String cacheFileName) async {
     while (response.statusCode == 301 || response.statusCode == 302) {
       final redirect = response.headers.value('location');
       if (redirect == null) break;
-      request = await client.getUrl(Uri.parse(redirect));
+      await response.drain<void>();
+      request = await client.getUrl(Uri.parse(url).resolve(redirect));
       response = await request.close();
     }
-    final sink = file.openWrite();
-    await response.pipe(sink);
-    await sink.close();
+    if (response.statusCode != 200) {
+      await response.drain<void>();
+      throw HttpException('HTTP ${response.statusCode}', uri: Uri.parse(url));
+    }
+    final total = response.contentLength >= 0 ? response.contentLength : null;
+    final sink = part.openWrite();
+    var received = 0;
+    try {
+      await for (final chunk in response) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received, total);
+      }
+    } finally {
+      await sink.close();
+    }
+    if (total != null && received != total) {
+      throw HttpException('download truncated ($received of $total bytes)', uri: Uri.parse(url));
+    }
+    await part.rename(file.path);
   } finally {
     client.close();
+    if (part.existsSync()) part.deleteSync();
   }
-  return file.readAsBytes();
+  return file.path;
 }

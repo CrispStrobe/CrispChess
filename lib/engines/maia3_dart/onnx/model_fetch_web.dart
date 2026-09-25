@@ -13,3 +13,9 @@ Future<Uint8List> fetchModelBytes(String url, String cacheFileName) async {
   final buffer = await response.arrayBuffer().toDart;
   return buffer.toDart.asUint8List();
 }
+
+/// No file system on the web; native libraries that load a model from disk
+/// are not available there either.
+Future<String> fetchModelFile(String url, String cacheFileName,
+        {void Function(int received, int? total)? onProgress}) =>
+    throw UnsupportedError('fetchModelFile is not available on the web');

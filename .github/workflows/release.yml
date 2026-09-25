@@ -13,6 +13,12 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  # Prebuilt CrispASR library for voice moves (tool/bundle_crispasr.sh).
+  # Phrase scoring arrives after v0.8.36; until the pin reaches a release that
+  # has it, the library ships but the app keeps the microphone hidden.
+  CRISPASR_VERSION: v0.8.36
+
 jobs:
   build-android:
     name: Android
@@ -62,6 +68,8 @@ jobs:
           cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
             build/linux/x64/release/bundle/lib/
           ls -la build/linux/x64/release/bundle/lib/ | grep onnx
+      - name: Bundle CrispASR (voice moves)
+        run: tool/bundle_crispasr.sh linux build/linux/x64/release/bundle
       - run: |
           cd build/linux/x64/release/bundle
           tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64.tar.gz .
@@ -102,6 +110,8 @@ jobs:
           cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
             build/linux/x64/release/bundle/lib/
           ls -la build/linux/x64/release/bundle/lib/ | grep onnx
+      - name: Bundle CrispASR (voice moves)
+        run: tool/bundle_crispasr.sh linux build/linux/x64/release/bundle
       - run: |
           cp native/frozenight/target/release/libfrozenight_ffi.so build/linux/x64/release/bundle/lib/
           cd build/linux/x64/release/bundle
@@ -175,6 +185,8 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build macos --release
+      - name: Bundle CrispASR (voice moves)
+        run: tool/bundle_crispasr.sh macos "$(ls -d build/macos/Build/Products/Release/*.app | head -1)"
       - run: |
           cd build/macos/Build/Products/Release
           APP=$(ls -d *.app | head -1)
@@ -195,6 +207,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build windows --release
+      - name: Bundle CrispASR (voice moves)
+        shell: bash
+        run: tool/bundle_crispasr.sh windows build/windows/x64/runner/Release
       - name: Package
         run: |
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath CrispChess-windows-x64.zip
