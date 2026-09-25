@@ -1,6 +1,6 @@
 """Voice moves on CrispASR TTS speech: which recogniser picks the right move?
 
-Builds CrispASR (branch feat/whisper-score-texts: grammar_strict and
+Builds CrispASR (v0.8.37, the first release with grammar_strict and
 whisper_score_texts) as a shared library, then for every synthetic utterance (Piper and
 Kokoro voices, English and German, 13 chess moves each) and Whisper
 tiny/base/small compares:
@@ -23,8 +23,8 @@ def log(m):
 # Local smoke test: VOICE_DATA, VOICE_REPO (prebuilt), VOICE_MODELS, VOICE_LIMIT.
 data = Path(ENV("VOICE_DATA")) if ENV("VOICE_DATA") else next(p for p in [Path("/kaggle/input/crispchess-voice-eval"),
                         Path("/kaggle/input/datasets/chr1s4/crispchess-voice-eval")] if p.exists())
-# The branch carrying grammar_strict + whisper_score_texts (CRISPASR_REF to override).
-REF = ENV("CRISPASR_REF", "feat/whisper-score-texts")
+# The first release with grammar_strict + whisper_score_texts (CRISPASR_REF to override).
+REF = ENV("CRISPASR_REF", "v0.8.37")
 repo = Path(ENV("VOICE_REPO", W / "CrispASR"))
 sh = lambda c, **k: subprocess.run(c, shell=True, check=True, **k)
 if not ENV("VOICE_REPO"): sh(f"git clone -q --depth 1 --branch {REF} https://github.com/CrispStrobe/CrispASR.git {repo} "
