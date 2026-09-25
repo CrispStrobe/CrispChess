@@ -1,7 +1,7 @@
 """Voice moves on CrispASR TTS speech: which recogniser picks the right move?
 
-Builds CrispASR (pinned commit + the grammar_strict / score_texts patch in the
-dataset) as a shared library, then for every synthetic utterance (Piper and
+Builds CrispASR (branch feat/whisper-score-texts: grammar_strict and
+whisper_score_texts) as a shared library, then for every synthetic utterance (Piper and
 Kokoro voices, English and German, 13 chess moves each) and Whisper
 tiny/base/small compares:
   free    unconstrained transcript, matched to a legal move
@@ -23,12 +23,12 @@ def log(m):
 # Local smoke test: VOICE_DATA, VOICE_REPO (prebuilt), VOICE_MODELS, VOICE_LIMIT.
 data = Path(ENV("VOICE_DATA")) if ENV("VOICE_DATA") else next(p for p in [Path("/kaggle/input/crispchess-voice-eval"),
                         Path("/kaggle/input/datasets/chr1s4/crispchess-voice-eval")] if p.exists())
-BASE = (data / "base_commit.txt").read_text().strip()
+# The branch carrying grammar_strict + whisper_score_texts (CRISPASR_REF to override).
+REF = ENV("CRISPASR_REF", "feat/whisper-score-texts")
 repo = Path(ENV("VOICE_REPO", W / "CrispASR"))
 sh = lambda c, **k: subprocess.run(c, shell=True, check=True, **k)
-if not ENV("VOICE_REPO"): sh(f"git init -q {repo} && cd {repo} && git remote add origin https://github.com/CrispStrobe/CrispASR.git "
-   f"&& git fetch -q --depth 1 origin {BASE} && git checkout -q FETCH_HEAD "
-   f"&& git submodule update --init --depth 1 && git apply {data / 'crispasr.patch'}")
+if not ENV("VOICE_REPO"): sh(f"git clone -q --depth 1 --branch {REF} https://github.com/CrispStrobe/CrispASR.git {repo} "
+                             f"&& cd {repo} && git submodule update --init --depth 1")
 t0 = time.time()
 if not ENV("VOICE_REPO"): sh(f"cd {repo} && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON "
    "-DCRISPASR_BUILD_TESTS=OFF -DCRISPASR_BUILD_SERVER=OFF > /dev/null "
