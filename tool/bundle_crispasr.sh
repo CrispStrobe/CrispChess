@@ -24,6 +24,8 @@ case $platform in
 esac
 
 work=${RUNNER_TEMP:-$(mktemp -d)}
+# Git Bash on Windows: GNU tar reads "D:\a\_temp" as a remote host "D".
+if command -v cygpath >/dev/null; then work=$(cygpath -u "$work"); fi
 curl -sSLf --retry 3 -o "$work/$asset.tar.gz" \
   "https://github.com/CrispStrobe/CrispASR/releases/download/$version/$asset.tar.gz"
 tar -xzf "$work/$asset.tar.gz" -C "$work"
