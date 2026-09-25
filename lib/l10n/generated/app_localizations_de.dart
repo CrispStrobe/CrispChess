@@ -1096,4 +1096,35 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get scanOrientationUnsure =>
       'Ausrichtung prüfen: drehen, bis Weiß unten steht.';
+
+  @override
+  String get voiceMove => 'Zug ansagen (V)';
+
+  @override
+  String get voiceListening =>
+      'Ich höre zu — sag deinen Zug und tippe dann aufs Mikrofon';
+
+  @override
+  String get voiceRecognizing => 'Erkenne…';
+
+  @override
+  String voiceLoading(Object mb) {
+    return 'Lade das Sprachmodell ($mb MB, einmalig)…';
+  }
+
+  @override
+  String get voiceNoMove => 'Kein Zug erkannt — versuch es noch einmal';
+
+  @override
+  String voiceHeard(Object move) {
+    return 'Verstanden: $move';
+  }
+
+  @override
+  String get voiceWhichMove => 'Welchen Zug meintest du?';
+
+  @override
+  String voiceFailed(Object error) {
+    return 'Spracheingabe fehlgeschlagen: $error';
+  }
 }

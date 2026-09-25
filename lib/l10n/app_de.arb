@@ -331,5 +331,13 @@
   "scanPhotoHint": "Fotografiere das ganze Brett von der Seite eines Spielers, mit sichtbaren Linien. Am besten mit Standard-Turnierfiguren.",
   "scanPhotoNoBoard": "Kein Brett gefunden. Fotografiere das ganze Brett mit sichtbaren Linien.",
   "scanRotate": "90° drehen",
-  "scanOrientationUnsure": "Ausrichtung prüfen: drehen, bis Weiß unten steht."
+  "scanOrientationUnsure": "Ausrichtung prüfen: drehen, bis Weiß unten steht.",
+  "voiceMove": "Zug ansagen (V)",
+  "voiceListening": "Ich höre zu — sag deinen Zug und tippe dann aufs Mikrofon",
+  "voiceRecognizing": "Erkenne…",
+  "voiceLoading": "Lade das Sprachmodell ({mb} MB, einmalig)…",
+  "voiceNoMove": "Kein Zug erkannt — versuch es noch einmal",
+  "voiceHeard": "Verstanden: {move}",
+  "voiceWhichMove": "Welchen Zug meintest du?",
+  "voiceFailed": "Spracheingabe fehlgeschlagen: {error}"
 }

@@ -554,5 +554,28 @@
   "scanPhotoHint": "Photograph the whole board from a player's side, grid lines visible. Works best with standard tournament-style pieces.",
   "scanPhotoNoBoard": "No board found. Photograph the whole board, with its grid visible.",
   "scanRotate": "Rotate 90°",
-  "scanOrientationUnsure": "Check the orientation: rotate until White is at the bottom."
+  "scanOrientationUnsure": "Check the orientation: rotate until White is at the bottom.",
+  "voiceMove": "Speak a move (V)",
+  "voiceListening": "Listening — say your move, then tap the microphone",
+  "voiceRecognizing": "Recognising…",
+  "voiceLoading": "Loading the speech model ({mb} MB, once)…",
+  "@voiceLoading": {
+    "placeholders": {
+      "mb": {}
+    }
+  },
+  "voiceNoMove": "No move recognised — try again",
+  "voiceHeard": "Heard: {move}",
+  "@voiceHeard": {
+    "placeholders": {
+      "move": {}
+    }
+  },
+  "voiceWhichMove": "Which move did you mean?",
+  "voiceFailed": "Voice input failed: {error}",
+  "@voiceFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  }
 }
