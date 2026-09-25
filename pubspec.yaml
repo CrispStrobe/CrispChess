@@ -30,6 +30,13 @@ dependencies:
   protobuf: ^6.0.0
   fixnum: ^1.1.1
   file_picker: ^13.1.0
+  # Voice moves (desktop): microphone + Whisper phrase scoring. Needs the
+  # native libcrispasr at run time; without it the feature stays hidden.
+  crispasr:
+    git:
+      url: https://github.com/CrispStrobe/CrispASR.git
+      ref: feat/whisper-score-texts
+      path: flutter/crispasr
 
 dev_dependencies:
   flutter_test:

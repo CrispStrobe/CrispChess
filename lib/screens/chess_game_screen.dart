@@ -23,6 +23,7 @@ import '../services/onboarding_service.dart';
 import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
 import '../services/sound_service_factory.dart';
+import '../voice/voice_input.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
@@ -90,6 +91,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final List<double> _evalHistory = [];
   bool _awaitingEngineMove = false; // true when we expect a game move, not analysis
   String? _premove; // queued move (UCI) to play after engine responds
+
+  /// Voice moves: shown only when this build has the speech library.
+  final bool _voiceAvailable = VoiceInput.available;
+  VoiceInput? _voice;
+  bool _voiceBusy = false; // loading the model or recognising
 
   /// Multi-PV lines from engine analysis (index 0 = best line).
   final List<PvLine> _pvLines = [];
@@ -705,6 +711,103 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
+  VoiceLanguage get _voiceLanguage =>
+      Localizations.localeOf(context).languageCode == 'de' ? VoiceLanguage.german : VoiceLanguage.english;
+
+  /// First tap: start listening (loading the speech model the first time).
+  /// Second tap: stop, and play the move that was said — or, when two moves
+  /// sound alike, ask which one was meant.
+  Future<void> _toggleVoice() async {
+    final l10n = AppLocalizations.of(context);
+    final voice = _voice;
+    if (voice != null && voice.listening) {
+      final fen = _game.currentFEN;
+      setState(() {
+        _voiceBusy = true;
+        _state = _state.copyWith(statusMessage: l10n?.voiceRecognizing ?? 'Recognising…');
+      });
+      try {
+        final ranked = await voice.stopAndRank(fen, _voiceLanguage);
+        if (!mounted) return;
+        setState(() => _voiceBusy = false);
+        // The position may have changed while recognising (undo, new game).
+        if (_game.currentFEN != fen || !_isPlayerTurn || _state.isThinking) return;
+        await _playVoiceMove(ranked);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _voiceBusy = false);
+        _showVoiceError(e);
+      }
+      return;
+    }
+    try {
+      if (voice == null) {
+        setState(() {
+          _voiceBusy = true;
+          _state = _state.copyWith(
+              statusMessage: l10n?.voiceLoading('${VoiceModel.base.megabytes}') ??
+                  'Loading the speech model…');
+        });
+        _voice = await VoiceInput.open(model: VoiceModel.base);
+        if (!mounted) return;
+      }
+      _voice!.startListening();
+      setState(() {
+        _voiceBusy = false;
+        _state = _state.copyWith(
+            statusMessage: l10n?.voiceListening ?? 'Listening — say your move, then tap the microphone');
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _voiceBusy = false);
+      _showVoiceError(e);
+    }
+  }
+
+  Future<void> _playVoiceMove(List<VoiceCandidate> ranked) async {
+    final l10n = AppLocalizations.of(context);
+    VoiceCandidate? pick;
+    if (isConfident(ranked)) {
+      pick = ranked.first;
+    } else if (ranked.isNotEmpty) {
+      pick = await showModalBottomSheet<VoiceCandidate>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(title: Text(l10n?.voiceWhichMove ?? 'Which move did you mean?')),
+            for (final c in ranked.take(3))
+              ListTile(
+                leading: const Icon(Icons.record_voice_over),
+                title: Text(c.san),
+                subtitle: Text('"${c.phrase}"'),
+                onTap: () => Navigator.pop(ctx, c),
+              ),
+          ]),
+        ),
+      );
+      if (!mounted) return;
+    }
+    if (pick == null) {
+      setState(() => _state = _state.copyWith(statusMessage: l10n?.voiceNoMove ?? 'No move recognised'));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(l10n?.voiceHeard(pick.san) ?? 'Heard: ${pick.san}'),
+      duration: const Duration(milliseconds: 1200),
+    ));
+    final uci = pick.uci;
+    _executeMove(uci, 8 - int.parse(uci[3]), uci.codeUnitAt(2) - 97);
+  }
+
+  void _showVoiceError(Object e) {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _state = _state.copyWith(statusMessage: 'Your turn ($_playerColorName)'));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(l10n?.voiceFailed('$e') ?? 'Voice input failed: $e'),
+      backgroundColor: Colors.red.shade700,
+    ));
+  }
+
   void _requestEngineMove() {
     debugPrint('[CrispChess] Requesting engine move: skill=${_state.strengthLevel}');
     _awaitingEngineMove = true;
@@ -1161,6 +1264,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   @override
   void dispose() {
+    _voice?.dispose();
     _eventSubscription?.cancel();
     _multiEngineSub?.cancel();
     _multiEngine?.dispose();
@@ -2461,6 +2565,18 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                       });
                     },
             ),
+          if (_voiceAvailable)
+            IconButton(
+              icon: Icon(
+                _voice?.listening == true ? Icons.mic : Icons.mic_none,
+                size: 20,
+                color: _voice?.listening == true ? Colors.red : null,
+              ),
+              tooltip: AppLocalizations.of(context)?.voiceMove ?? 'Speak a move',
+              onPressed: _voiceBusy || (_voice?.listening != true && (!_isPlayerTurn || _state.isThinking))
+                  ? null
+                  : _toggleVoice,
+            ),
           IconButton(
             icon: const Icon(Icons.lightbulb_outline, size: 20),
             tooltip: AppLocalizations.of(context)?.hint ?? 'Hint',
@@ -2646,6 +2762,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           _state = _state.copyWith(boardFlipped: !_state.boardFlipped));
     } else if (key == LogicalKeyboardKey.keyA) {
       _toggleAnalysis();
+    } else if (key == LogicalKeyboardKey.keyV) {
+      if (_voiceAvailable && !_voiceBusy &&
+          (_voice?.listening == true || (_isPlayerTurn && !_state.isThinking))) {
+        _toggleVoice();
+      }
     }
   }
 

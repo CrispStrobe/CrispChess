@@ -26,6 +26,8 @@
 	<string>public.app-category.strategy-games</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CrispChess listens only between your taps on the microphone button, to hear the move you say. Speech is recognised on this device.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>

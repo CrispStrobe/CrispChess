@@ -1,0 +1,14 @@
+{
+  "id": "chr1s4/crispchess-voice-score",
+  "title": "CrispChess Voice Score",
+  "code_file": "voice_score.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "true",
+  "competition_sources": [],
+  "dataset_sources": ["chr1s4/crispchess-voice-eval"],
+  "kernel_sources": [],
+  "model_sources": []
+}
