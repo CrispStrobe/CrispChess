@@ -15,9 +15,9 @@ permissions:
 
 env:
   # Prebuilt CrispASR library for voice moves (tool/bundle_crispasr.sh).
-  # Phrase scoring arrives after v0.8.36; until the pin reaches a release that
-  # has it, the library ships but the app keeps the microphone hidden.
-  CRISPASR_VERSION: v0.8.36
+  # v0.8.37 is the first with phrase scoring (crispasr_session_score_texts);
+  # with an older one the app keeps the microphone hidden.
+  CRISPASR_VERSION: v0.8.37
 
 jobs:
   build-android:
