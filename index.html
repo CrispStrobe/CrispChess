@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="CrispChess - Cross-platform chess with pluggable AI engines">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="CrispChess">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon — multiple sizes for different contexts -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <meta name="theme-color" content="#3E2723">
+
+  <title>CrispChess</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = "2810409287" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */;
+  </script>
+  <!-- Lazy loaders for engine dependencies (nothing loaded until needed) -->
+  <script>
+    // Lazy-load ONNX Runtime (~340KB) only when Maia3/Lc0 engine is selected.
+    window._loadOrt = function() {
+      if (window._ortLoaded) return window._ortLoaded;
+      window._ortLoaded = new Promise(function(resolve, reject) {
+        if (window.ort) { resolve(); return; }
+        var s = document.createElement('script');
+        s.src = 'ort.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return window._ortLoaded;
+    };
+
+    // Lazy-load a script by URL (used by engine bridges).
+    window._loadScript = function(src) {
+      return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    };
+  </script>
+  <!-- Engine bridges (~2-3KB each, define JS functions for Dart interop) -->
+  <script src="cache_helper.js" defer></script>
+  <script src="frozenight_bridge.js" defer></script>
+  <script src="lc0_onnx_bridge.js" defer></script>
+  <script src="searchless_onnx_bridge.js" defer></script>
+  <script src="lynx_bridge.js" defer></script>
+  <script src="sound_bridge.js" defer></script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+</head>
+<body>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
