@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.3.0
+
+### What to test
+
+- **Human Lens** — after a move, see how often players at your rating would
+  have played it, and which moves they would have chosen instead (Maia).
+- **Scan a board** — photograph a real board or a printed diagram and play or
+  analyse the position. The photo models download on first use.
+- **Your Ghost** — an opponent that plays your openings, learned from your
+  own games, and otherwise plays like a player of your estimated rating.
+- **New opponents** — ChessMamba, a zoo of chess language-model bots, and
+  DeepMind's searchless transformers (9M / 136M / 270M), each with a rating
+  measured against the others. Models download when first chosen.
+- **Ratings table** — every bot's rating fitted from engine matches, with error
+  bars.
+
+Speaking your moves (voice input) arrives on the desktop apps first; on iPhone
+and iPad the microphone button does not appear yet.
+
 ## 2.2.0
 
 ### Engines now spend the time they are given
