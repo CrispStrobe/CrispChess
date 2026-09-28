@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.3.1
+
+### What to test
+
+- **Speak your moves** — tap the microphone on the game screen, say the move
+  ("knight to f3", "castles", "e takes d5"; in German "Springer nach f3",
+  "kurze Rochade"), and tap again. The app matches what you said against the
+  legal moves and plays it; when two moves sound alike it shows the likeliest
+  three to pick from. The first use downloads the speech model (142 MB) and
+  asks for microphone access. Recognition runs on the device; no audio leaves
+  it. English and German follow the app language.
+
+Everything from 2.3.0 is still worth a look: Human Lens, board scanning, Your
+Ghost, and the new opponents with their ratings table.
+
 ## 2.3.0
 
 ### What to test
