@@ -1,5 +1,5 @@
-# CrispASR's iOS framework (voice moves) requires 16.4.
-platform :ios, '16.4'
+# iOS 15: CrispASR's framework (voice moves) targets 15.0 since v0.8.38.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

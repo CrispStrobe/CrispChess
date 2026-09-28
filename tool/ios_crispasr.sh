@@ -9,8 +9,9 @@
 # makes ios/Frameworks/crispasr.xcframework from them, and wires it into
 # Runner.xcodeproj with Embed & Sign (tool/wire_ios_crispasr.rb) — the
 # arrangement CrisperWeaver ships. package:crispasr then finds it as
-# `crispasr.framework/crispasr`. The framework needs iOS 16.4, which is why
-# the app's deployment target is 16.4.
+# `crispasr.framework/crispasr`. The framework must not need a newer iOS than
+# the app (App Store Connect rejects that, ITMS-90208); CrispASR's targets
+# iOS 15.0 since v0.8.38, and this script checks it against the app.
 set -euo pipefail
 
 version=${CRISPASR_VERSION:?set CRISPASR_VERSION to a CrispASR release tag}
@@ -38,7 +39,13 @@ xcodebuild -create-xcframework \
 
 bin="$out/ios-arm64/crispasr.framework/crispasr"
 ls -la "$bin"
-/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$out/ios-arm64/crispasr.framework/Info.plist"
+fw_min=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$out/ios-arm64/crispasr.framework/Info.plist")
+app_min=$(grep -m1 -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' "$root/ios/Runner.xcodeproj/project.pbxproj" | awk '{print $3}')
+echo "CrispASR framework needs iOS $fw_min; the app targets iOS $app_min"
+if [ "$(printf '%s\n%s\n' "$fw_min" "$app_min" | sort -V | tail -1)" != "$app_min" ]; then
+  echo "::error::the framework needs a newer iOS ($fw_min) than the app ($app_min): App Store Connect rejects that"
+  exit 1
+fi
 # Capture first: under pipefail, `nm | grep -q` fails when grep exits early.
 symbols=$(nm -gU "$bin")
 if grep -q '_crispasr_session_score_texts' <<<"$symbols"; then
