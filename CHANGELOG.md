@@ -31,8 +31,8 @@ Ghost, and the new opponents with their ratings table.
 - **Ratings table** — every bot's rating fitted from engine matches, with error
   bars.
 
-Speaking your moves (voice input) arrives on the desktop apps first; on iPhone
-and iPad the microphone button does not appear yet.
+Speaking your moves (voice input) arrived on the desktop apps first; iPhone
+and iPad have it from 2.3.1.
 
 ## 2.2.0
 
