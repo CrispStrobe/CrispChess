@@ -346,7 +346,8 @@ def main():
         })
         print("  submitted for Beta App Review")
     except ApiError as e:
-        if not (e.is_conflict or "STATE_ERROR" in str(e)):
+        # A build already waiting for review answers INVALID_QC_STATE (422).
+        if not (e.is_conflict or "STATE_ERROR" in str(e) or "INVALID_QC_STATE" in str(e)):
             raise
         print("  already submitted for Beta App Review")
 
