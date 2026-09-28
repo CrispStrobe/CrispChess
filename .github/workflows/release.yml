@@ -15,10 +15,11 @@ permissions:
 
 env:
   # Prebuilt CrispASR library for voice moves (tool/bundle_crispasr.sh).
-  # v0.8.37 is the first with phrase scoring (crispasr_session_score_texts);
-  # with an older one the app keeps the microphone hidden. iOS takes the same
+  # v0.8.37 is the first with phrase scoring (crispasr_session_score_texts),
+  # v0.8.38 the first whose iOS framework targets iOS 15.0; with an older one
+  # the app keeps the microphone hidden. iOS takes the same
   # release's xcframework (tool/ios_crispasr.sh); ios-release.yml pins it too.
-  CRISPASR_VERSION: v0.8.37
+  CRISPASR_VERSION: v0.8.38
 
 jobs:
   build-android:
