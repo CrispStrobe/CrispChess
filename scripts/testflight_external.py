@@ -197,6 +197,25 @@ def set_whats_new(api, build_id, notes):
     print(f"  what to test: set on {len(localisations)} localisation(s)")
 
 
+def add_to_internal_group(api, app_id, name, build_id):
+    """Internal testers see a build only if it is in one of their groups, and a
+    group without "all builds" gets none automatically - this app's did not, so
+    its internal tester kept seeing a build from months before."""
+    groups = api("GET", f"/apps/{app_id}/betaGroups?limit=200").get("data") or []
+    match = next((g for g in groups if g["attributes"]["name"] == name), None)
+    if not match or not match["attributes"].get("isInternalGroup"):
+        print(f"  internal group {name!r} not found; skipped")
+        return
+    try:
+        api("POST", f"/betaGroups/{match['id']}/relationships/builds",
+            {"data": [{"type": "builds", "id": build_id}]})
+        print(f"  added to internal group {name!r} (no review needed)")
+    except ApiError as e:
+        if not e.is_conflict:
+            raise
+        print(f"  already in internal group {name!r}")
+
+
 def find_or_create_group(api, app_id, name):
     groups = api("GET", f"/apps/{app_id}/betaGroups?limit=200").get("data") or []
     match = next((g for g in groups if g["attributes"]["name"] == name), None)
@@ -266,6 +285,9 @@ def main():
     parser.add_argument("--version")
     parser.add_argument("--build")
     parser.add_argument("--group")
+    parser.add_argument("--internal-group",
+                        help="also add the build to this INTERNAL group: its testers "
+                             "get it as soon as it is processed, with no review")
     parser.add_argument("--whats-new-file")
     parser.add_argument("--wait-minutes", type=int, default=30)
     parser.add_argument("--dry-run", action="store_true")
@@ -301,6 +323,9 @@ def main():
     if args.whats_new_file:
         notes = open(args.whats_new_file, encoding="utf-8").read().strip()
         set_whats_new(api, build["id"], notes[:4000])  # Apple's cap
+
+    if args.internal_group:
+        add_to_internal_group(api, args.app_id, args.internal_group, build["id"])
 
     group_id = find_or_create_group(api, args.app_id, args.group)
     try:

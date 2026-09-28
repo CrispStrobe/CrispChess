@@ -257,6 +257,7 @@ jobs:
             --app-id '${{ secrets.ASC_APP_ID }}' \
             --version "$VER" --build "$BUILD" \
             --group "${GROUP:-External Testers}" \
+            --internal-group 'Internal Testers' \
             --whats-new-file CHANGELOG.md \
             --wait-minutes 30
 
