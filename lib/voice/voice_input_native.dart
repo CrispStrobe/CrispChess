@@ -10,11 +10,13 @@ library;
 
 import 'dart:async';
 import 'dart:ffi';
+import 'dart:io' show Platform;
 import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:chess/chess.dart' as chess;
 import 'package:crispasr/crispasr.dart';
+import 'package:record/record.dart';
 
 import '../engines/maia3_dart/onnx/model_fetch.dart';
 import 'spoken_moves.dart';
@@ -40,6 +42,12 @@ const _threads = 2;
 /// At most this much speech is kept (Whisper's window is 30 s).
 const _maxSamples = 16000 * 30;
 
+/// Where the microphone comes from. On iOS and Android the `record` plugin,
+/// as in CrisperWeaver: it asks for the permission and runs the audio
+/// session. On the desktop, CrispASR's own miniaudio capture, which needs no
+/// plugin.
+bool get _usePlugin => Platform.isIOS || Platform.isAndroid;
+
 class VoiceInput {
   final SendPort _worker;
   final ReceivePort _replies;
@@ -47,6 +55,8 @@ class VoiceInput {
   final _pending = <int, Completer<Object?>>{};
   var _nextId = 0;
   Mic? _mic;
+  AudioRecorder? _recorder;
+  StreamSubscription<Uint8List>? _stream;
   final _recording = <Float32List>[];
   var _recorded = 0;
 
@@ -59,12 +69,13 @@ class VoiceInput {
   }
 
   /// Whether this build can take voice moves: the CrispASR library is
-  /// present and has the microphone and phrase scoring.
+  /// present (on iOS, the embedded crispasr.framework) and has phrase
+  /// scoring, and — on the desktop — its microphone.
   static bool get available {
     try {
       final lib = DynamicLibrary.open(CrispASR.defaultLibName());
       return lib.providesSymbol('crispasr_session_score_texts') &&
-          lib.providesSymbol('crispasr_mic_open');
+          (_usePlugin || lib.providesSymbol('crispasr_mic_open'));
     } catch (_) {
       return false;
     }
@@ -90,28 +101,62 @@ class VoiceInput {
     return VoiceInput._(first, port, replies, isolate);
   }
 
-  bool get listening => _mic != null;
+  bool get listening => _mic != null || _stream != null;
 
-  /// Starts recording from the default microphone.
-  void startListening() {
-    if (_mic != null) return;
+  void _add(Float32List pcm) {
+    if (_recorded >= _maxSamples) return;
+    _recording.add(pcm);
+    _recorded += pcm.length;
+  }
+
+  /// Starts recording from the default microphone. Throws when the
+  /// microphone permission is refused.
+  Future<void> startListening() async {
+    if (listening) return;
     _recording.clear();
     _recorded = 0;
-    final mic = Mic.open(callback: (pcm) {
-      if (_recorded >= _maxSamples) return;
-      _recording.add(pcm);
-      _recorded += pcm.length;
+    if (!_usePlugin) {
+      final mic = Mic.open(callback: _add);
+      mic.start();
+      _mic = mic;
+      return;
+    }
+    final recorder = _recorder ??= AudioRecorder();
+    if (!await recorder.hasPermission()) {
+      throw StateError('microphone permission refused');
+    }
+    final bytes = await recorder.startStream(const RecordConfig(
+      encoder: AudioEncoder.pcm16bits,
+      sampleRate: 16000,
+      numChannels: 1,
+    ));
+    _stream = bytes.listen((b) {
+      // 16-bit little-endian PCM -> floats in [-1, 1].
+      final data = ByteData.sublistView(b);
+      final pcm = Float32List(b.length ~/ 2);
+      for (var i = 0; i < pcm.length; i++) {
+        pcm[i] = data.getInt16(2 * i, Endian.little) / 32768;
+      }
+      _add(pcm);
     });
-    mic.start();
-    _mic = mic;
+  }
+
+  Future<void> _stopCapture() async {
+    final mic = _mic;
+    _mic = null;
+    mic?.close();
+    final stream = _stream;
+    _stream = null;
+    if (stream != null) {
+      await _recorder?.stop(); // flushes the last buffer into the stream
+      await stream.cancel();
+    }
   }
 
   /// Stops recording and ranks the legal moves of [fen] by how well they
   /// match what was said, best first. Empty when nothing was recorded.
   Future<List<VoiceCandidate>> stopAndRank(String fen, VoiceLanguage lang) async {
-    final mic = _mic;
-    _mic = null;
-    mic?.close();
+    await _stopCapture();
     final pcm = Float32List(_recorded.clamp(0, _maxSamples));
     var at = 0;
     for (final chunk in _recording) {
@@ -141,6 +186,10 @@ class VoiceInput {
   void dispose() {
     _mic?.close();
     _mic = null;
+    _stream?.cancel();
+    _stream = null;
+    _recorder?.dispose();
+    _recorder = null;
     _isolate.kill(priority: Isolate.immediate);
     _replies.close();
     for (final p in _pending.values) {

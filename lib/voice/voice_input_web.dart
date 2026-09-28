@@ -27,7 +27,7 @@ class VoiceInput {
       throw UnsupportedError('voice moves are not available on the web');
 
   bool get listening => false;
-  void startListening() {}
+  Future<void> startListening() async {}
   Future<List<VoiceCandidate>> stopAndRank(String fen, VoiceLanguage lang) async => const [];
   Future<List<VoiceCandidate>> rankPcm(Float32List pcm, String fen, VoiceLanguage lang) async => const [];
   void dispose() {}

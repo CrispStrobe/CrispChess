@@ -751,7 +751,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         _voice = await VoiceInput.open(model: VoiceModel.base);
         if (!mounted) return;
       }
-      _voice!.startListening();
+      await _voice!.startListening();
+      if (!mounted) return;
       setState(() {
         _voiceBusy = false;
         _state = _state.copyWith(
