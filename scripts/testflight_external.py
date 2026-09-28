@@ -220,18 +220,63 @@ def find_or_create_group(api, app_id, name):
     return created["data"]["id"]
 
 
+def show_status(api, app_id):
+    """Read-only: where recent builds stand, and who can see which. What a
+    tester's TestFlight app shows depends on all of it — an external tester
+    sees a build only once Beta App Review has approved it, an internal one
+    only if it is in one of their groups."""
+    builds = api("GET", f"/builds?filter[app]={app_id}&sort=-uploadedDate&limit=6"
+                        "&include=preReleaseVersion,buildBetaDetail,betaAppReviewSubmission")
+    included = {(i["type"], i["id"]): i["attributes"] for i in builds.get("included") or []}
+
+    def rel(build, name):
+        data = (build["relationships"].get(name) or {}).get("data")
+        return included.get((data["type"], data["id"]), {}) if data else {}
+
+    print("Recent builds (newest first):")
+    for b in builds.get("data") or []:
+        a = b["attributes"]
+        version = rel(b, "preReleaseVersion").get("version", "?")
+        detail = rel(b, "buildBetaDetail")
+        review = rel(b, "betaAppReviewSubmission")
+        print(f"  {version}({a.get('version')}) uploaded {a.get('uploadedDate', '')[:16]}"
+              f"  processing={a.get('processingState')}"
+              f"  expired={a.get('expired')}"
+              f"  internal={detail.get('internalBuildState')}"
+              f"  external={detail.get('externalBuildState')}"
+              f"  beta review={review.get('betaReviewState', 'not submitted')}")
+
+    print("Beta groups:")
+    groups = api("GET", f"/apps/{app_id}/betaGroups?limit=50").get("data") or []
+    for g in groups:
+        a = g["attributes"]
+        members = api("GET", f"/betaGroups/{g['id']}/betaTesters?limit=200").get("data") or []
+        in_group = api("GET", f"/betaGroups/{g['id']}/builds?limit=5").get("data") or []
+        print(f"  {a.get('name')!r}: {'internal' if a.get('isInternalGroup') else 'external'}"
+              f", all builds={a.get('hasAccessToAllBuilds')}, testers={len(members)}"
+              f", public link={a.get('publicLinkEnabled')}"
+              f", latest builds in group={[x['attributes'].get('version') for x in in_group]}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--app-id", required=True)
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--build", required=True)
-    parser.add_argument("--group", required=True)
+    parser.add_argument("--status", action="store_true",
+                        help="only report builds, review states and groups; change nothing")
+    parser.add_argument("--version")
+    parser.add_argument("--build")
+    parser.add_argument("--group")
     parser.add_argument("--whats-new-file")
     parser.add_argument("--wait-minutes", type=int, default=30)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     api = Api(token())
+    if args.status:
+        show_status(api, args.app_id)
+        return
+    if not (args.version and args.build and args.group):
+        die("--version, --build and --group are required unless --status")
 
     app = api("GET", f"/apps/{args.app_id}")["data"]["attributes"]
     primary_locale = app.get("primaryLocale") or "en-US"
