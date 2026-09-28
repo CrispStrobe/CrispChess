@@ -200,20 +200,17 @@ def set_whats_new(api, build_id, notes):
 def add_to_internal_group(api, app_id, name, build_id):
     """Internal testers see a build only if it is in one of their groups, and a
     group without "all builds" gets none automatically - this app's did not, so
-    its internal tester kept seeing a build from months before. Switches that
-    on, and adds the build explicitly as well."""
+    its internal tester kept seeing a build from months before."""
     groups = api("GET", f"/apps/{app_id}/betaGroups?limit=200").get("data") or []
     match = next((g for g in groups if g["attributes"]["name"] == name), None)
     if not match or not match["attributes"].get("isInternalGroup"):
         print(f"  internal group {name!r} not found; skipped")
         return
-    # "All builds" on: every build reaches the group as soon as Apple has
-    # processed it, including builds uploaded some other way.
-    if not match["attributes"].get("hasAccessToAllBuilds"):
-        api("PATCH", f"/betaGroups/{match['id']}", {
-            "data": {"type": "betaGroups", "id": match["id"],
-                     "attributes": {"hasAccessToAllBuilds": True}}})
-        print(f"  internal group {name!r}: access to all builds switched on")
+    # Apple's API sets hasAccessToAllBuilds only when a group is created
+    # (an UPDATE is refused, ENTITY_ERROR.ATTRIBUTE.NOT_ALLOWED), so every
+    # build is added explicitly instead. App Store Connect's "Automatic
+    # Distribution" toggle on the group does the same for builds uploaded
+    # some other way.
     try:
         api("POST", f"/betaGroups/{match['id']}/relationships/builds",
             {"data": [{"type": "builds", "id": build_id}]})
