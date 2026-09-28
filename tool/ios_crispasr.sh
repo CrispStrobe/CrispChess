@@ -39,7 +39,9 @@ xcodebuild -create-xcframework \
 bin="$out/ios-arm64/crispasr.framework/crispasr"
 ls -la "$bin"
 /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$out/ios-arm64/crispasr.framework/Info.plist"
-if nm -gU "$bin" | grep -q '_crispasr_session_score_texts'; then
+# Capture first: under pipefail, `nm | grep -q` fails when grep exits early.
+symbols=$(nm -gU "$bin")
+if grep -q '_crispasr_session_score_texts' <<<"$symbols"; then
   echo "CrispASR $version for iOS: phrase scoring present"
 else
   echo "::error::CrispASR $version iOS framework lacks crispasr_session_score_texts"
