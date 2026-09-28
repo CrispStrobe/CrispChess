@@ -45,6 +45,9 @@ on:
 
 env:
   BUNDLE_ID: com.crispstrobe.crispchess
+  # CrispASR release whose iOS framework is embedded for voice moves
+  # (tool/ios_crispasr.sh). Keep in step with release.yml.
+  CRISPASR_VERSION: v0.8.37
   PROFILE_NAME: CrispChess AppStore CI
   FLUTTER_VERSION: '3.44.2'
 
@@ -69,6 +72,12 @@ jobs:
       - name: Resolve dependencies
         if: ${{ !inputs.submit_only }}
         run: flutter pub get
+
+      - name: Bundle CrispASR (voice moves)
+        if: ${{ !inputs.submit_only }}
+        run: |
+          gem install xcodeproj --no-document
+          tool/ios_crispasr.sh
 
       - name: Import signing certificate into a temp keychain
         if: ${{ !inputs.submit_only }}

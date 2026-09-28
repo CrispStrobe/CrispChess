@@ -33,6 +33,14 @@ dependencies:
   # Voice moves (desktop): microphone + Whisper phrase scoring. Needs the
   # native libcrispasr at run time; without it the feature stays hidden.
   crispasr: ^0.8.37
+  # Microphone on iOS/Android (the desktop uses CrispASR's own Mic), as
+  # CrisperWeaver does: 16 kHz mono PCM stream, asks for permission itself.
+  record: ^6.2.0
+
+# record's Linux implementation must match its current platform interface;
+# the transitively resolved 0.7.x does not (CrisperWeaver pins it the same way).
+dependency_overrides:
+  record_linux: ^1.3.0
 
 dev_dependencies:
   flutter_test:

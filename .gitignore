@@ -84,3 +84,6 @@ store/*
 !store/screenshots/
 web/ort/
 pubspec_overrides.yaml
+
+# CrispASR framework, fetched by tool/ios_crispasr.sh in CI
+ios/Frameworks/
