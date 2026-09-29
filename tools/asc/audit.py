@@ -73,6 +73,15 @@ def main() -> int:
         status, rating = client.call("GET", f"/v1/appInfos/{info['id']}/ageRatingDeclaration")
         print("    age rating", status, attrs(rating.get("data"), "ageRatingOverride"))
 
+    print("\nreview submissions")
+    for sub in client.paged(f"/v1/reviewSubmissions?filter[app]={APP}&limit=20"):
+        print(" ", sub["id"], attrs(sub, "platform", "state", "submittedDate"))
+        for item in client.paged(f"/v1/reviewSubmissions/{sub['id']}/items?limit=20"):
+            rel = item.get("relationships", {})
+            linked = [name for name, value in rel.items()
+                      if isinstance(value, dict) and value.get("data")]
+            print("    item", item["id"], attrs(item, "state"), linked)
+
     print("\nbeta")
     for loc in client.paged(f"/v1/apps/{APP}/betaAppLocalizations?limit=50"):
         print(" ", attrs(loc, "locale", "description", "feedbackEmail"))
