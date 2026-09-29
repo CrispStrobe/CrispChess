@@ -81,6 +81,11 @@ def expect(method: str, path: str, body: dict | None = None,
         print(f"{method} {path} -> HTTP {status}", file=sys.stderr)
         for error in document.get("errors", [{"detail": json.dumps(document)}]):
             print("  " + error.get("detail", ""), file=sys.stderr)
+            # A refused review submission lists WHY under meta.associatedErrors
+            # (missing screenshots, unanswered questions, ...): print them all.
+            if error.get("meta"):
+                print("  " + json.dumps(error["meta"], indent=1, ensure_ascii=False),
+                      file=sys.stderr)
         raise SystemExit(1)
     return document
 
