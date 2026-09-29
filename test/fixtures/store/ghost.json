@@ -1,0 +1,6 @@
+{
+  "source": "HumanLensService.estimatePlayerElo (Maia 5M) over the moves of ghost_games.json, tool/store/store_fixtures_test.dart",
+  "games": 30,
+  "movesUsed": 120,
+  "elo": 1888
+}

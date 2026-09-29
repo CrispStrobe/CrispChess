@@ -1,0 +1,1138 @@
+{
+  "source": "HumanLensService.analyzePosition(elo: 1400) — Maia 5M for the players, the built-in engine at depth 8 for the verdicts — on 30 White-to-move positions of ghost_games.json; \"chosen\" is the one with the highest interest score (trap + rise of the findability curve), tool/store/store_fixtures_test.dart",
+  "chosen": {
+    "positionCommand": "position startpos moves e2e4 c7c5 f2f4 d7d5 e4e5 e7e6 g1f3 g8h6 c2c3 h6f5 g2g4 f5h4 g4g5 h4f5 f1d3 h7h6 d3f5 e6f5 d2d4 b7b6 c1e3 h6g5 f4g5 f8e7 b1a3 b8c6 a3b5 c6a5 d1e2 a5c4 e1c1 a7a6 b5d6 e7d6 e5d6 d8d6 d4c5 b6c5",
+    "elo": 1400,
+    "bestMove": "e3c5",
+    "candidates": [
+      {
+        "uci": "e3c5",
+        "probability": 0.7425602674484253,
+        "evalAfter": -1.14,
+        "winChanceLoss": 0.0
+      },
+      {
+        "uci": "e3f4",
+        "probability": 0.18154926598072052,
+        "evalAfter": -0.02,
+        "winChanceLoss": 0.0
+      }
+    ],
+    "findabilityByElo": {
+      "800": 0.22955068945884705,
+      "1100": 0.6004847884178162,
+      "1400": 0.7425602674484253,
+      "1700": 0.7875531315803528,
+      "2000": 0.7960382103919983,
+      "2300": 0.7775593996047974
+    },
+    "isTrap": false,
+    "findability": "obvious"
+  },
+  "all": [
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8e7 g1e2 e8g8 c1e3 c7c6 b1c3 b7b5 c4b3 b5b4 c3b1 d7d5",
+      "elo": 1400,
+      "bestMove": "b1d2",
+      "candidates": [
+        {
+          "uci": "e4d5",
+          "probability": 0.6001248359680176,
+          "evalAfter": 0.3,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e1g1",
+          "probability": 0.07649344205856323,
+          "evalAfter": 0.6,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b1d2",
+          "probability": 0.0659995973110199,
+          "evalAfter": 0.15,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f2f3",
+          "probability": 0.06423382461071014,
+          "evalAfter": 0.5,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.07743094861507416,
+        "1100": 0.06782422959804535,
+        "1400": 0.0659995973110199,
+        "1700": 0.05483186990022659,
+        "2000": 0.05765002965927124,
+        "2300": 0.08924058079719543
+      },
+      "isTrap": false,
+      "findability": "hard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8e7 g1e2 e8g8 c1e3 c7c6 b1c3 b7b5 c4b3 b5b4 c3b1 d7d5 e1g1 d5e4 a2a3 e4d3 d1d3 d8d3 c2d3 b4a3 b2a3 c8a6 b3c4 f6d5 c4a6 b8a6 b1d2 d5e3",
+      "elo": 1400,
+      "bestMove": "f2e3",
+      "candidates": [
+        {
+          "uci": "f2e3",
+          "probability": 0.9889357686042786,
+          "evalAfter": 1.04,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.8827971816062927,
+        "1100": 0.9610708951950073,
+        "1400": 0.9889357686042786,
+        "1700": 0.995488166809082,
+        "2000": 0.9980813264846802,
+        "2300": 0.9991422891616821
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 d7d5 e4e5 e7e6 g1f3 g8h6 c2c3 h6f5 g2g4 f5h4 g4g5 h4f5 f1d3 h7h6 d3f5 e6f5 d2d4 b7b6 c1e3 h6g5",
+      "elo": 1400,
+      "bestMove": "f3g5",
+      "candidates": [
+        {
+          "uci": "f3g5",
+          "probability": 0.7102124094963074,
+          "evalAfter": 0.03,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f4g5",
+          "probability": 0.2673368752002716,
+          "evalAfter": 0.08,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.3769932985305786,
+        "1100": 0.5626409649848938,
+        "1400": 0.7102124094963074,
+        "1700": 0.7838512659072876,
+        "2000": 0.7941495180130005,
+        "2300": 0.7412155866622925
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 d7d5 e4e5 e7e6 g1f3 g8h6 c2c3 h6f5 g2g4 f5h4 g4g5 h4f5 f1d3 h7h6 d3f5 e6f5 d2d4 b7b6 c1e3 h6g5 f4g5 f8e7 b1a3 b8c6 a3b5 c6a5 d1e2 a5c4 e1c1 a7a6 b5d6 e7d6 e5d6 d8d6 d4c5 b6c5",
+      "elo": 1400,
+      "bestMove": "e3c5",
+      "candidates": [
+        {
+          "uci": "e3c5",
+          "probability": 0.7425602674484253,
+          "evalAfter": -1.14,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e3f4",
+          "probability": 0.18154926598072052,
+          "evalAfter": -0.02,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.22955068945884705,
+        "1100": 0.6004847884178162,
+        "1400": 0.7425602674484253,
+        "1700": 0.7875531315803528,
+        "2000": 0.7960382103919983,
+        "2300": 0.7775593996047974
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves d2d4 c7c5 d4c5 d8a5 c1d2 a5c5 b1c3 e7e6 e2e4 g8f6 d2e3 c5d6 d1d6 f8d6 f2f4 d6b4 e3d4 b4c3 d4c3 e8g8 e4e5 f6d5 c3d2 b8c6 c2c4 d5e7 g1f3 b7b6",
+      "elo": 1400,
+      "bestMove": "f1d3",
+      "candidates": [
+        {
+          "uci": "f1d3",
+          "probability": 0.4399012625217438,
+          "evalAfter": -0.75,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f1e2",
+          "probability": 0.11112459003925323,
+          "evalAfter": -0.55,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e1c1",
+          "probability": 0.09048264473676682,
+          "evalAfter": -0.6,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b2b4",
+          "probability": 0.08785080164670944,
+          "evalAfter": -0.72,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.28450700640678406,
+        "1100": 0.3632487952709198,
+        "1400": 0.4399012625217438,
+        "1700": 0.5090740323066711,
+        "2000": 0.5676968097686768,
+        "2300": 0.5657196044921875
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 d7d5 e4e5 c8g4 f1e2 g4e2 g1e2 e7e6 e1g1 f8e7 d2d4 c5c4 c2c3 b8c6 b2b3 c4b3",
+      "elo": 1400,
+      "bestMove": "d1b3",
+      "candidates": [
+        {
+          "uci": "a2b3",
+          "probability": 0.7297602295875549,
+          "evalAfter": 0.0,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d1b3",
+          "probability": 0.26707255840301514,
+          "evalAfter": -0.3,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.25132548809051514,
+        "1100": 0.32418835163116455,
+        "1400": 0.26707255840301514,
+        "1700": 0.16037656366825104,
+        "2000": 0.07516279816627502,
+        "2300": 0.037561334669589996
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 d7d5 e4e5 c8g4 f1e2 g4e2 g1e2 e7e6 e1g1 f8e7 d2d4 c5c4 c2c3 b8c6 b2b3 c4b3 a2b3 g8h6 c1e3 h6f5 e3f2 e8g8 e2g3 f5g3 f2g3 e7h4 g3h4 d8h4 b1d2 c6e7 c3c4 d5c4",
+      "elo": 1400,
+      "bestMove": "b3c4",
+      "candidates": [
+        {
+          "uci": "b3c4",
+          "probability": 0.7142637968063354,
+          "evalAfter": -0.02,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2c4",
+          "probability": 0.27392634749412537,
+          "evalAfter": 0.0,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.7077447772026062,
+        "1100": 0.6931344270706177,
+        "1400": 0.7142637968063354,
+        "1700": 0.7910310626029968,
+        "2000": 0.8988043665885925,
+        "2300": 0.9560883045196533
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 b8c6 f2f4 d7d5 e4d5 f6d5 g1f3 d5f4 e1g1 f8c5 g1h1 c8g4 c4f7 e8f7 h2h3 g4f3 d1f3 c6d4 f3h5 g7g6",
+      "elo": 1400,
+      "bestMove": "h5e5",
+      "candidates": [
+        {
+          "uci": "h5e5",
+          "probability": 0.8951126337051392,
+          "evalAfter": -0.5,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.8557976484298706,
+        "1100": 0.8851969242095947,
+        "1400": 0.8951126337051392,
+        "1700": 0.9124991297721863,
+        "2000": 0.9382763504981995,
+        "2300": 0.9564799070358276
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 b8c6 f2f4 d7d5 e4d5 f6d5 g1f3 d5f4 e1g1 f8c5 g1h1 c8g4 c4f7 e8f7 h2h3 g4f3 d1f3 c6d4 f3h5 g7g6 h5e5 g6g5 e5c5 d4e2 c5c4 f7g7 c1f4 g5f4 f1f2 h8e8 b1d2 e2g3 h1h2 e8e2 f2e2 g3e2",
+      "elo": 1400,
+      "bestMove": "a1e1",
+      "candidates": [
+        {
+          "uci": "a1e1",
+          "probability": 0.40224918723106384,
+          "evalAfter": -1.95,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2e4",
+          "probability": 0.1666814684867859,
+          "evalAfter": -1.6,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2f3",
+          "probability": 0.16653147339820862,
+          "evalAfter": -2.6,
+          "winChanceLoss": 0.05042138771492738
+        },
+        {
+          "uci": "a1f1",
+          "probability": 0.09504236280918121,
+          "evalAfter": -1.6,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.4570278823375702,
+        "1100": 0.43000805377960205,
+        "1400": 0.40224918723106384,
+        "1700": 0.39651355147361755,
+        "2000": 0.42403367161750793,
+        "2300": 0.4601048231124878
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 d7d5 c1e3 d5c4 g1e2 c4d3 c2d3 b8c6 e1g1 f8b4 a2a3 b4a5 d1a4 c8d7 a4d1 e8g8 b2b4 a5b6 b1c3 c6d4 g1h1 f8e8 f2f4 d4e2 d1e2 d7g4",
+      "elo": 1400,
+      "bestMove": "e2d2",
+      "candidates": [
+        {
+          "uci": "e2f2",
+          "probability": 0.5713121294975281,
+          "evalAfter": 4.75,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2d2",
+          "probability": 0.2964414358139038,
+          "evalAfter": 3.55,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2e1",
+          "probability": 0.07445827126502991,
+          "evalAfter": 4.48,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.21484537422657013,
+        "1100": 0.25937896966934204,
+        "1400": 0.2964414358139038,
+        "1700": 0.3216215968132019,
+        "2000": 0.3648698031902313,
+        "2300": 0.4163918197154999
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 d7d6 d2d3 g8f6 f2f4 e5f4 c1f4 c8e6 b1d2 e6c4 d2c4 f8e7 e4e5 d6e5 f4e5 e8g8 g1e2 b8c6",
+      "elo": 1400,
+      "bestMove": "e5g3",
+      "candidates": [
+        {
+          "uci": "e1g1",
+          "probability": 0.27550381422042847,
+          "evalAfter": 1.3,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e5c3",
+          "probability": 0.21562927961349487,
+          "evalAfter": 0.5,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e5g3",
+          "probability": 0.15920352935791016,
+          "evalAfter": 0.4,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e5f6",
+          "probability": 0.12339755147695541,
+          "evalAfter": 0.45,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.048968393355607986,
+        "1100": 0.09245675802230835,
+        "1400": 0.15920352935791016,
+        "1700": 0.19137664139270782,
+        "2000": 0.201699361205101,
+        "2300": 0.2234303057193756
+      },
+      "isTrap": false,
+      "findability": "findable"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 d7d6 d2d3 g8f6 f2f4 e5f4 c1f4 c8e6 b1d2 e6c4 d2c4 f8e7 e4e5 d6e5 f4e5 e8g8 g1e2 b8c6 e5c3 b7b5 c4e3 b5b4 c3d2 a7a5 e1g1 c6d4 c2c3 d4e2 d1e2 b4c3 d2c3 c7c5 e3f5 a8a7",
+      "elo": 1400,
+      "bestMove": "e2e5",
+      "candidates": [
+        {
+          "uci": "f5e7",
+          "probability": 0.2573534846305847,
+          "evalAfter": -0.92,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "a1e1",
+          "probability": 0.2569444179534912,
+          "evalAfter": -1.35,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c3f6",
+          "probability": 0.0860905572772026,
+          "evalAfter": -0.1,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "a1d1",
+          "probability": 0.0675482526421547,
+          "evalAfter": -1.32,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2e5",
+          "probability": 0.009525234811007977,
+          "evalAfter": -1.58,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.018736712634563446,
+        "1100": 0.010511419735848904,
+        "1400": 0.009525234811007977,
+        "1700": 0.01049661636352539,
+        "2000": 0.011055870912969112,
+        "2300": 0.010305652394890785
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 c7c6 c1g5 f8e7 f2f4 e5f4 g5f4 d7d5 e4d5 c6d5 c4b3 e8g8 g1f3 c8g4 b1d2 e7c5 h2h3 f8e8 e1f1 g4h5 g2g4 h5g6",
+      "elo": 1400,
+      "bestMove": "f3e5",
+      "candidates": [
+        {
+          "uci": "f1g2",
+          "probability": 0.33749476075172424,
+          "evalAfter": 0.08,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3e5",
+          "probability": 0.21872955560684204,
+          "evalAfter": -0.22,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d3d4",
+          "probability": 0.10160292685031891,
+          "evalAfter": 0.2,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3h4",
+          "probability": 0.08422520011663437,
+          "evalAfter": -0.22,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.17183417081832886,
+        "1100": 0.21623462438583374,
+        "1400": 0.21872955560684204,
+        "1700": 0.1944476217031479,
+        "2000": 0.16886040568351746,
+        "2300": 0.15732352435588837
+      },
+      "isTrap": false,
+      "findability": "findable"
+    },
+    {
+      "positionCommand": "position startpos moves d2d4 d7d5 c2c4 d5c4 e2e4 b8c6 f1c4 c6d4 g1e2 d4e2 d1e2 g8f6 e1g1 e7e6 e4e5 f6d7",
+      "elo": 1400,
+      "bestMove": "b1d2",
+      "candidates": [
+        {
+          "uci": "f1d1",
+          "probability": 0.43284934759140015,
+          "evalAfter": 0.4,
+          "winChanceLoss": 0.004574505067383328
+        },
+        {
+          "uci": "b1c3",
+          "probability": 0.28266361355781555,
+          "evalAfter": 0.65,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f2f4",
+          "probability": 0.08189722150564194,
+          "evalAfter": 0.65,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c1f4",
+          "probability": 0.07512259483337402,
+          "evalAfter": 0.55,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b1d2",
+          "probability": 0.005656294524669647,
+          "evalAfter": 0.45,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.012590792961418629,
+        "1100": 0.008924211375415325,
+        "1400": 0.005656294524669647,
+        "1700": 0.0025091301649808884,
+        "2000": 0.0009577550808899105,
+        "2300": 0.0008228914230130613
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves d2d4 d7d5 c2c4 d5c4 e2e4 b8c6 f1c4 c6d4 g1e2 d4e2 d1e2 g8f6 e1g1 e7e6 e4e5 f6d7 f2f4 f8e7 f4f5 e8g8 f5e6 f7e6 c4e6 g8h8 c1f4 e7c5 g1h1 d7b6 b1c3 c8e6 a1d1 d8e7",
+      "elo": 1400,
+      "bestMove": "e2e4",
+      "candidates": [
+        {
+          "uci": "c3e4",
+          "probability": 0.41627466678619385,
+          "evalAfter": 5.15,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "a2a3",
+          "probability": 0.09934289008378983,
+          "evalAfter": 5.64,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2h5",
+          "probability": 0.09581103175878525,
+          "evalAfter": 3.71,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c3b5",
+          "probability": 0.07593399286270142,
+          "evalAfter": 6.71,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2e4",
+          "probability": 0.02400345541536808,
+          "evalAfter": 3.21,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.03345029056072235,
+        "1100": 0.02880648337304592,
+        "1400": 0.02400345541536808,
+        "1700": 0.02163388393819332,
+        "2000": 0.021482327952980995,
+        "2300": 0.02389976568520069
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 d7d6 f2f4 e5f4 c1f4 f8e7 g1f3 e7h4 f3h4 d8h4 f4g3 h4f6 c2c3 g8h6 h1f1 f6g6 b1d2 c8g4",
+      "elo": 1400,
+      "bestMove": "d1b3",
+      "candidates": [
+        {
+          "uci": "d2f3",
+          "probability": 0.5068398714065552,
+          "evalAfter": -0.4,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d1b3",
+          "probability": 0.33851346373558044,
+          "evalAfter": -0.6,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d1c2",
+          "probability": 0.0892767533659935,
+          "evalAfter": -0.35,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.20234233140945435,
+        "1100": 0.2664945125579834,
+        "1400": 0.33851346373558044,
+        "1700": 0.43247660994529724,
+        "2000": 0.5571413040161133,
+        "2300": 0.6299420595169067
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 d7d6 f2f4 e5f4 c1f4 f8e7 g1f3 e7h4 f3h4 d8h4 f4g3 h4f6 c2c3 g8h6 h1f1 f6g6 b1d2 c8g4 d1c2 c6e5 c4b3 c7c6 h2h3 g4h5 g3e5 d6e5 d2f3 h5f3 g2f3 g6g3 e1d1 f7f5 c2e2 e8c8",
+      "elo": 1400,
+      "bestMove": "b3e6",
+      "candidates": [
+        {
+          "uci": "d1c2",
+          "probability": 0.4622762203216553,
+          "evalAfter": 0.0,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b3e6",
+          "probability": 0.27006641030311584,
+          "evalAfter": -0.07,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e4f5",
+          "probability": 0.07864734530448914,
+          "evalAfter": 0.48,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d1d2",
+          "probability": 0.069597989320755,
+          "evalAfter": 0.4,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.34630173444747925,
+        "1100": 0.3131614625453949,
+        "1400": 0.27006641030311584,
+        "1700": 0.23387575149536133,
+        "2000": 0.19441981613636017,
+        "2300": 0.14679275453090668
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 f8c5 c4f7 e8f7 d1h5 f7f8 h5e5 d7d6 e5f4 d8f6 f4f6 g8f6 d2d3 b8c6 c1g5 c6d4 e1d2 c8d7 c2c3 d4e6 g5f6 g7f6 d3d4 c5b6 g1e2 c7c5",
+      "elo": 1400,
+      "bestMove": "d4d5",
+      "candidates": [
+        {
+          "uci": "d4d5",
+          "probability": 0.7060092091560364,
+          "evalAfter": 1.4,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d4c5",
+          "probability": 0.07067984342575073,
+          "evalAfter": 1.8,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b1a3",
+          "probability": 0.05391179770231247,
+          "evalAfter": 1.8,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.37390995025634766,
+        "1100": 0.5837208032608032,
+        "1400": 0.7060092091560364,
+        "1700": 0.794739305973053,
+        "2000": 0.8647297024726868,
+        "2300": 0.9050261974334717
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 d7d5 e4d5 f6d5 g1f3 c8g4 h2h3 g4f3 d1f3 d5f6 c1g5 b8c6 b1d2 f8e7",
+      "elo": 1400,
+      "bestMove": "c4b5",
+      "candidates": [
+        {
+          "uci": "d2e4",
+          "probability": 0.3945558965206146,
+          "evalAfter": 1.59,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e1c1",
+          "probability": 0.21699115633964539,
+          "evalAfter": -0.2,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e1g1",
+          "probability": 0.13117597997188568,
+          "evalAfter": -0.25,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "g5f6",
+          "probability": 0.08526882529258728,
+          "evalAfter": -0.57,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c4b5",
+          "probability": 0.035730086266994476,
+          "evalAfter": -0.57,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.013203991577029228,
+        "1100": 0.02285013347864151,
+        "1400": 0.035730086266994476,
+        "1700": 0.05176832154393196,
+        "2000": 0.07104083895683289,
+        "2300": 0.09183996915817261
+      },
+      "isTrap": false,
+      "findability": "hard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 d7d5 e4d5 f6d5 g1f3 c8g4 h2h3 g4f3 d1f3 d5f6 c1g5 b8c6 b1d2 f8e7 d2e4 f6e4 f3f7 e8d7 c4e6 d7d6 d3e4 e7g5 a1d1 c6d4 e6d5 c7c6 d5c4 d8e7 f7h5 d6c7",
+      "elo": 1400,
+      "bestMove": "c2c3",
+      "candidates": [
+        {
+          "uci": "e1g1",
+          "probability": 0.4725762903690338,
+          "evalAfter": 2.75,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c2c3",
+          "probability": 0.3249223828315735,
+          "evalAfter": 1.93,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "h3h4",
+          "probability": 0.08651035279035568,
+          "evalAfter": 5.25,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.30760639905929565,
+        "1100": 0.32373112440109253,
+        "1400": 0.3249223828315735,
+        "1700": 0.3525458872318268,
+        "2000": 0.3947611153125763,
+        "2300": 0.40907540917396545
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8c5 f2f4 e5f4 c1f4 c7c6 e4e5 d8e7 d1e2 f6d5 c4d5 c6d5 g1f3 e8g8 d3d4 c5b6 e1g1 d7d6 g1h1 d6e5",
+      "elo": 1400,
+      "bestMove": "b1c3",
+      "candidates": [
+        {
+          "uci": "f4e5",
+          "probability": 0.47248750925064087,
+          "evalAfter": 1.0,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d4e5",
+          "probability": 0.2758351266384125,
+          "evalAfter": 0.45,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3e5",
+          "probability": 0.17434139549732208,
+          "evalAfter": 1.65,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e2e5",
+          "probability": 0.06436381489038467,
+          "evalAfter": 0.58,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "b1c3",
+          "probability": 0.001049006823450327,
+          "evalAfter": 0.25,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.004468664992600679,
+        "1100": 0.001860332558862865,
+        "1400": 0.001049006823450327,
+        "1700": 0.0008178578573279083,
+        "2000": 0.0010985404951497912,
+        "2300": 0.002737227128818631
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8c5 f2f4 e5f4 c1f4 c7c6 e4e5 d8e7 d1e2 f6d5 c4d5 c6d5 g1f3 e8g8 d3d4 c5b6 e1g1 d7d6 g1h1 d6e5 e2e5 e7e5 f4e5 c8g4 c2c3 b8d7 e5d6 f8e8 b1d2 e8e2 a1e1 g4f3 d2f3 e2b2 f3e5 d7f6",
+      "elo": 1400,
+      "bestMove": "e1a1",
+      "candidates": [
+        {
+          "uci": "d6e7",
+          "probability": 0.2015955150127411,
+          "evalAfter": 1.92,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e5d7",
+          "probability": 0.11698828637599945,
+          "evalAfter": 4.4,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "a2a3",
+          "probability": 0.10838526487350464,
+          "evalAfter": 1.93,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "g2g4",
+          "probability": 0.10559157282114029,
+          "evalAfter": 2.43,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "e1a1",
+          "probability": 0.019930757582187653,
+          "evalAfter": 1.88,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.016672855243086815,
+        "1100": 0.01920473948121071,
+        "1400": 0.019930757582187653,
+        "1700": 0.013598069548606873,
+        "2000": 0.0058252038434147835,
+        "2300": 0.002411481225863099
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 b8c6 c1g5 h7h6 g5h4 f8e7 g1e2 d7d6 b1d2 c6a5 f2f4 a5c4 d2c4 b7b5 c4e3 e5f4 e2f4 f6h7 h4e7 d8e7 e1g1 e8g8 d1f3 e7e5 a1b1 h7g5",
+      "elo": 1400,
+      "bestMove": "f3f2",
+      "candidates": [
+        {
+          "uci": "f3g3",
+          "probability": 0.5726948976516724,
+          "evalAfter": -0.18,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3f2",
+          "probability": 0.2225019335746765,
+          "evalAfter": -0.4,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3e2",
+          "probability": 0.07590560615062714,
+          "evalAfter": -0.3,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f3h5",
+          "probability": 0.069583460688591,
+          "evalAfter": -0.15,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.16785824298858643,
+        "1100": 0.2158013880252838,
+        "1400": 0.2225019335746765,
+        "1700": 0.21880491077899933,
+        "2000": 0.2159319818019867,
+        "2300": 0.23343589901924133
+      },
+      "isTrap": false,
+      "findability": "findable"
+    },
+    {
+      "positionCommand": "position startpos moves d2d4 d7d5 c2c4 e7e5 e2e3 f8b4 c1d2 b4d2 d1d2 d5c4 f1c4 e5d4 e3d4 g8f6 b1c3 e8g8 g1e2 c8f5 e1g1 f6e4",
+      "elo": 1400,
+      "bestMove": "c3e4",
+      "candidates": [
+        {
+          "uci": "c3e4",
+          "probability": 0.8378742933273315,
+          "evalAfter": -0.47,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2f4",
+          "probability": 0.11677208542823792,
+          "evalAfter": -0.15,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.6085180640220642,
+        "1100": 0.7838861346244812,
+        "1400": 0.8378742933273315,
+        "1700": 0.8512628078460693,
+        "2000": 0.8272057175636292,
+        "2300": 0.7549928426742554
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves d2d4 d7d5 c2c4 e7e5 e2e3 f8b4 c1d2 b4d2 d1d2 d5c4 f1c4 e5d4 e3d4 g8f6 b1c3 e8g8 g1e2 c8f5 e1g1 f6e4 c3e4 f5e4 e2g3 e4g6 f2f4 c7c6 f4f5 b7b5 c4b3 g6h5 g3h5 d8h4 h5g3 f8d8 a1d1 d8d6",
+      "elo": 1400,
+      "bestMove": "f1f4",
+      "candidates": [
+        {
+          "uci": "d4d5",
+          "probability": 0.19767674803733826,
+          "evalAfter": -3.85,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2f4",
+          "probability": 0.18614447116851807,
+          "evalAfter": -3.8,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f1f4",
+          "probability": 0.17896386981010437,
+          "evalAfter": -4.35,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "d2b4",
+          "probability": 0.07421748340129852,
+          "evalAfter": -3.0,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.1320096254348755,
+        "1100": 0.15089645981788635,
+        "1400": 0.17896386981010437,
+        "1700": 0.1929892748594284,
+        "2000": 0.19078907370567322,
+        "2300": 0.179081529378891
+      },
+      "isTrap": false,
+      "findability": "findable"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 h7h6 f2f4 d7d6 g1f3 b8c6 e1g1 a7a5 c2c3 a5a4 c1e3 f8e7 f4e5 d6e5 b1d2 e8g8 d3d4 e5d4 c3d4 c8g4 d1e1 g4f3",
+      "elo": 1400,
+      "bestMove": "d2f3",
+      "candidates": [
+        {
+          "uci": "d2f3",
+          "probability": 0.5471978783607483,
+          "evalAfter": 0.75,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "f1f3",
+          "probability": 0.40754830837249756,
+          "evalAfter": 1.58,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.40832996368408203,
+        "1100": 0.4770103394985199,
+        "1400": 0.5471978783607483,
+        "1700": 0.6694155931472778,
+        "2000": 0.8211464881896973,
+        "2300": 0.8917615413665771
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8c5 c1e3 c5e3 f2e3 b8c6 g1f3 d7d6 e1g1 c8g4 b1d2 d6d5",
+      "elo": 1400,
+      "bestMove": "c4b5",
+      "candidates": [
+        {
+          "uci": "e4d5",
+          "probability": 0.91427081823349,
+          "evalAfter": 0.05,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c4b5",
+          "probability": 0.023081259801983833,
+          "evalAfter": -0.05,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.06438279896974564,
+        "1100": 0.03791293874382973,
+        "1400": 0.023081259801983833,
+        "1700": 0.01636704057455063,
+        "2000": 0.014679282903671265,
+        "2300": 0.019466716796159744
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 e7e5 f1c4 g8f6 d2d3 f8c5 c1e3 c5e3 f2e3 b8c6 g1f3 d7d6 e1g1 c8g4 b1d2 d6d5 e4d5 f6d5 d1e1 d8d7 e3e4 d5f4 f3g5 e8g8 g2g3 f4h3 g5h3 g4h3 f1f2 c6d4 a1c1 b7b5",
+      "elo": 1400,
+      "bestMove": "c4d5",
+      "candidates": [
+        {
+          "uci": "c4b3",
+          "probability": 0.4632912576198578,
+          "evalAfter": 0.37,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c4d5",
+          "probability": 0.45785707235336304,
+          "evalAfter": 0.15,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c2c3",
+          "probability": 0.05846033990383148,
+          "evalAfter": 0.92,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.42758139967918396,
+        "1100": 0.47255656123161316,
+        "1400": 0.45785707235336304,
+        "1700": 0.40519988536834717,
+        "2000": 0.3114210069179535,
+        "2300": 0.21593359112739563
+      },
+      "isTrap": false,
+      "findability": "natural"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 e7e6 g1f3 d7d6 f1e2 f8e7 e1g1 b8c6 d2d3 g8f6 e4e5 d6e5 f4e5 f6g4 h2h3 g4e5 f3e5 c6e5 c2c3 d8b6",
+      "elo": 1400,
+      "bestMove": "c3c4",
+      "candidates": [
+        {
+          "uci": "d3d4",
+          "probability": 0.312276154756546,
+          "evalAfter": 2.1,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "g1h1",
+          "probability": 0.2745533883571625,
+          "evalAfter": 1.55,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c1e3",
+          "probability": 0.12935952842235565,
+          "evalAfter": 3.0,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c1f4",
+          "probability": 0.05412653088569641,
+          "evalAfter": 3.17,
+          "winChanceLoss": 0.0
+        },
+        {
+          "uci": "c3c4",
+          "probability": 0.013180221430957317,
+          "evalAfter": 1.32,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.009586649015545845,
+        "1100": 0.013420469127595425,
+        "1400": 0.013180221430957317,
+        "1700": 0.00912788137793541,
+        "2000": 0.005276475101709366,
+        "2300": 0.0030858530662953854
+      },
+      "isTrap": false,
+      "findability": "veryHard"
+    },
+    {
+      "positionCommand": "position startpos moves e2e4 c7c5 f2f4 e7e6 g1f3 d7d6 f1e2 f8e7 e1g1 b8c6 d2d3 g8f6 e4e5 d6e5 f4e5 f6g4 h2h3 g4e5 f3e5 c6e5 c2c3 d8b6 e2h5 e8g8 b2b3 c5c4 d3d4 e5d3 b3c4 d3c1 d1c1 b6a5 c1f4 a5h5 b1d2 e7g5 f4f2 g5d2",
+      "elo": 1400,
+      "bestMove": "f2d2",
+      "candidates": [
+        {
+          "uci": "f2d2",
+          "probability": 0.9916768074035645,
+          "evalAfter": 3.52,
+          "winChanceLoss": 0.0
+        }
+      ],
+      "findabilityByElo": {
+        "800": 0.922588586807251,
+        "1100": 0.9765787124633789,
+        "1400": 0.9916768074035645,
+        "1700": 0.9956904053688049,
+        "2000": 0.997422993183136,
+        "2300": 0.9983808994293213
+      },
+      "isTrap": false,
+      "findability": "obvious"
+    }
+  ]
+}

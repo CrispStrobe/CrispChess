@@ -1,0 +1,2651 @@
+{
+  "source": "VoiceInput.rankPcm (Whisper base via libcrispasr, the model the app loads) on the TTS recordings of /mnt/volume1/tmp/voice-eval; \"chosen\" is the first unconfident ranking per language whose top candidate is the move said, tool/store/store_fixtures_test.dart",
+  "chosen": {
+    "en": {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e takes d5",
+      "want": "e4d5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e takes d5",
+          "score": -3.0603498458862304
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -3.2178723017374673
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -4.072566986083984
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -4.436708927154541
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -4.686306953430176
+        }
+      ]
+    },
+    "de": {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Läufer c4",
+      "want": "f1c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "läufer c4",
+          "score": -5.441752842494419
+        },
+        {
+          "uci": "f1e2",
+          "san": "Be2",
+          "phrase": "läufer auf e2",
+          "score": -5.453148365020752
+        },
+        {
+          "uci": "f1a6",
+          "san": "Ba6",
+          "phrase": "läufer a6",
+          "score": -5.5525954110281805
+        },
+        {
+          "uci": "f1b5",
+          "san": "Bb5",
+          "phrase": "läufer b5",
+          "score": -5.576329367501395
+        },
+        {
+          "uci": "f1d3",
+          "san": "Bd3",
+          "phrase": "läufer d3",
+          "score": -5.683442796979632
+        }
+      ]
+    }
+  },
+  "all": [
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -2.4451939264933267
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -2.490915139516195
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -3.0919949213663735
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -3.097575823465983
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.2076995372772217
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -2.071563720703125
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -3.162350336710612
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -3.3368962605794272
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.435219128926595
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -3.5119988123575845
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 3,
+      "moves": [],
+      "said": "knight f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -1.626304268836975
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "knight c3",
+          "score": -3.016538619995117
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "knight h3",
+          "score": -3.300122022628784
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "knight a3",
+          "score": -3.322206497192383
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -5.290822664896647
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -2.6321353912353516
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.119460105895996
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -3.1690311431884766
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -3.456938107808431
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -3.504901568094889
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "knight to f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -1.1294171810150146
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "knight h3",
+          "score": -2.788419246673584
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "knight c3",
+          "score": -2.8633358478546143
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "knight a3",
+          "score": -3.6276471614837646
+        },
+        {
+          "uci": "g1e2",
+          "san": "Ne2",
+          "phrase": "knight e2",
+          "score": -3.6290764808654785
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "bishop c4",
+      "want": "f1c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -2.3525328636169434
+        },
+        {
+          "uci": "f1b5",
+          "san": "Bb5",
+          "phrase": "bishop b5",
+          "score": -2.9730465412139893
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -3.251435915629069
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.3013644218444824
+        },
+        {
+          "uci": "f1d3",
+          "san": "Bd3",
+          "phrase": "bishop d3",
+          "score": -3.3074095249176025
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_af_heart",
+      "lang": "en",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "queen h5",
+      "want": "d1h5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d1f3",
+          "san": "Qf3",
+          "phrase": "queen f3",
+          "score": -2.9393579959869385
+        },
+        {
+          "uci": "d1e2",
+          "san": "Qe2",
+          "phrase": "queen e2",
+          "score": -4.115683555603027
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -4.215002059936523
+        },
+        {
+          "uci": "d1h5",
+          "san": "Qh5",
+          "phrase": "queen h5",
+          "score": -4.356414318084717
+        },
+        {
+          "uci": "d1g4",
+          "san": "Qg4",
+          "phrase": "queen g4",
+          "score": -4.382430553436279
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.727270762125651
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.729774475097656
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -5.778494517008464
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -5.7840525309244795
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.9187164306640625
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -5.981100718180339
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -6.035254796346028
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.091271718343099
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.169803619384766
+        },
+        {
+          "uci": "g2g3",
+          "san": "g3",
+          "phrase": "g3",
+          "score": -6.354763666788737
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 3,
+      "moves": [],
+      "said": "Springer f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer f3",
+          "score": -4.240876007080078
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "springer c3",
+          "score": -5.171003341674805
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "springer auf h3",
+          "score": -5.648920059204102
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer auf a3",
+          "score": -5.6957041422526045
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -6.382057825724284
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.094637552897136
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.188448588053386
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -6.3136444091796875
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -6.5559438069661455
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -6.576164245605469
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Läufer c4",
+      "want": "f1c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.631187438964844
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.842331568400065
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.9648863474528
+        },
+        {
+          "uci": "f1a6",
+          "san": "Ba6",
+          "phrase": "läufer a6",
+          "score": -5.976122174944196
+        },
+        {
+          "uci": "f1b5",
+          "san": "Bb5",
+          "phrase": "läufer nach b5",
+          "score": -6.0589799880981445
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Bauer d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -5.1020768483479815
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.618591944376628
+        },
+        {
+          "uci": "b2b3",
+          "san": "b3",
+          "phrase": "b3",
+          "score": -5.696599960327148
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -6.123190561930339
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.23170534769694
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Dame h5",
+      "want": "d1h5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "g2g3",
+          "san": "g3",
+          "phrase": "g3",
+          "score": -6.28388786315918
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -6.292350133260091
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.483913421630859
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.510754267374675
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "d3",
+          "score": -6.7119089762369795
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_df_victoria",
+      "lang": "de",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e schlägt d5",
+      "want": "e4d5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -4.014821370442708
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -5.329289436340332
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.437815348307292
+        },
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e schlägt d5",
+          "score": -5.783926486968994
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.9935251871744795
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -4.835665067036946
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.002928733825684
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -5.861792246500651
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -5.8994903564453125
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.1774851481119795
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.739412307739258
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -5.983543395996094
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.02993647257487
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -6.0400543212890625
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -6.139476776123047
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 3,
+      "moves": [],
+      "said": "Springer f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer f3",
+          "score": -4.842978286743164
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "springer c3",
+          "score": -5.351768112182617
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "springer h3",
+          "score": -5.501397323608399
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer a3",
+          "score": -5.811216735839844
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -6.362101236979167
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.867957433064778
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -6.099469502766927
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.172679265340169
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -6.200447718302409
+        },
+        {
+          "uci": "h2h3",
+          "san": "h3",
+          "phrase": "h3",
+          "score": -6.259937922159831
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Springer nach f3",
+      "want": "g1f3",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "springer nach c3",
+          "score": -4.567449887593587
+        },
+        {
+          "uci": "g1e2",
+          "san": "Ne2",
+          "phrase": "springer nach e2",
+          "score": -4.732690493265788
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer nach f3",
+          "score": -4.851449012756348
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "springer nach h3",
+          "score": -5.0099232991536455
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer nach a3",
+          "score": -5.020261446634929
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Läufer c4",
+      "want": "f1c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "läufer c4",
+          "score": -5.441752842494419
+        },
+        {
+          "uci": "f1e2",
+          "san": "Be2",
+          "phrase": "läufer auf e2",
+          "score": -5.453148365020752
+        },
+        {
+          "uci": "f1a6",
+          "san": "Ba6",
+          "phrase": "läufer a6",
+          "score": -5.5525954110281805
+        },
+        {
+          "uci": "f1b5",
+          "san": "Bb5",
+          "phrase": "läufer b5",
+          "score": -5.576329367501395
+        },
+        {
+          "uci": "f1d3",
+          "san": "Bd3",
+          "phrase": "läufer d3",
+          "score": -5.683442796979632
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Bauer d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -5.229776700337728
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.872414906819661
+        },
+        {
+          "uci": "b2b3",
+          "san": "b3",
+          "phrase": "b3",
+          "score": -6.040537516276042
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.178230921427409
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -6.535540262858073
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Dame h5",
+      "want": "d1h5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -5.357593536376953
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "d3",
+          "score": -5.953049341837565
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.220939636230469
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.301646550496419
+        },
+        {
+          "uci": "g2g3",
+          "san": "g3",
+          "phrase": "g3",
+          "score": -6.68012809753418
+        }
+      ]
+    },
+    {
+      "voice": "kokoro_dm_martin",
+      "lang": "de",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e schlägt d5",
+      "want": "e4d5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "g2g3",
+          "san": "g3",
+          "phrase": "g3",
+          "score": -5.516249338785808
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -5.833728790283203
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "g4",
+          "score": -5.999076207478841
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -6.32267697652181
+        },
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e schlägt d5",
+          "score": -6.395508289337158
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -0.5215619405110677
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -2.6643738746643066
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -2.773080825805664
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -2.837535858154297
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -2.8882404963175454
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -0.5294925371805826
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -2.9060134887695312
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -2.9389826456705728
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -3.065258026123047
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -3.1444578170776367
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 3,
+      "moves": [],
+      "said": "knight f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -0.46699219942092896
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "knight h3",
+          "score": -2.6330275535583496
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "knight a3",
+          "score": -2.6566545963287354
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "knight c3",
+          "score": -2.9474129676818848
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -3.59334405263265
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -0.5320380131403605
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -2.4262828826904297
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -2.5309295654296875
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -3.0058844884236655
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -3.1144797007242837
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "knight to f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -0.570531964302063
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "knight c3",
+          "score": -2.2652673721313477
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -2.725510597229004
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "knight h3",
+          "score": -2.774791717529297
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "knight a3",
+          "score": -2.9197988510131836
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "bishop c4",
+      "want": "f1c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -0.7275108695030212
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.783764362335205
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.990118980407715
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "pawn f4",
+          "score": -4.187732696533203
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -4.246771176656087
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "pawn to d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "pawn to d4",
+          "score": -1.6687355041503906
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -2.2245736122131348
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "pawn to b4",
+          "score": -2.523784065246582
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -2.953094482421875
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -3.091618537902832
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "queen h5",
+      "want": "d1h5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d1h5",
+          "san": "Qh5",
+          "phrase": "queen h5",
+          "score": -1.5412389039993286
+        },
+        {
+          "uci": "h2h4",
+          "san": "h4",
+          "phrase": "pawn h4",
+          "score": -3.3378329277038574
+        },
+        {
+          "uci": "h2h3",
+          "san": "h3",
+          "phrase": "pawn h3",
+          "score": -3.6961259841918945
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.785749912261963
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -4.19128942489624
+        }
+      ]
+    },
+    {
+      "voice": "piper_cori",
+      "lang": "en",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e takes d5",
+      "want": "e4d5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e takes d5",
+          "score": -3.0603498458862304
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -3.2178723017374673
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -4.072566986083984
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -4.436708927154541
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -4.686306953430176
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -3.7463019688924155
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -4.127788225809733
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "auf e3",
+          "score": -4.679940223693848
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "auf e4",
+          "score": -4.741734981536865
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -4.790706952412923
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -4.583843231201172
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.068387031555176
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "auf e4",
+          "score": -5.291526794433594
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -5.292436599731445
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -5.408334732055664
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 3,
+      "moves": [],
+      "said": "Springer f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer f3",
+          "score": -1.9340709686279296
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "nach f3",
+          "score": -3.4822146892547607
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer a3",
+          "score": -4.514051818847657
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "auf d3",
+          "score": -4.60497522354126
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -4.668402036031087
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -4.093863805135091
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -4.939937909444173
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.243944803873698
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.725806554158528
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.837657928466797
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Springer nach f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer nach f3",
+          "score": -0.682574987411499
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer nach a3",
+          "score": -2.3632702827453613
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "springer nach h3",
+          "score": -2.7893222173055015
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "nach f3",
+          "score": -2.790797710418701
+        },
+        {
+          "uci": "g1e2",
+          "san": "Ne2",
+          "phrase": "springer nach e2",
+          "score": -2.869622230529785
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Läufer c4",
+      "want": "f1c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -4.3156938552856445
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "läufer auf c4",
+          "score": -5.090729713439941
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "auf a4",
+          "score": -5.493240833282471
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "auf f4",
+          "score": -5.816624641418457
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -5.997127532958984
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Bauer d4",
+      "want": "d2d4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "auf d4",
+          "score": -4.002974987030029
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -4.0700728098551435
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -4.471512794494629
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "g4",
+          "score": -4.994407335917155
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -5.001416524251302
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Dame h5",
+      "want": "d1h5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.143721580505371
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -5.454946517944336
+        },
+        {
+          "uci": "h2h4",
+          "san": "h4",
+          "phrase": "nach h4",
+          "score": -5.489363670349121
+        },
+        {
+          "uci": "d1h5",
+          "san": "Qh5",
+          "phrase": "dame h5",
+          "score": -5.533385467529297
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -5.80690066019694
+        }
+      ]
+    },
+    {
+      "voice": "piper_kerstin",
+      "lang": "de",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e schlägt d5",
+      "want": "e4d5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e schlägt d5",
+          "score": -3.320277214050293
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -5.343831380208333
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.963262557983398
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -6.376700719197591
+        },
+        {
+          "uci": "f1e2",
+          "san": "Be2",
+          "phrase": "läufer auf e2",
+          "score": -6.437607765197754
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -1.3261973063151042
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -1.4656278292338054
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -2.0618189175923667
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -2.664379278818766
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -2.9911330540974936
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -0.27849576870600384
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -1.4418629010518391
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -2.214590231577555
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -2.3869829177856445
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -2.6749343872070312
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 3,
+      "moves": [],
+      "said": "knight f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -0.4264861047267914
+        },
+        {
+          "uci": "b2b3",
+          "san": "b3",
+          "phrase": "b3",
+          "score": -2.346210479736328
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "knight a3",
+          "score": -2.64363431930542
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -2.7651793162027993
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -2.949991226196289
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -0.9215281009674072
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -2.455810228983561
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -2.47890297571818
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "d4",
+          "score": -2.853603998819987
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "g4",
+          "score": -3.0091492335001626
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "knight to f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -1.3779609203338623
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -2.2588621775309243
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -3.2055060068766275
+        },
+        {
+          "uci": "b1c3",
+          "san": "Nc3",
+          "phrase": "knight c3",
+          "score": -3.3446831703186035
+        },
+        {
+          "uci": "d1f3",
+          "san": "Qf3",
+          "phrase": "queen f3",
+          "score": -3.3593108654022217
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "bishop c4",
+      "want": "f1c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -0.6585702896118164
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.6563608646392822
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.685840924580892
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "pawn f4",
+          "score": -3.9275360107421875
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "pawn b4",
+          "score": -4.113152980804443
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "pawn to d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "pawn to d4",
+          "score": -0.5215312004089355
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "pawn to b4",
+          "score": -1.8996601104736328
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "pawn to g4",
+          "score": -2.071443557739258
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "pawn to d3",
+          "score": -2.225714683532715
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "pawn c4",
+          "score": -2.2356646060943604
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "queen h5",
+      "want": "d1h5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d1h5",
+          "san": "Qh5",
+          "phrase": "queen h5",
+          "score": -1.0084975957870483
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -3.8789894580841064
+        },
+        {
+          "uci": "d1f3",
+          "san": "Qf3",
+          "phrase": "queen f3",
+          "score": -4.44968318939209
+        },
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "bishop c4",
+          "score": -4.788801670074463
+        },
+        {
+          "uci": "d1g4",
+          "san": "Qg4",
+          "phrase": "queen g4",
+          "score": -4.823603630065918
+        }
+      ]
+    },
+    {
+      "voice": "piper_lessac",
+      "lang": "en",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e takes d5",
+      "want": "e4d5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e takes d5",
+          "score": -0.6104290008544921
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -0.9760303497314453
+        },
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "knight f3",
+          "score": -4.095831871032715
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -4.675259908040364
+        },
+        {
+          "uci": "b2b3",
+          "san": "b3",
+          "phrase": "b3",
+          "score": -4.888930320739746
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 1,
+      "moves": [],
+      "said": "e4",
+      "want": "e2e4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -3.7159830729166665
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -4.122195561726888
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -4.998247146606445
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -5.702969868977864
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -5.798540751139323
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 2,
+      "moves": [],
+      "said": "d4",
+      "want": "d2d4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -4.146905899047852
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -4.321309725443522
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.030085563659668
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "e3",
+          "score": -5.088891983032227
+        },
+        {
+          "uci": "b2b3",
+          "san": "b3",
+          "phrase": "b3",
+          "score": -5.255414962768555
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 3,
+      "moves": [],
+      "said": "Springer f3",
+      "want": "g1f3",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer f3",
+          "score": -4.01811637878418
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "auf d3",
+          "score": -4.877529621124268
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "auf f3",
+          "score": -4.936535835266113
+        },
+        {
+          "uci": "e2e3",
+          "san": "e3",
+          "phrase": "auf e3",
+          "score": -5.26088285446167
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -5.578917185465495
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 4,
+      "moves": [],
+      "said": "c4",
+      "want": "c2c4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.5548458099365234
+        },
+        {
+          "uci": "c2c3",
+          "san": "c3",
+          "phrase": "c3",
+          "score": -5.00797971089681
+        },
+        {
+          "uci": "e2e4",
+          "san": "e4",
+          "phrase": "e4",
+          "score": -5.363746007283528
+        },
+        {
+          "uci": "f2f4",
+          "san": "f4",
+          "phrase": "f4",
+          "score": -5.79550298055013
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.294891993204753
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 5,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Springer nach f3",
+      "want": "g1f3",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "g1f3",
+          "san": "Nf3",
+          "phrase": "springer nach f3",
+          "score": -1.7866870562235515
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "nach f3",
+          "score": -2.155693531036377
+        },
+        {
+          "uci": "b1a3",
+          "san": "Na3",
+          "phrase": "springer nach a3",
+          "score": -3.3106438318888345
+        },
+        {
+          "uci": "g1e2",
+          "san": "Ne2",
+          "phrase": "springer nach e2",
+          "score": -3.748490333557129
+        },
+        {
+          "uci": "g1h3",
+          "san": "Nh3",
+          "phrase": "springer nach h3",
+          "score": -3.7557617823282876
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 6,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Läufer c4",
+      "want": "f1c4",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "f1c4",
+          "san": "Bc4",
+          "phrase": "läufer c4",
+          "score": -3.4852531978062222
+        },
+        {
+          "uci": "c2c4",
+          "san": "c4",
+          "phrase": "c4",
+          "score": -3.5520480473836265
+        },
+        {
+          "uci": "b2b4",
+          "san": "b4",
+          "phrase": "b4",
+          "score": -4.447397549947103
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -4.486335754394531
+        },
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "auf d4",
+          "score": -4.6693220138549805
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 7,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Bauer d4",
+      "want": "d2d4",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "d2d4",
+          "san": "d4",
+          "phrase": "auf d4",
+          "score": -3.3299622535705566
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -4.364218393961589
+        },
+        {
+          "uci": "d2d3",
+          "san": "d3",
+          "phrase": "auf d3",
+          "score": -4.664163112640381
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "auf g4",
+          "score": -4.846138954162598
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -4.876960754394531
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 8,
+      "moves": [
+        "e2e4",
+        "e7e5"
+      ],
+      "said": "Dame h5",
+      "want": "d1h5",
+      "confident": false,
+      "ranked": [
+        {
+          "uci": "d1h5",
+          "san": "Qh5",
+          "phrase": "dame h5",
+          "score": -5.248201751708985
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -5.44036865234375
+        },
+        {
+          "uci": "a2a3",
+          "san": "a3",
+          "phrase": "a3",
+          "score": -5.471242904663086
+        },
+        {
+          "uci": "g2g3",
+          "san": "g3",
+          "phrase": "g3",
+          "score": -5.5948486328125
+        },
+        {
+          "uci": "g2g4",
+          "san": "g4",
+          "phrase": "g4",
+          "score": -5.613545099894206
+        }
+      ]
+    },
+    {
+      "voice": "piper_thorsten",
+      "lang": "de",
+      "case": 12,
+      "moves": [
+        "e2e4",
+        "d7d5"
+      ],
+      "said": "e schlägt d5",
+      "want": "e4d5",
+      "confident": true,
+      "ranked": [
+        {
+          "uci": "e4d5",
+          "san": "exd5",
+          "phrase": "e schlägt d5",
+          "score": -3.511272430419922
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "phrase": "e5",
+          "score": -5.617842356363933
+        },
+        {
+          "uci": "f1e2",
+          "san": "Be2",
+          "phrase": "läufer auf e2",
+          "score": -6.652438163757324
+        },
+        {
+          "uci": "a2a4",
+          "san": "a4",
+          "phrase": "a4",
+          "score": -6.683413187662761
+        },
+        {
+          "uci": "f2f3",
+          "san": "f3",
+          "phrase": "f3",
+          "score": -6.837907791137695
+        }
+      ]
+    }
+  ]
+}
