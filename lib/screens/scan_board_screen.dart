@@ -60,6 +60,12 @@ String inferCastling(List<String> squares) {
 class ScanBoardScreen extends StatefulWidget {
   const ScanBoardScreen({super.key});
 
+  /// Store screenshots only: stands in for the file picker, which a widget
+  /// test cannot drive, and returns the image bytes to scan. Recognition then
+  /// runs for real. Always null in the app.
+  @visibleForTesting
+  static Future<Uint8List?> Function()? debugPickImage;
+
   @override
   State<ScanBoardScreen> createState() => _ScanBoardScreenState();
 }
@@ -92,8 +98,16 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
   }
 
   Future<void> _pick() async {
-    final file = await FilePicker.pickFile(type: FileType.image);
-    if (file == null) return;
+    final Future<Uint8List> Function() read;
+    if (ScanBoardScreen.debugPickImage case final pick?) {
+      final picked = await pick();
+      if (picked == null) return;
+      read = () async => picked;
+    } else {
+      final file = await FilePicker.pickFile(type: FileType.image);
+      if (file == null) return;
+      read = file.xFile.readAsBytes;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -111,7 +125,7 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
       _model ??= (await rootBundle.load('assets/models/board_squares.onnx'))
           .buffer
           .asUint8List();
-      final image = await _decode(await file.xFile.readAsBytes());
+      final image = await _decode(await read());
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       _image?.dispose();
       setState(() {

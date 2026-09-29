@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:chess/chess.dart' as chess_lib;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../chess/human_lens.dart';
 import '../chess/player_profile.dart';
@@ -51,11 +52,20 @@ class HumanLensService {
     _judge = judge;
   }
 
+  /// Store screenshots only: reports the real service produced earlier
+  /// (tool/store/store_fixtures_test.dart), keyed by `'$elo $positionCommand'`,
+  /// because the screenshot test cannot download Maia. Always null in the app.
+  @visibleForTesting
+  static Map<String, HumanLensReport>? debugReports;
+
   /// Human Lens for a single position.
   Future<HumanLensReport> analyzePosition(String positionCommand,
-          {required int elo}) =>
-      _exclusive(() => _lens(defaultEloLadder, depth: 8)
-          .analyzePosition(positionCommand, elo: elo));
+      {required int elo}) {
+    final canned = debugReports?['$elo $positionCommand'];
+    if (canned != null) return Future.value(canned);
+    return _exclusive(() => _lens(defaultEloLadder, depth: 8)
+        .analyzePosition(positionCommand, elo: elo));
+  }
 
   /// Rungs used when a whole game is reviewed — fewer than for one position,
   /// because every one of them costs a model pass per move.

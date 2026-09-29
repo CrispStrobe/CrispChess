@@ -71,6 +71,13 @@ class PvLine {
 class ChessGameScreen extends StatefulWidget {
   const ChessGameScreen({super.key});
 
+  /// Store screenshots only: a ranking the real recogniser produced earlier
+  /// (tool/store/store_fixtures_test.dart), used in place of the microphone
+  /// and speech model, which a widget test has neither of. Tapping the mic
+  /// then goes straight to what the app does with a ranking. Null in the app.
+  @visibleForTesting
+  static List<VoiceCandidate>? debugVoiceRanking;
+
   @override
   State<ChessGameScreen> createState() => _ChessGameScreenState();
 }
@@ -93,7 +100,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   String? _premove; // queued move (UCI) to play after engine responds
 
   /// Voice moves: shown only when this build has the speech library.
-  final bool _voiceAvailable = VoiceInput.available;
+  final bool _voiceAvailable =
+      VoiceInput.available || ChessGameScreen.debugVoiceRanking != null;
   VoiceInput? _voice;
   bool _voiceBusy = false; // loading the model or recognising
 
@@ -718,6 +726,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   /// Second tap: stop, and play the move that was said — or, when two moves
   /// sound alike, ask which one was meant.
   Future<void> _toggleVoice() async {
+    if (ChessGameScreen.debugVoiceRanking case final ranked?) {
+      return _playVoiceMove(ranked);
+    }
     final l10n = AppLocalizations.of(context);
     final voice = _voice;
     if (voice != null && voice.listening) {
