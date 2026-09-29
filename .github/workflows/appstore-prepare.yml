@@ -5,8 +5,12 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit, listing, store, beta, mac]
+        options: [audit, listing, listing-ios, store, beta, mac, submit-dry-run, submit]
         default: audit
+      build:
+        description: 'CFBundleVersion for store / submit (e.g. 16)'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -27,11 +31,15 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ACTION: ${{ inputs.action }}
+          BUILD: ${{ inputs.build }}
         run: |
           case "$ACTION" in
             audit) python3 tools/asc/audit.py ;;
             listing) python3 tools/asc/listing.py ;;
-            store) python3 tools/asc/store.py ;;
+            listing-ios) python3 tools/asc/listing.py --platform IOS ;;
+            store) python3 tools/asc/store.py ${BUILD:+--build "$BUILD"} ;;
+            submit-dry-run) python3 tools/asc/submit.py --build "$BUILD" --dry-run ;;
+            submit) python3 tools/asc/submit.py --build "$BUILD" ;;
             beta) python3 tools/asc/beta.py ;;
             mac) python3 tools/asc/mac.py && python3 tools/asc/listing.py ;;
           esac

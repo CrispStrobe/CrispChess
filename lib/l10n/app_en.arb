@@ -492,7 +492,7 @@
   "humanReviewNoMistakes": "No costly misses in this game.",
   "humanReviewRatingLabel": "Compare with players rated",
   "scanBoard": "Scan board",
-  "scanBoardHint": "Choose a screenshot or a scanned book diagram. Photos of a physical board aren't supported yet.",
+  "scanBoardHint": "Choose an image: a screenshot or book diagram (Diagram), or a photo of a real board (Photo).",
   "scanPickImage": "Choose image",
   "scanRecognizing": "Recognizing…",
   "scanNoBoard": "No chessboard found. Drag a square around the board in the image.",

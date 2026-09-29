@@ -94,8 +94,11 @@ def main() -> int:
     parser.add_argument("--build", default="12", help="CFBundleVersion to attach")
     args = parser.parse_args()
     versions = client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50")
+    # A rejected version is edited in place and resubmitted, like a new one.
     editable = [v for v in versions if v["attributes"].get("platform") == "IOS" and
-                v["attributes"].get("appStoreState") == "PREPARE_FOR_SUBMISSION"]
+                v["attributes"].get("appStoreState") in ("PREPARE_FOR_SUBMISSION", "REJECTED",
+                                                         "METADATA_REJECTED",
+                                                         "DEVELOPER_REJECTED")]
     if len(editable) != 1:
         raise SystemExit(f"expected one editable iOS version, found {len(editable)}")
     builds = [build for build in client.paged(f"/v1/apps/{APP}/builds?limit=200")

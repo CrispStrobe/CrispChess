@@ -998,7 +998,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get scanBoardHint =>
-      'Wähle einen Screenshot oder ein gescanntes Buchdiagramm. Fotos eines echten Bretts werden noch nicht unterstützt.';
+      'Wähle ein Bild: einen Screenshot oder ein Buchdiagramm (Diagramm) oder ein Foto eines echten Bretts (Foto).';
 
   @override
   String get scanPickImage => 'Bild wählen';

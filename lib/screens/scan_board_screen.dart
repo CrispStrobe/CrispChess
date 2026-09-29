@@ -223,7 +223,7 @@ class _ScanBoardScreenState extends State<ScanBoardScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(l?.scanBoardHint ??
-              'Choose a screenshot or a scanned book diagram.'),
+              'Choose an image: a screenshot or book diagram (Diagram), or a photo of a real board (Photo).'),
           const SizedBox(height: 12),
           SegmentedButton<bool>(
             segments: [

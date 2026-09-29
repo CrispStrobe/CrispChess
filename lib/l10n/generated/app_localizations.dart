@@ -1902,7 +1902,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanBoardHint.
   ///
   /// In en, this message translates to:
-  /// **'Choose a screenshot or a scanned book diagram. Photos of a physical board aren\'t supported yet.'**
+  /// **'Choose an image: a screenshot or book diagram (Diagram), or a photo of a real board (Photo).'**
   String get scanBoardHint;
 
   /// No description provided for @scanPickImage.

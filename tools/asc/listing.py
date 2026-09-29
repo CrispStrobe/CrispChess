@@ -14,6 +14,9 @@ import client  # noqa: E402
 HERE = pathlib.Path(__file__).resolve().parent
 META = json.loads((HERE / "metadata.json").read_text())
 APP = META["appId"]
+# A rejected version is edited in place and resubmitted, like a new one.
+EDITABLE_STATES = ("PREPARE_FOR_SUBMISSION", "REJECTED", "METADATA_REJECTED",
+                   "DEVELOPER_REJECTED")
 LOCALES = {META["primaryLocale"]: META["app"], **{
     locale: copy["app"] for locale, copy in META.get("locales", {}).items()
 }}
@@ -39,6 +42,8 @@ def editable_info() -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--platform", choices=["IOS", "MAC_OS"],
+                        help="only this platform's version (default: every editable one)")
     args = parser.parse_args()
     dry_run = args.dry_run
 
@@ -81,8 +86,10 @@ def main() -> int:
         f"{app['secondaryCategory']}"), dry_run)
 
     versions = client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50")
-    editable_versions = [v for v in versions if v["attributes"].get("appStoreState")
-                         == "PREPARE_FOR_SUBMISSION"]
+    editable_versions = [v for v in versions
+                         if v["attributes"].get("appStoreState") in EDITABLE_STATES
+                         and (args.platform is None
+                              or v["attributes"].get("platform") == args.platform)]
     if not editable_versions:
         raise SystemExit("no editable App Store version")
     for version in editable_versions:
