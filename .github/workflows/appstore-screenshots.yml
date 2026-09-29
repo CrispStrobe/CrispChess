@@ -14,7 +14,7 @@ permissions:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
@@ -32,11 +32,11 @@ jobs:
           import json, pathlib
           root = pathlib.Path("appstore-shots")
           rows = json.loads((root / "manifest.json").read_text())
-          assert len(rows) == 18, len(rows)
+          assert len(rows) == 42, len(rows)
           for row in rows:
               assert row["locale"] in ("en-US", "de-DE")
               assert (root / row["name"]).exists()
-          print("verified 18 localized screenshots")
+          print("verified 42 localized screenshots")
           PY
       - uses: actions/upload-artifact@v6
         with:
