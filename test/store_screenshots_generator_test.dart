@@ -50,7 +50,9 @@ final List<String> ghostGames = [
           File('$_fixtures/ghost_games.json').readAsStringSync()) as List)
     g['pgn'] as String
 ];
-const scanImage = 'test/fixtures/board_vision/book_noto.png';
+// book_noto.png from the board-vision fixtures, its placeholder caption
+// cropped off (the recogniser still reads the board; it runs live below).
+const scanImage = 'test/fixtures/store/scan_diagram.png';
 
 HumanLensReport lensReport(Map<String, dynamic> j) => HumanLensReport(
       elo: j['elo'] as int,
@@ -385,6 +387,12 @@ void main() {
     (tester) async {
       await tester.runAsync(loadStoreFonts);
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      // A phone shows no keyboard focus rings; the test binding's default
+      // (traditional) drew one around the Settings save button.
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+      // flutter_test draws every elevation shadow as a solid black outline
+      // (debugDisableShadows); the store shots need the real shadows.
+      debugDisableShadows = false;
       SharedPreferences.setMockInitialValues({});
       HumanLensService.debugReports = {
         '${lens['elo']} ${lens['positionCommand']}': lensReport(lens),
@@ -418,6 +426,7 @@ void main() {
         }
         await tester.binding.setSurfaceSize(null);
       } finally {
+        debugDisableShadows = true;
         debugDefaultTargetPlatformOverride = null;
         HumanLensService.debugReports = null;
         ScanBoardScreen.debugPickImage = null;

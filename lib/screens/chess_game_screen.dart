@@ -237,7 +237,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
     setState(() {
       _state = _state.copyWith(
-        statusMessage: 'Game resumed',
+        statusMessage: AppLocalizations.of(context)?.gameResumed ?? 'Game resumed',
         lastMoveUci: moveList.isNotEmpty ? moveList.last : null,
       );
     });
