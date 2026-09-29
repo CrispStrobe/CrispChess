@@ -13,7 +13,10 @@ import json, pathlib, struct, sys
 root = pathlib.Path(sys.argv[1])
 rows = []
 for locale in ("en-US", "de-DE"):
-    for scene in ("01-play", "02-analysis", "03-tools"):
+    # Same order as `scenes` in test/store_screenshots_generator_test.dart;
+    # the upload keeps it, and the first screenshots are the ones seen.
+    for scene in ("01-lens", "02-scan", "03-ghost", "04-voice",
+                  "05-play", "06-analysis", "07-tools"):
         for suffix, display, pixels, expected in (
             ("iphone", "APP_IPHONE_67", "1320x2868", (1320, 2868)),
             ("ipad", "APP_IPAD_PRO_3GEN_129", "2064x2752", (2064, 2752)),
