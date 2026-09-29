@@ -53,6 +53,15 @@ def main() -> int:
 
     if open_subs:
         sub_id = open_subs[0]["id"]
+        # A rejected submission's items stay REJECTED until marked resolved;
+        # until then Apple refuses the resubmit ("Version is not ready to be
+        # submitted yet"). Mark ours resolved: it now carries the fixes.
+        for item in client.paged(f"/v1/reviewSubmissions/{sub_id}/items?limit=20"):
+            if item["attributes"].get("state") in ("REJECTED", "UNRESOLVED_ISSUES"):
+                client.expect("PATCH", f"/v1/reviewSubmissionItems/{item['id']}", {"data": {
+                    "type": "reviewSubmissionItems", "id": item["id"],
+                    "attributes": {"resolved": True}}})
+                print(f"marked item {item['id'][:12]}… resolved")
     else:
         sub_id = client.expect("POST", "/v1/reviewSubmissions", {"data": {
             "type": "reviewSubmissions", "attributes": {"platform": "IOS"},
