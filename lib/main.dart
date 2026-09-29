@@ -35,9 +35,13 @@ void main() {
 }
 
 class CrispChessApp extends StatelessWidget {
-  const CrispChessApp({super.key, this.fontFamily});
+  const CrispChessApp({super.key, this.fontFamily, this.fontFamilyFallback});
 
   final String? fontFamily;
+
+  /// Fonts for glyphs [fontFamily] lacks (the store screenshots' font has no
+  /// chess symbols). Null in the app, which uses the platform's fallbacks.
+  final List<String>? fontFamilyFallback;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +70,7 @@ class CrispChessApp extends StatelessWidget {
             brightness: Brightness.light,
             useMaterial3: true,
             fontFamily: fontFamily,
+            fontFamilyFallback: fontFamilyFallback,
           ),
           darkTheme: ThemeData(
             colorSchemeSeed: Colors.brown,
@@ -73,6 +78,7 @@ class CrispChessApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: Colors.black,
             fontFamily: fontFamily,
+            fontFamilyFallback: fontFamilyFallback,
           ),
           themeMode: themeMode,
           home: const ChessGameScreen(),
