@@ -7,6 +7,11 @@ on:
         description: Replace App Store screenshot sets after capture
         type: boolean
         default: false
+      platform:
+        description: Which platform's listing and screenshots to replace
+        type: choice
+        options: [IOS, MAC_OS, both]
+        default: IOS
 
 permissions:
   contents: read
@@ -56,5 +61,8 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           python3 -m pip install --quiet --disable-pip-version-check cryptography
-          python3 tools/asc/listing.py
-          python3 tools/asc/screenshots.py appstore-shots --replace
+          # A platform's listing and screenshots must describe its own build:
+          # the Mac version can lag behind iOS.
+          if [ "${{ inputs.platform }}" = both ]; then only=""; else only="--platform ${{ inputs.platform }}"; fi
+          python3 tools/asc/listing.py $only
+          python3 tools/asc/screenshots.py appstore-shots --replace $only

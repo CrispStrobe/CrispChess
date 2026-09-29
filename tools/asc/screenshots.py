@@ -21,9 +21,15 @@ PLATFORM = {"APP_IPHONE_67": "IOS", "APP_IPAD_PRO_3GEN_129": "IOS",
             "APP_DESKTOP": "MAC_OS"}
 
 
+# Only a version still being edited; never touch a live one's screenshots.
+EDITABLE = ("PREPARE_FOR_SUBMISSION", "REJECTED", "METADATA_REJECTED", "DEVELOPER_REJECTED")
+
+
 def localisation(platform: str, locale: str) -> str:
     for version in client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50"):
         if version["attributes"].get("platform") != platform:
+            continue
+        if version["attributes"].get("appStoreState") not in EDITABLE:
             continue
         for loc in client.paged(
             f"/v1/appStoreVersions/{version['id']}/appStoreVersionLocalizations?limit=50"
@@ -79,6 +85,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory")
     parser.add_argument("--replace", action="store_true")
+    parser.add_argument("--platform", choices=["IOS", "MAC_OS"],
+                        help="only this platform's screenshots (default: all in the manifest)")
     args = parser.parse_args()
     root = pathlib.Path(args.directory)
     entries = json.loads((root / "manifest.json").read_text())
@@ -87,6 +95,8 @@ def main() -> int:
         groups.setdefault((entry["locale"], entry["displayType"]), []).append(root / entry["name"])
     for (locale, display_type), paths in groups.items():
         platform = PLATFORM[display_type]
+        if args.platform and platform != args.platform:
+            continue
         loc_id = localisation(platform, locale)
         sets = {item["attributes"]["screenshotDisplayType"]: item for item in client.paged(
             f"/v1/appStoreVersionLocalizations/{loc_id}/appScreenshotSets?limit=50")}
