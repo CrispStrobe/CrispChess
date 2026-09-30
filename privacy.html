@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — CrispChess</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.6;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+  .updated { color: #767676; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.15rem; margin-top: 2rem; }
+  code { background: rgba(127,127,127,0.15); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+  ul { padding-left: 1.3rem; }
+</style>
+</head>
+<body>
+<h1>Privacy Policy — CrispChess</h1>
+<p class="updated">Last updated: July 2026</p>
+
+<h2>Short version</h2>
+<p>CrispChess does not collect, sell, or share any personal data. It has no
+analytics, no tracking, no advertising, and no account system.</p>
+
+<h2>What data is collected</h2>
+<p>None. CrispChess does not collect, transmit, or have any way to access
+personal data about you. There is no server component operated by
+CrispChess that receives or stores user data.</p>
+
+<h2>What's stored on your device</h2>
+<ul>
+  <li><strong>Settings and preferences</strong> (engine choice, board theme, language,
+  time control, bookmarked positions, puzzle/drill progress) are saved
+  locally on your device using standard platform storage
+  (<code>UserDefaults</code>/<code>SharedPreferences</code>). This data never leaves your device.</li>
+  <li><strong>In-progress game state</strong> (current board position, move history) exists
+  only in memory while the app is open and is lost when you close it,
+  unless you explicitly save/export it (e.g. copying PGN).</li>
+  <li><strong>Downloaded engine files</strong> (Lc0, Stockfish, Lynx binaries or neural
+  network weights) are cached locally after first download so they don't
+  need to be re-fetched.</li>
+</ul>
+<p>None of the above is transmitted anywhere — it stays on your device.</p>
+
+<h2>Network requests</h2>
+<p>CrispChess makes network requests for functional purposes only:</p>
+<ul>
+  <li><strong>Downloading chess engines and neural network weights</strong> (Lc0,
+  Stockfish, Lynx) the first time you select one, typically from GitHub
+  Releases or similar public hosting.</li>
+  <li><strong>Querying a public opening-book/tablebase API</strong> when you use the
+  Opening Explorer feature.</li>
+</ul>
+<p>These requests carry no personal data from CrispChess — no account
+identifiers, no analytics payloads, nothing app-specific beyond what's
+needed to fetch the file or position you requested. Like any network
+request, they inherently expose your IP address to the receiving server,
+which is outside CrispChess's control and covered by that server's own
+practices, not this app's.</p>
+<p>There is no analytics SDK, no crash reporting, no advertising, and no
+telemetry of any kind.</p>
+
+<h2>Web version</h2>
+<p>The web version at <a href="https://crispchess.vercel.app">crispchess.vercel.app</a> is a static site hosted on
+Vercel. Vercel may log standard HTTP access data (IP address, user agent)
+per their own privacy policy. CrispChess itself sends no personal data to
+any server; the same engine-download and opening-book requests described
+above apply to the web version as well.</p>
+
+<h2>Third-party services</h2>
+<ul>
+  <li>Engine/model hosting (e.g. GitHub Releases) — receives only the request
+  needed to download a file.</li>
+  <li>Public opening-book/tablebase API — receives only the board position
+  queried.</li>
+  <li>Vercel (web version hosting only) — standard HTTP access logs.</li>
+</ul>
+<p>No analytics SDKs, no crash reporting services, no advertising networks.</p>
+
+<h2>Children</h2>
+<p>This app is safe for all ages. No personal data of any kind is collected
+or transmitted.</p>
+
+<h2>Changes</h2>
+<p>If we ever add features that involve collecting or transmitting personal
+data, this policy will be updated first and any such collection will be
+opt-in.</p>
+
+<h2>Contact</h2>
+<p>Christian Stroebele<br>
+<a href="mailto:postmaster@crispstro.be">postmaster@crispstro.be</a></p>
+
+</body>
+</html>
