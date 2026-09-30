@@ -92,20 +92,28 @@ def ensure_free_price() -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", default="12", help="CFBundleVersion to attach")
+    parser.add_argument("--platform", choices=["IOS", "MAC_OS"], default="IOS")
     args = parser.parse_args()
     versions = client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50")
     # A rejected version is edited in place and resubmitted, like a new one.
-    editable = [v for v in versions if v["attributes"].get("platform") == "IOS" and
+    editable = [v for v in versions if v["attributes"].get("platform") == args.platform and
                 v["attributes"].get("appStoreState") in ("PREPARE_FOR_SUBMISSION", "REJECTED",
                                                          "METADATA_REJECTED",
                                                          "DEVELOPER_REJECTED")]
     if len(editable) != 1:
-        raise SystemExit(f"expected one editable iOS version, found {len(editable)}")
-    builds = [build for build in client.paged(f"/v1/apps/{APP}/builds?limit=200")
-              if build["attributes"].get("version") == args.build and
-              build["attributes"].get("processingState") == "VALID"]
+        raise SystemExit(f"expected one editable {args.platform} version, found {len(editable)}")
+    # Build numbers repeat across platforms (iOS 16 and macOS 16): match the
+    # platform through the build's pre-release version.
+    builds = []
+    for build in client.paged(f"/v1/apps/{APP}/builds?limit=200"):
+        if (build["attributes"].get("version") != args.build or
+                build["attributes"].get("processingState") != "VALID"):
+            continue
+        status, pre = client.call("GET", f"/v1/builds/{build['id']}/preReleaseVersion")
+        if status == 200 and pre["data"]["attributes"].get("platform") == args.platform:
+            builds.append(build)
     if len(builds) != 1:
-        raise SystemExit(f"expected one valid build {args.build}, found {len(builds)}")
+        raise SystemExit(f"expected one valid {args.platform} build {args.build}, found {len(builds)}")
     build = builds[0]
     status, prerelease = client.call("GET", f"/v1/builds/{build['id']}/preReleaseVersion")
     if status != 200:
@@ -116,7 +124,7 @@ def main() -> int:
         client.expect("PATCH", f"/v1/appStoreVersions/{version['id']}", {
             "data": {"type": "appStoreVersions", "id": version["id"],
                      "attributes": {"versionString": release_version}}})
-        print(f"iOS version: changed to {release_version}")
+        print(f"{args.platform} version: changed to {release_version}")
     complete_age_rating()
     ensure_free_price()
     client.expect("PATCH", f"/v1/appStoreVersions/{version['id']}/relationships/build", {

@@ -20,6 +20,9 @@ env:
   APPLE_ID: "6788864039"
   FLUTTER_VERSION: "3.44.2"
   DRY_RUN: ${{ inputs.dry_run }}
+  # CrispASR release whose universal macOS framework is embedded for voice
+  # moves (tool/macos_crispasr.sh). Keep in step with release.yml.
+  CRISPASR_VERSION: v0.8.38
 
 jobs:
   build-upload:
@@ -120,6 +123,7 @@ jobs:
           [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist")" = "$build" ]
           cp "$RUNNER_TEMP/crispchess.provisionprofile" "$app_path/Contents/embedded.provisionprofile"
           cp native/frozenight/target/release/libfrozenight_ffi.dylib "$app_path/Contents/Frameworks/"
+          tool/macos_crispasr.sh "$app_path"
           security cms -D -i "$RUNNER_TEMP/crispchess.provisionprofile" > "$RUNNER_TEMP/profile.plist"
           application_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$RUNNER_TEMP/profile.plist")
           team_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.team-identifier' "$RUNNER_TEMP/profile.plist")
