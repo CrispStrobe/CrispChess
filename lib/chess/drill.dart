@@ -61,7 +61,7 @@ final builtInDrills = <Drill>[
         explanation: 'Re8# is checkmate! The king cannot escape because its own pawns block the retreat.',
       ),
       DrillStep(
-        fen: '3r2k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
+        fen: '6k1/3r1ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
         correctMove: 'a1a8',
         hint: 'Another back rank pattern. The rook can deliver mate in one.',
         explanation: 'Ra8# — same pattern, different file. Always look for back rank weakness!',
