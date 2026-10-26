@@ -1,273 +1,269 @@
-name: Release
+name: Release artifact validation
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
-
-concurrency:
-  group: release
-  cancel-in-progress: true
+    inputs:
+      upload_mac:
+        description: Upload the original signed package after the Mac smoke test passes
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
 
 env:
-  # Prebuilt CrispASR library for voice moves (tool/bundle_crispasr.sh).
-  # v0.8.37 is the first with phrase scoring (crispasr_session_score_texts),
-  # v0.8.38 the first whose iOS framework targets iOS 15.0; with an older one
-  # the app keeps the microphone hidden. iOS takes the same
-  # release's xcframework (tool/ios_crispasr.sh); ios-release.yml pins it too.
-  CRISPASR_VERSION: v0.8.38
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  RELEASE_RUN: '40375540711'
+  MAC_RUN: '40375557251'
+  RELEASE_SHA: c43ebdaee8eee38a8c455d026be72c2c6aac3d57
 
 jobs:
-  build-android:
-    name: Android
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-linux:
-    name: Linux
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-      - run: flutter build linux --release
-      # package:onnxruntime bundles its native library for Android, iOS, macOS
-      # and Windows, and expects the system to provide it on Linux — where
-      # almost nobody has it. The Lc0 engine then falls back to the pure-Dart
-      # runtime, which is correct but measured at 6.10ms per position against
-      # 1.06ms native, so a Linux user was quietly getting a fifth of the
-      # search for the same move budget. Flutter's rpath covers `lib/` next to
-      # the executable, which is how the Frozenight library already travels.
-      - name: Bundle the native ONNX Runtime
-        run: |
-          version=1.15.1
-          curl -sSLf --retry 3 -o ort.tgz \
-            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
-          tar -xzf ort.tgz
-          cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
-            build/linux/x64/release/bundle/lib/
-          ls -la build/linux/x64/release/bundle/lib/ | grep onnx
-      - name: Bundle CrispASR (voice moves)
-        run: tool/bundle_crispasr.sh linux build/linux/x64/release/bundle
-      - run: |
-          cd build/linux/x64/release/bundle
-          tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64.tar.gz .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-x64
-          path: CrispChess-linux-x64.tar.gz
-
-  build-linux-frozenight:
-    name: Linux + Frozenight
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-      - run: cargo build --release
-        working-directory: native/frozenight
-      - run: flutter build linux --release
-      # package:onnxruntime bundles its native library for Android, iOS, macOS
-      # and Windows, and expects the system to provide it on Linux — where
-      # almost nobody has it. The Lc0 engine then falls back to the pure-Dart
-      # runtime, which is correct but measured at 6.10ms per position against
-      # 1.06ms native, so a Linux user was quietly getting a fifth of the
-      # search for the same move budget. Flutter's rpath covers `lib/` next to
-      # the executable, which is how the Frozenight library already travels.
-      - name: Bundle the native ONNX Runtime
-        run: |
-          version=1.15.1
-          curl -sSLf --retry 3 -o ort.tgz \
-            "https://github.com/microsoft/onnxruntime/releases/download/v$version/onnxruntime-linux-x64-$version.tgz"
-          tar -xzf ort.tgz
-          cp -P "onnxruntime-linux-x64-$version/lib/"libonnxruntime.so* \
-            build/linux/x64/release/bundle/lib/
-          ls -la build/linux/x64/release/bundle/lib/ | grep onnx
-      - name: Bundle CrispASR (voice moves)
-        run: tool/bundle_crispasr.sh linux build/linux/x64/release/bundle
-      - run: |
-          cp native/frozenight/target/release/libfrozenight_ffi.so build/linux/x64/release/bundle/lib/
-          cd build/linux/x64/release/bundle
-          tar czf $GITHUB_WORKSPACE/CrispChess-linux-x64-frozenight.tar.gz .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-x64-frozenight
-          path: CrispChess-linux-x64-frozenight.tar.gz
-
-  build-frozenight-libs:
-    name: Frozenight Native Libraries
+  macos:
     runs-on: macos-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v6
         with:
-          targets: aarch64-apple-ios
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: native/frozenight
-
-      - name: Build macOS
-        run: cargo build --release
-        working-directory: native/frozenight
-
-      - name: Build iOS arm64
-        run: cargo build --release --target aarch64-apple-ios
-        working-directory: native/frozenight
-
-      - name: Package libraries
+          ref: v2.3.1
+      - name: Download the original signed package
         run: |
-          mkdir -p frozenight-libs
-          cp native/frozenight/target/release/libfrozenight_ffi.dylib frozenight-libs/
-          cp native/frozenight/target/aarch64-apple-ios/release/libfrozenight_ffi.a frozenight-libs/
-          tar czf frozenight-libs.tar.gz frozenight-libs/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frozenight-libs
-          path: frozenight-libs.tar.gz
-
-  build-ios:
-    name: iOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Bundle CrispASR (voice moves)
+          set -euo pipefail
+          [ "$(gh api "repos/$GH_REPO/actions/runs/$MAC_RUN" --jq .head_sha)" = "$RELEASE_SHA" ]
+          for attempt in $(seq 1 60); do
+            if gh run download "$MAC_RUN" -n crispchess-macos-appstore-pkg -D package; then exit 0; fi
+            sleep 30
+          done
+          exit 1
+      - name: Install and validate the signed app
         run: |
-          flutter pub get
-          gem install xcodeproj --no-document
-          tool/ios_crispasr.sh
-      - run: flutter build ios --release --no-codesign
-      - run: |
-          cd build/ios/iphoneos
-          APP=$(ls -d *.app | head -1)
-          echo "Found app: $APP"
-          mkdir -p Payload
-          cp -R "$APP" Payload/
-          zip -r $GITHUB_WORKSPACE/CrispChess-ios-unsigned.ipa Payload/
-      - uses: actions/upload-artifact@v4
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/smoke"
+          package="$PWD/package/CrispChess-2.3.1-17.pkg"
+          shasum -a 256 "$package" | tee "$RUNNER_TEMP/smoke/package.sha256"
+          pkgutil --check-signature "$package" | tee "$RUNNER_TEMP/smoke/package-signature.txt"
+          sudo installer -pkg "$package" -target /
+          python3 tools/verify_macos_app.py /Applications/CrispChess.app
+          codesign --verify --deep --strict --verbose=2 /Applications/CrispChess.app
+          codesign --display --verbose=4 /Applications/CrispChess.app 2> "$RUNNER_TEMP/smoke/app-signature.txt"
+          nm -gU /Applications/CrispChess.app/Contents/Frameworks/crispasr.framework/crispasr | grep crispasr_session_score_texts
+      - name: Launch the installed app and capture its display name
+        run: |
+          set -euo pipefail
+          /Applications/CrispChess.app/Contents/MacOS/CrispChess > "$RUNNER_TEMP/smoke/app.log" 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          sleep 20
+          kill -0 "$app_pid"
+          cat > "$RUNNER_TEMP/check-app.swift" <<'SWIFT'
+          import AppKit
+          import Foundation
+          let pid = pid_t(Int32(CommandLine.arguments[1])!)
+          guard let app = NSRunningApplication(processIdentifier: pid),
+                app.localizedName == "CrispChess",
+                app.bundleIdentifier == "com.crispstrobe.crispchess",
+                app.isFinishedLaunching else {
+            fatalError("Installed app did not finish launching with the expected identity")
+          }
+          print("Running app: \(app.localizedName!), bundle ID: \(app.bundleIdentifier!)")
+          SWIFT
+          swift "$RUNNER_TEMP/check-app.swift" "$app_pid" | tee "$RUNNER_TEMP/smoke/running-app.txt"
+          screencapture -x "$RUNNER_TEMP/smoke/macos.png"
+      - name: Upload the validated package to App Store Connect
+        if: inputs.upload_mac
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          key="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          mkdir -p "$(dirname "$key")"
+          trap 'rm -f "$key"' EXIT
+          echo "$ASC_API_KEY_P8_BASE64" | base64 --decode > "$key"
+          chmod 600 "$key"
+          shasum -a 256 -c "$RUNNER_TEMP/smoke/package.sha256"
+          xcrun altool --upload-package "$PWD/package/CrispChess-2.3.1-17.pkg" --type macos --apple-id 6788864039 --bundle-id com.crispstrobe.crispchess --bundle-version 17 --bundle-short-version-string 2.3.1 --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+      - uses: actions/upload-artifact@v6
+        if: always()
         with:
-          name: ios-unsigned
-          path: CrispChess-ios-unsigned.ipa
+          name: macos-installed-app-smoke
+          path: ${{ runner.temp }}/smoke
 
-  build-macos:
-    name: macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter build macos --release
-      - name: Verify macOS app identity and version
-        run: python3 tools/verify_macos_app.py build/macos/Build/Products/Release/CrispChess.app
-      - name: Bundle CrispASR (voice moves)
-        run: tool/bundle_crispasr.sh macos "$(ls -d build/macos/Build/Products/Release/*.app | head -1)"
-      - run: |
-          cd build/macos/Build/Products/Release
-          APP=$(ls -d *.app | head -1)
-          echo "Found app: $APP"
-          tar czf $GITHUB_WORKSPACE/CrispChess-macos.tar.gz "$APP"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: CrispChess-macos.tar.gz
-
-  build-windows:
-    name: Windows
+  windows:
     runs-on: windows-latest
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter build windows --release
-      - name: Bundle CrispASR (voice moves)
+      - name: Download the Windows release
         shell: bash
-        run: tool/bundle_crispasr.sh windows build/windows/x64/runner/Release
-      - name: Package
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath CrispChess-windows-x64.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-x64
-          path: CrispChess-windows-x64.zip
-
-  build-web:
-    name: Web (WASM)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Try WASM
-        run: flutter build web --release --wasm
-        continue-on-error: true
-      - name: Fallback JS
+          set -euo pipefail
+          [ "$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .head_sha)" = "$RELEASE_SHA" ]
+          for attempt in $(seq 1 60); do
+            if gh run download "$RELEASE_RUN" -n windows-x64 -D package; then exit 0; fi
+            sleep 30
+          done
+          exit 1
+      - name: Launch the packaged app
+        shell: pwsh
         run: |
-          if [ ! -d "build/web" ]; then flutter build web --release; fi
-      - run: |
-          cd build/web
-          tar czf $GITHUB_WORKSPACE/CrispChess-web.tar.gz .
-      - uses: actions/upload-artifact@v4
+          Expand-Archive package/CrispChess-windows-x64.zip app
+          New-Item -ItemType Directory -Force smoke
+          if (!(Test-Path app/crispasr.dll)) { throw 'Speech library missing' }
+          $root = (Resolve-Path app).Path
+          $process = Start-Process -FilePath "$root/crispchess.exe" -WorkingDirectory $root -PassThru -RedirectStandardOutput smoke/stdout.log -RedirectStandardError smoke/stderr.log
+          try {
+            Start-Sleep -Seconds 20
+            $process.Refresh()
+            if ($process.HasExited) { throw "App exited with code $($process.ExitCode)" }
+            if ($process.MainWindowTitle -ne 'CrispChess') { throw "Unexpected window title: $($process.MainWindowTitle)" }
+            "Running app: $($process.ProcessName), window: $($process.MainWindowTitle)" | Tee-Object smoke/running-app.txt
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save("$PWD/smoke/windows.png", [System.Drawing.Imaging.ImageFormat]::Png)
+            $graphics.Dispose()
+            $bitmap.Dispose()
+          } finally {
+            if (!$process.HasExited) { Stop-Process -Id $process.Id }
+          }
+      - uses: actions/upload-artifact@v6
+        if: always()
         with:
-          name: web
-          path: CrispChess-web.tar.gz
+          name: windows-app-smoke
+          path: smoke
 
-  create-release:
-    name: GitHub Release
-    needs: [build-android, build-ios, build-linux, build-linux-frozenight, build-frozenight-libs, build-macos, build-windows, build-web]
+  linux:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: [linux-x64, linux-x64-frozenight]
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Install runtime and screenshot dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0t64 libgl1 libegl1 libasound2t64 libsecret-1-0 xvfb x11-utils imagemagick
+      - name: Download the Linux release
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+        run: |
+          set -euo pipefail
+          [ "$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .head_sha)" = "$RELEASE_SHA" ]
+          for attempt in $(seq 1 60); do
+            if gh run download "$RELEASE_RUN" -n "$ARTIFACT" -D package; then exit 0; fi
+            sleep 30
+          done
+          exit 1
+      - name: Launch the packaged app on a virtual display
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          GDK_BACKEND: x11
+        run: |
+          set -euo pipefail
+          mkdir -p app smoke
+          tar -xzf "package/CrispChess-${ARTIFACT}.tar.gz" -C app
+          test -f app/lib/libcrispasr.so
+          test -f app/lib/libonnxruntime.so
+          ldd app/crispchess | tee smoke/dependencies.txt
+          ! grep -q 'not found' smoke/dependencies.txt
+          dbus-run-session -- xvfb-run -a bash -eu -o pipefail <<'SMOKE'
+          cd app
+          ./crispchess > ../smoke/app.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          sleep 20
+          kill -0 "$app_pid"
+          xwininfo -root -tree | tee ../smoke/windows.txt
+          grep CrispChess ../smoke/windows.txt
+          import -window root ../smoke/linux.png
+          SMOKE
+      - uses: actions/upload-artifact@v6
+        if: always()
         with:
-          path: artifacts
-      - uses: softprops/action-gh-release@v2
+          name: ${{ matrix.artifact }}-app-smoke
+          path: smoke
+
+  mobile-and-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
         with:
-          generate_release_notes: true
-          files: |
-            artifacts/android-apk/app-release.apk
-            artifacts/ios-unsigned/CrispChess-ios-unsigned.ipa
-            artifacts/linux-x64/CrispChess-linux-x64.tar.gz
-            artifacts/linux-x64-frozenight/CrispChess-linux-x64-frozenight.tar.gz
-            artifacts/macos-app/CrispChess-macos.tar.gz
-            artifacts/windows-x64/CrispChess-windows-x64.zip
-            artifacts/web/CrispChess-web.tar.gz
-            artifacts/frozenight-libs/frozenight-libs.tar.gz
+          ref: v2.3.1
+      - name: Download mobile and web releases
+        run: |
+          set -euo pipefail
+          [ "$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .head_sha)" = "$RELEASE_SHA" ]
+          for artifact in android-apk ios-unsigned web; do
+            available=false
+            for attempt in $(seq 1 60); do
+              if gh run download "$RELEASE_RUN" -n "$artifact" -D "package/$artifact"; then available=true; break; fi
+              sleep 30
+            done
+            [ "$available" = true ]
+          done
+      - name: Verify mobile package versions and speech libraries
+        run: |
+          set -euo pipefail
+          apk=package/android-apk/app-release.apk
+          analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          "$analyzer" manifest application-id "$apk"
+          [ "$("$analyzer" manifest version-name "$apk")" = 2.3.1 ]
+          [ "$("$analyzer" manifest version-code "$apk")" = 17 ]
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib, zipfile
+          with zipfile.ZipFile('package/ios-unsigned/CrispChess-ios-unsigned.ipa') as ipa:
+              names = ipa.namelist()
+              path = next(name for name in names if name.startswith('Payload/') and name.count('/') == 2 and name.endswith('/Info.plist'))
+              info = plistlib.loads(ipa.read(path))
+              assert info['CFBundleIdentifier'] == 'com.crispstrobe.crispchess'
+              assert info['CFBundleDisplayName'] == 'CrispChess'
+              assert info['CFBundleShortVersionString'] == '2.3.1'
+              assert info['CFBundleVersion'] == '17'
+              assert any('/crispasr.framework/crispasr' in name for name in names)
+              print('iOS identity, version, build, and speech framework verified')
+          with zipfile.ZipFile('package/android-apk/app-release.apk') as apk:
+              assert 'AndroidManifest.xml' in apk.namelist()
+              assert any(name.endswith('/libapp.so') for name in apk.namelist())
+              print('Android package and compiled application present')
+          PY
+      - name: Launch the packaged web app in Chromium
+        run: |
+          set -euo pipefail
+          mkdir -p app smoke
+          tar -xzf package/web/CrispChess-web.tar.gz -C app
+          python3 -m venv "$RUNNER_TEMP/playwright"
+          "$RUNNER_TEMP/playwright/bin/pip" install --quiet playwright
+          "$RUNNER_TEMP/playwright/bin/playwright" install --with-deps chromium
+          python3 -m http.server 8765 --directory app > smoke/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          "$RUNNER_TEMP/playwright/bin/python" - <<'PY'
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as playwright:
+              browser = playwright.chromium.launch()
+              page = browser.new_page(viewport={'width': 1440, 'height': 900})
+              errors = []
+              page.on('pageerror', lambda error: errors.append(str(error)))
+              page.goto('http://127.0.0.1:8765', wait_until='networkidle', timeout=120000)
+              page.wait_for_selector('flutter-view', timeout=120000)
+              page.wait_for_timeout(15000)
+              page.screenshot(path='smoke/web.png')
+              assert 'crispchess' in page.title().lower(), page.title()
+              assert not errors, errors
+              print('Web release renders in Chromium without uncaught JavaScript errors')
+              browser.close()
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: mobile-and-web-package-smoke
+          path: smoke
