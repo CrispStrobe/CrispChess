@@ -44,8 +44,7 @@ case $platform in
     # Changing Contents invalidates the app's signature: sign the new
     # libraries, then the app again (ad hoc, keeping its entitlements).
     find "$frameworks" -maxdepth 1 -name '*.dylib' -type f -exec codesign --force --sign - {} \;
-    codesign --force --sign - --entitlements macos/Runner/Release.entitlements "$target"
-    codesign --verify --deep --strict "$target"
+    bash "$(dirname "${BASH_SOURCE[0]}")/sign_macos_adhoc.sh" "$target"
     lib=$frameworks/libcrispasr.dylib
     symbols=$(nm -gU "$lib")
     ;;
