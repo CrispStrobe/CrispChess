@@ -10,7 +10,7 @@ on:
       mac_runner:
         description: Apple Silicon runner image for the signed package check
         type: choice
-        options: [macos-15, macos-latest]
+        options: [macos-15, macos-15-intel, macos-latest]
         default: macos-15
       mac_only:
         description: Run only the Mac check when other artifact checks are already collected
@@ -24,6 +24,10 @@ on:
         description: Explanation to append to App Review notes
         type: string
         default: ''
+      upload_only:
+        description: Reuse passed native checks after verifying the package checksum matches
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,6 +58,7 @@ jobs:
           done
           exit 1
       - name: Install and validate the signed app
+        if: ${{ !inputs.upload_only }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/smoke"
@@ -66,6 +71,7 @@ jobs:
           codesign --display --verbose=4 /Applications/CrispChess.app 2> "$RUNNER_TEMP/smoke/app-signature.txt"
           nm -gU /Applications/CrispChess.app/Contents/Frameworks/crispasr.framework/crispasr | grep crispasr_session_score_texts
       - name: Prepare a local-test signature for the App Store payload
+        if: ${{ !inputs.upload_only }}
         run: |
           set -euo pipefail
           # App Store distribution signatures cannot launch directly (Apple QA1884).
@@ -87,6 +93,7 @@ jobs:
           codesign --verify --deep --strict "$app"
           python3 tools/verify_macos_app.py "$app"
       - name: Launch the Mac payload and capture its display name
+        if: ${{ !inputs.upload_only }}
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/launch/CrispChess.app/Contents/MacOS/CrispChess" > "$RUNNER_TEMP/smoke/app.log" 2>&1 &
@@ -112,6 +119,28 @@ jobs:
           SWIFT
           swift "$RUNNER_TEMP/check-app.swift" "$app_pid" | tee "$RUNNER_TEMP/smoke/running-app.txt"
           screencapture -x "$RUNNER_TEMP/smoke/macos.png"
+      - name: Verify prior native checks of the identical signed package
+        if: inputs.upload_only
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/smoke" "$RUNNER_TEMP/proof"
+          gh run download 40383983442 -n macos-installed-app-smoke -D "$RUNNER_TEMP/proof"
+          gh api "repos/$GH_REPO/actions/runs/40383983442/jobs" > "$RUNNER_TEMP/proof/jobs.json"
+          python3 - "$RUNNER_TEMP/proof" "$PWD/package/CrispChess-2.3.1-17.pkg" <<'PY'
+          import hashlib, json, pathlib, sys
+          proof = pathlib.Path(sys.argv[1])
+          package = pathlib.Path(sys.argv[2])
+          jobs = json.loads((proof / 'jobs.json').read_text())['jobs']
+          steps = [step for job in jobs for step in job.get('steps', [])]
+          for name in ('Install and validate the signed app', 'Launch the Mac payload and capture its display name'):
+              assert any(step['name'] == name and step['conclusion'] == 'success' for step in steps), name
+          expected = (proof / 'package.sha256').read_text().split()[0]
+          actual = hashlib.sha256(package.read_bytes()).hexdigest()
+          assert expected == actual, 'Package differs from the one that passed native checks'
+          assert 'Running app: CrispChess, bundle ID: com.crispstrobe.crispchess' in (proof / 'running-app.txt').read_text()
+          print('Native Apple Silicon checks passed for the identical signed package:', actual)
+          PY
+          shasum -a 256 "$PWD/package/CrispChess-2.3.1-17.pkg" > "$RUNNER_TEMP/smoke/package.sha256"
       - name: Upload the validated package to App Store Connect
         if: inputs.upload_mac
         env:
@@ -126,7 +155,7 @@ jobs:
           echo "$ASC_API_KEY_P8_BASE64" | base64 --decode > "$key"
           chmod 600 "$key"
           shasum -a 256 -c "$RUNNER_TEMP/smoke/package.sha256"
-          xcrun altool --upload-package "$PWD/package/CrispChess-2.3.1-17.pkg" --type macos --apple-id 6788864039 --bundle-id com.crispstrobe.crispchess --bundle-version 17 --bundle-short-version-string 2.3.1 --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+          xcrun altool --upload-package "$PWD/package/CrispChess-2.3.1-17.pkg" --type macos --apple-id 6788864039 --bundle-id com.crispstrobe.crispchess --bundle-version 17 --bundle-short-version-string 2.3.1 --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
       - name: Attach the processed build and resubmit macOS
         if: inputs.submit_mac && inputs.upload_mac
         env:
