@@ -2,7 +2,7 @@
 # Puts CrispASR's universal macOS framework into a built Mac app, for voice
 # moves in the Mac App Store build (macOS only: needs ditto/nm from Xcode).
 #
-#   CRISPASR_VERSION=v0.8.38 tool/macos_crispasr.sh build/macos/Build/Products/Release/Runner.app
+#   CRISPASR_VERSION=v0.8.38 tool/macos_crispasr.sh build/macos/Build/Products/Release/CrispChess.app
 #
 # The flat libcrispasr-macos-arm64 archive (tool/bundle_crispasr.sh) is Apple
 # silicon only; the release xcframework's macos-arm64_x86_64 slice is

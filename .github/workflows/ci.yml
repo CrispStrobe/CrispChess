@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test release tooling
+        run: python3 -m unittest discover -s tools/tests -v
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -240,10 +242,12 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build macos --release
+      - name: Verify macOS app identity and version
+        run: python3 tools/verify_macos_app.py build/macos/Build/Products/Release/CrispChess.app
       - uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: build/macos/Build/Products/Release/*.app
+          path: build/macos/Build/Products/Release/CrispChess.app
           retention-days: 14
 
   build-linux:

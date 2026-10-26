@@ -67,7 +67,7 @@
 		331C80D7294CF71000263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
-		33CC10ED2044A3C60003C045 /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		33CC10ED2044A3C60003C045 /* CrispChess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CrispChess.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		33CC10F22044A3C60003C045 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Runner/Assets.xcassets; sourceTree = "<group>"; };
 		33CC10F52044A3C60003C045 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -144,7 +144,7 @@
 		33CC10EE2044A3C60003C045 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33CC10ED2044A3C60003C045 /* Runner.app */,
+				33CC10ED2044A3C60003C045 /* CrispChess.app */,
 				331C80D5294CF71000263BE5 /* RunnerTests.xctest */,
 			);
 			name = Products;
@@ -247,8 +247,8 @@
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
 			);
 			name = Runner;
-			productName = Runner;
-			productReference = 33CC10ED2044A3C60003C045 /* Runner.app */;
+			productName = CrispChess;
+			productReference = 33CC10ED2044A3C60003C045 /* CrispChess.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -481,7 +481,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CrispChess";
 			};
 			name = Debug;
 		};
@@ -496,7 +496,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CrispChess";
 			};
 			name = Release;
 		};
@@ -511,7 +511,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.crispstrobe.crispchess.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/crispchess";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CrispChess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CrispChess";
 			};
 			name = Profile;
 		};
@@ -559,7 +559,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_MODULE_NAME = Runner;
-				PRODUCT_NAME = Runner;
+				PRODUCT_NAME = CrispChess;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -648,7 +648,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_MODULE_NAME = Runner;
-				PRODUCT_NAME = Runner;
+				PRODUCT_NAME = CrispChess;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -699,7 +699,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_MODULE_NAME = Runner;
-				PRODUCT_NAME = Runner;
+				PRODUCT_NAME = CrispChess;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
