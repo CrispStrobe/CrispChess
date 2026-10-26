@@ -8,7 +8,7 @@ on:
         options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, submit-dry-run, submit]
         default: audit
       build:
-        description: 'CFBundleVersion for store / submit (e.g. 16)'
+        description: 'Build number required for store / submit'
         type: string
         default: ''
       platform:
@@ -16,6 +16,10 @@ on:
         type: choice
         options: [IOS, MAC_OS]
         default: IOS
+      attach_only:
+        description: Attach a build while preserving existing shared age-rating and price metadata
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,14 +42,17 @@ jobs:
           ACTION: ${{ inputs.action }}
           BUILD: ${{ inputs.build }}
           PLATFORM: ${{ inputs.platform }}
+          ATTACH_ONLY: ${{ inputs.attach_only }}
         run: |
+          attach_args=()
+          if [ "$ATTACH_ONLY" = true ]; then attach_args+=(--attach-only); fi
           case "$ACTION" in
             audit) python3 tools/asc/audit.py ;;
             diagnose) python3 tools/asc/diagnose.py ;;
             listing) python3 tools/asc/listing.py ;;
             listing-ios) python3 tools/asc/listing.py --platform IOS ;;
             listing-mac) python3 tools/asc/listing.py --platform MAC_OS ;;
-            store) python3 tools/asc/store.py ${BUILD:+--build "$BUILD"} --platform "$PLATFORM" ;;
+            store) python3 tools/asc/store.py ${BUILD:+--build "$BUILD"} --platform "$PLATFORM" "${attach_args[@]}" ;;
             submit-dry-run) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" --dry-run ;;
             submit) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" ;;
             beta) python3 tools/asc/beta.py ;;
