@@ -26,18 +26,14 @@ permissions:
 
 jobs:
   prepare:
-    if: github.actor == 'CrispStrobe' && github.event_name == 'workflow_dispatch'
-    runs-on: crispchess-asc-20261026-4c2a
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          persist-credentials: false
-      - name: Prepare isolated Python environment
-        run: |
-          python3 -m venv "$RUNNER_TEMP/asc-venv"
-          "$RUNNER_TEMP/asc-venv/bin/python3" -m pip install --quiet --disable-pip-version-check cryptography
-          printf '%s\n' "$RUNNER_TEMP/asc-venv/bin" >> "$GITHUB_PATH"
+          python-version: "3.12"
+      - run: python3 -m pip install --quiet --disable-pip-version-check cryptography
       - name: Audit or prepare App Store Connect
         env:
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
