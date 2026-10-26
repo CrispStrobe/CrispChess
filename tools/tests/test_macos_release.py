@@ -15,6 +15,7 @@ TOOLS = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(TOOLS), str(TOOLS / "asc")]
 
 import mac  # noqa: E402
+import store  # noqa: E402
 from release_version import read_version  # noqa: E402
 from verify_macos_app import verify_app  # noqa: E402
 
@@ -132,6 +133,53 @@ class MacVersionTests(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     self.run_helper()
                 self.expect.assert_not_called()
+
+
+class StoreBuildTests(unittest.TestCase):
+    def setUp(self):
+        self.versions = [{"id": "mac-version", "attributes": {
+            "platform": "MAC_OS", "appStoreState": "REJECTED", "versionString": "2.3.1"}}]
+        self.builds = [{"id": platform, "attributes": {
+            "version": "17", "processingState": "VALID"}} for platform in ("IOS", "MAC_OS")]
+        self.paged = patch.object(store.client, "paged", side_effect=lambda path:
+                                 self.versions if "appStoreVersions?" in path else self.builds).start()
+        patch.object(store.client, "call", side_effect=lambda method, path:
+                     (200, {"data": {"attributes": {
+                         "platform": path.split('/')[3], "version": "2.3.1"}}})).start()
+        self.expect = patch.object(store.client, "expect").start()
+        self.age = patch.object(store, "complete_age_rating").start()
+        self.price = patch.object(store, "ensure_free_price").start()
+        self.addCleanup(patch.stopall)
+
+    def run_helper(self, extra=()):
+        args = ["store.py", "--platform", "MAC_OS", "--build", "17", *extra]
+        with patch.object(sys, "argv", args), redirect_stdout(io.StringIO()):
+            return store.main()
+
+    def test_attach_only_preserves_shared_metadata_and_selects_mac_build(self):
+        self.assertEqual(self.run_helper(["--attach-only"]), 0)
+        self.age.assert_not_called()
+        self.price.assert_not_called()
+        self.expect.assert_called_once_with(
+            "PATCH", "/v1/appStoreVersions/mac-version/relationships/build",
+            {"data": {"type": "builds", "id": "MAC_OS"}})
+
+    def test_default_still_prepares_metadata(self):
+        self.assertEqual(self.run_helper(), 0)
+        self.age.assert_called_once_with()
+        self.price.assert_called_once_with()
+
+    def test_attach_only_refuses_an_ios_build_with_the_same_number(self):
+        self.builds = self.builds[:1]
+        with self.assertRaises(SystemExit):
+            self.run_helper(["--attach-only"])
+        self.expect.assert_not_called()
+
+    def test_explicit_build_number_is_required(self):
+        with patch.object(sys, "argv", ["store.py"]), redirect_stdout(io.StringIO()), patch('sys.stderr', io.StringIO()):
+            with self.assertRaises(SystemExit):
+                store.main()
+        self.paged.assert_not_called()
 
 
 class AppValidationTests(unittest.TestCase):

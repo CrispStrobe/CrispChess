@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Complete API-editable iOS submission fields and attach a valid build."""
+"""Complete submission fields or attach a valid build to an existing version."""
 
 from __future__ import annotations
 
@@ -91,8 +91,10 @@ def ensure_free_price() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--build", default="12", help="CFBundleVersion to attach")
+    parser.add_argument("--build", required=True, help="CFBundleVersion to attach")
     parser.add_argument("--platform", choices=["IOS", "MAC_OS"], default="IOS")
+    parser.add_argument("--attach-only", action="store_true",
+                        help="Preserve existing shared age-rating and price metadata")
     args = parser.parse_args()
     versions = client.paged(f"/v1/apps/{APP}/appStoreVersions?limit=50")
     # A rejected version is edited in place and resubmitted, like a new one.
@@ -125,8 +127,9 @@ def main() -> int:
             "data": {"type": "appStoreVersions", "id": version["id"],
                      "attributes": {"versionString": release_version}}})
         print(f"{args.platform} version: changed to {release_version}")
-    complete_age_rating()
-    ensure_free_price()
+    if not args.attach_only:
+        complete_age_rating()
+        ensure_free_price()
     client.expect("PATCH", f"/v1/appStoreVersions/{version['id']}/relationships/build", {
         "data": {"type": "builds", "id": build["id"]}})
     print(f"build: attached {release_version} ({args.build})")
