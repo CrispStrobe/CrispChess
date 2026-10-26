@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, submit-dry-run, submit]
+        options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, review-notes, submit-dry-run, submit]
         default: audit
       build:
         description: 'CFBundleVersion for store / submit (e.g. 16)'
@@ -16,6 +16,10 @@ on:
         type: choice
         options: [IOS, MAC_OS]
         default: IOS
+      review_note:
+        description: Explanation to append to App Review notes for the selected build
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -38,6 +42,7 @@ jobs:
           ACTION: ${{ inputs.action }}
           BUILD: ${{ inputs.build }}
           PLATFORM: ${{ inputs.platform }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
         run: |
           case "$ACTION" in
             audit) python3 tools/asc/audit.py ;;
@@ -46,6 +51,10 @@ jobs:
             listing-ios) python3 tools/asc/listing.py --platform IOS ;;
             listing-mac) python3 tools/asc/listing.py --platform MAC_OS ;;
             store) python3 tools/asc/store.py ${BUILD:+--build "$BUILD"} --platform "$PLATFORM" ;;
+            review-notes)
+              printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/review_notes.py --build "$BUILD" --platform "$PLATFORM" --notes-file "$RUNNER_TEMP/review-note.txt"
+              ;;
             submit-dry-run) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" --dry-run ;;
             submit) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" ;;
             beta) python3 tools/asc/beta.py ;;
