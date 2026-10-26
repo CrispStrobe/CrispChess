@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, review-notes, submit-dry-run, submit]
+        options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, review-notes, resubmit-mac, submit-dry-run, submit]
         default: audit
       build:
         description: 'CFBundleVersion for store / submit (e.g. 16)'
@@ -54,6 +54,18 @@ jobs:
             review-notes)
               printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
               python3 tools/asc/review_notes.py --build "$BUILD" --platform "$PLATFORM" --notes-file "$RUNNER_TEMP/review-note.txt"
+              ;;
+            resubmit-mac)
+              set -euo pipefail
+              [ "$PLATFORM" = MAC_OS ]
+              [ -n "$BUILD" ]
+              [ -n "$REVIEW_NOTE" ]
+              python3 tools/asc/store.py --build "$BUILD" --platform MAC_OS
+              printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/review_notes.py --build "$BUILD" --platform MAC_OS --notes-file "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/submit.py --build "$BUILD" --platform MAC_OS --dry-run
+              python3 tools/asc/submit.py --build "$BUILD" --platform MAC_OS
+              python3 tools/asc/audit.py
               ;;
             submit-dry-run) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" --dry-run ;;
             submit) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" ;;
