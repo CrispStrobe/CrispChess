@@ -57,14 +57,39 @@ jobs:
           codesign --verify --deep --strict --verbose=2 /Applications/CrispChess.app
           codesign --display --verbose=4 /Applications/CrispChess.app 2> "$RUNNER_TEMP/smoke/app-signature.txt"
           nm -gU /Applications/CrispChess.app/Contents/Frameworks/crispasr.framework/crispasr | grep crispasr_session_score_texts
-      - name: Launch the installed app and capture its display name
+      - name: Prepare a local-test signature for the App Store payload
         run: |
           set -euo pipefail
-          /Applications/CrispChess.app/Contents/MacOS/CrispChess > "$RUNNER_TEMP/smoke/app.log" 2>&1 &
+          # App Store distribution signatures cannot launch directly (Apple QA1884).
+          # Re-sign a copy for the local smoke test; upload the original package.
+          app="$RUNNER_TEMP/launch/CrispChess.app"
+          mkdir -p "$(dirname "$app")"
+          ditto /Applications/CrispChess.app "$app"
+          codesign --display --entitlements :- "$app" > "$RUNNER_TEMP/smoke/test-entitlements.plist"
+          /usr/libexec/PlistBuddy -c 'Delete :com.apple.application-identifier' "$RUNNER_TEMP/smoke/test-entitlements.plist"
+          /usr/libexec/PlistBuddy -c 'Delete :com.apple.developer.team-identifier' "$RUNNER_TEMP/smoke/test-entitlements.plist"
+          rm "$app/Contents/embedded.provisionprofile"
+          find "$app/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -111 \) -print0 | while IFS= read -r -d '' item; do
+            codesign --force --options runtime --sign - "$item"
+          done
+          find "$app/Contents/Frameworks" -depth -type d -name '*.framework' -print0 | while IFS= read -r -d '' framework; do
+            codesign --force --options runtime --sign - "$framework"
+          done
+          codesign --force --options runtime --entitlements "$RUNNER_TEMP/smoke/test-entitlements.plist" --sign - "$app"
+          codesign --verify --deep --strict "$app"
+          python3 tools/verify_macos_app.py "$app"
+      - name: Launch the Mac payload and capture its display name
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/launch/CrispChess.app/Contents/MacOS/CrispChess" > "$RUNNER_TEMP/smoke/app.log" 2>&1 &
           app_pid=$!
           trap 'kill "$app_pid" 2>/dev/null || true' EXIT
           sleep 20
-          kill -0 "$app_pid"
+          if ! kill -0 "$app_pid"; then
+            cat "$RUNNER_TEMP/smoke/app.log"
+            log show --style compact --last 2m --predicate 'process == "amfid" OR process == "taskgated-helper" OR process == "CrispChess"' > "$RUNNER_TEMP/smoke/launch-diagnostics.txt" || true
+            exit 1
+          fi
           cat > "$RUNNER_TEMP/check-app.swift" <<'SWIFT'
           import AppKit
           import Foundation
