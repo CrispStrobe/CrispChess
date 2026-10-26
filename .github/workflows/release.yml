@@ -16,6 +16,14 @@ on:
         description: Run only the Mac check when other artifact checks are already collected
         type: boolean
         default: false
+      submit_mac:
+        description: Attach build 17 and resubmit after processing and CI pass
+        type: boolean
+        default: false
+      review_note:
+        description: Explanation to append to App Review notes
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -35,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v2.3.1
+          ref: ${{ github.sha }}
       - name: Download the original signed package
         run: |
           set -euo pipefail
@@ -119,6 +127,58 @@ jobs:
           chmod 600 "$key"
           shasum -a 256 -c "$RUNNER_TEMP/smoke/package.sha256"
           xcrun altool --upload-package "$PWD/package/CrispChess-2.3.1-17.pkg" --type macos --apple-id 6788864039 --bundle-id com.crispstrobe.crispchess --bundle-version 17 --bundle-short-version-string 2.3.1 --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+      - name: Attach the processed build and resubmit macOS
+        if: inputs.submit_mac && inputs.upload_mac
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
+        run: |
+          set -euo pipefail
+          [ -n "$REVIEW_NOTE" ]
+          python3 -m venv "$RUNNER_TEMP/asc"
+          "$RUNNER_TEMP/asc/bin/pip" install --quiet cryptography
+          "$RUNNER_TEMP/asc/bin/python" - <<'PY'
+          import json, os, pathlib, subprocess, sys, time
+          sys.path.insert(0, str(pathlib.Path('tools/asc').resolve()))
+          import client
+          app = json.loads(pathlib.Path('tools/asc/metadata.json').read_text())['appId']
+          for attempt in range(60):
+              ci = json.loads(subprocess.check_output(['gh', 'run', 'view', '40375539723', '--json', 'headSha,status,conclusion'], text=True))
+              assert ci['headSha'] == os.environ['RELEASE_SHA']
+              if ci['status'] == 'completed' and ci['conclusion'] != 'success':
+                  raise SystemExit('Required CI checks did not pass: ' + ci['conclusion'])
+              valid = []
+              for build in client.paged(f'/v1/apps/{app}/builds?limit=200'):
+                  if build['attributes'].get('version') != '17':
+                      continue
+                  release = client.expect('GET', f"/v1/builds/{build['id']}/preReleaseVersion")['data']
+                  if release['attributes'].get('platform') != 'MAC_OS':
+                      continue
+                  assert release['attributes']['version'] == '2.3.1'
+                  state = build['attributes'].get('processingState')
+                  if state in ('FAILED', 'INVALID'):
+                      raise SystemExit('macOS build 17 failed App Store processing: ' + state)
+                  if state == 'VALID':
+                      valid.append(build)
+              if len(valid) > 1:
+                  raise SystemExit('More than one valid macOS build 17; refusing an ambiguous submission')
+              if len(valid) == 1 and ci['status'] == 'completed':
+                  print('macOS 2.3.1 (17) processed successfully; required CI checks passed')
+                  break
+              print(f'Waiting for macOS build processing and CI: valid builds={len(valid)}, CI={ci["status"]}', flush=True)
+              time.sleep(20)
+          else:
+              raise SystemExit('Timed out waiting for macOS processing and CI')
+          PY
+          python="$RUNNER_TEMP/asc/bin/python"
+          "$python" tools/asc/store.py --build 17 --platform MAC_OS
+          printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+          "$python" tools/asc/review_notes.py --build 17 --platform MAC_OS --notes-file "$RUNNER_TEMP/review-note.txt"
+          "$python" tools/asc/submit.py --build 17 --platform MAC_OS --dry-run
+          "$python" tools/asc/submit.py --build 17 --platform MAC_OS
+          "$python" tools/asc/audit.py
       - uses: actions/upload-artifact@v6
         if: always()
         with:
