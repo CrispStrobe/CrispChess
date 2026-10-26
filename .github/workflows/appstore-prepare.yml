@@ -60,7 +60,7 @@ jobs:
               [ "$PLATFORM" = MAC_OS ]
               [ -n "$BUILD" ]
               [ -n "$REVIEW_NOTE" ]
-              python3 tools/asc/store.py --build "$BUILD" --platform MAC_OS
+              python3 tools/asc/store.py --build "$BUILD" --platform MAC_OS --attach-only
               printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
               python3 tools/asc/review_notes.py --build "$BUILD" --platform MAC_OS --notes-file "$RUNNER_TEMP/review-note.txt"
               python3 tools/asc/submit.py --build "$BUILD" --platform MAC_OS --dry-run

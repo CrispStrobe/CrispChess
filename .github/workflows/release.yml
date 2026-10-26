@@ -202,7 +202,7 @@ jobs:
               raise SystemExit('Timed out waiting for macOS processing and CI')
           PY
           python="$RUNNER_TEMP/asc/bin/python"
-          "$python" tools/asc/store.py --build 17 --platform MAC_OS
+          "$python" tools/asc/store.py --build 17 --platform MAC_OS --attach-only
           printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
           "$python" tools/asc/review_notes.py --build 17 --platform MAC_OS --notes-file "$RUNNER_TEMP/review-note.txt"
           "$python" tools/asc/submit.py --build 17 --platform MAC_OS --dry-run
