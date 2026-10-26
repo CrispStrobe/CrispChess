@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stdout
 import io
+import os
 from pathlib import Path
 import plistlib
 import subprocess
@@ -35,6 +36,52 @@ class VersionTests(unittest.TestCase):
                     pubspec.write_text(value)
                     with self.assertRaises(ValueError):
                         read_version(pubspec)
+
+
+class AdHocSigningTests(unittest.TestCase):
+    def test_desktop_signing_preserves_permissions_without_provisioning_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            app = directory / 'Desktop release/CrispChess.app'
+            (app / 'Contents').mkdir(parents=True)
+            profile = app / 'Contents/embedded.provisionprofile'
+            profile.write_text('distribution profile')
+            commands = directory / 'bin'
+            commands.mkdir()
+            codesign = commands / 'codesign'
+            codesign.write_text('''#!/usr/bin/env python3
+import os, pathlib, sys
+if '--entitlements' in sys.argv:
+    source = pathlib.Path(sys.argv[sys.argv.index('--entitlements') + 1])
+    pathlib.Path(os.environ['SIGNED_ENTITLEMENTS']).write_bytes(source.read_bytes())
+''')
+            codesign.chmod(0o755)
+            result = directory / 'signed.plist'
+            source = TOOLS.parent / 'macos/Runner/Release.entitlements'
+            original = source.read_bytes()
+            subprocess.run(['bash', str(TOOLS.parent / 'tool/sign_macos_adhoc.sh'), str(app)],
+                           check=True, env=os.environ | {
+                               'PATH': str(commands) + os.pathsep + os.environ['PATH'],
+                               'SIGNED_ENTITLEMENTS': str(result)})
+            self.assertEqual(plistlib.loads(result.read_bytes()), {
+                'com.apple.security.app-sandbox': True,
+                'com.apple.security.device.audio-input': True,
+                'com.apple.security.network.client': True,
+            })
+            self.assertFalse(profile.exists())
+            self.assertEqual(source.read_bytes(), original)
+
+    def test_signing_failure_stops_the_release(self):
+        with tempfile.TemporaryDirectory() as directory:
+            commands = Path(directory)
+            codesign = commands / 'codesign'
+            codesign.write_text('#!/bin/sh\nexit 7\n')
+            codesign.chmod(0o755)
+            result = subprocess.run(
+                ['bash', str(TOOLS.parent / 'tool/sign_macos_adhoc.sh'), str(commands / 'CrispChess.app')],
+                env=os.environ | {'PATH': str(commands) + os.pathsep + os.environ['PATH']},
+                capture_output=True)
+            self.assertEqual(result.returncode, 7)
 
 
 class MacVersionTests(unittest.TestCase):
