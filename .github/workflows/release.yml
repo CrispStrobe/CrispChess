@@ -7,6 +7,15 @@ on:
         description: Upload the original signed package after the Mac smoke test passes
         type: boolean
         default: false
+      mac_runner:
+        description: Apple Silicon runner image for the signed package check
+        type: choice
+        options: [macos-15, macos-latest]
+        default: macos-15
+      mac_only:
+        description: Run only the Mac check when other artifact checks are already collected
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,7 +30,7 @@ env:
 
 jobs:
   macos:
-    runs-on: macos-latest
+    runs-on: ${{ inputs.mac_runner }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
@@ -92,6 +101,7 @@ jobs:
           path: ${{ runner.temp }}/smoke
 
   windows:
+    if: ${{ !inputs.mac_only }}
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
@@ -138,6 +148,7 @@ jobs:
           path: smoke
 
   linux:
+    if: ${{ !inputs.mac_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -191,6 +202,7 @@ jobs:
           path: smoke
 
   mobile-and-web:
+    if: ${{ !inputs.mac_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
