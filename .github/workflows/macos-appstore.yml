@@ -212,6 +212,19 @@ jobs:
           bash tool/sign_macos_adhoc.sh "$app"
           bash tool/smoke_macos_app.sh "$app" "$RUNNER_TEMP/macos-smoke"
           shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: crispchess-macos-appstore-pkg
+          path: dist/*.pkg
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: macos-installed-app-smoke
+          path: ${{ runner.temp }}/macos-smoke
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload the tested original package
         if: inputs.dry_run == false
         env:
@@ -238,6 +251,13 @@ jobs:
           printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
           python3 tools/asc/replace_build.py --build "$build" --expected-build "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
           python3 tools/asc/status.py --platform MAC_OS > "$RUNNER_TEMP/macos-smoke/app-store-status.json"
+      - uses: actions/upload-artifact@v6
+        if: inputs.submit_for_review && inputs.dry_run == false
+        with:
+          name: macos-app-store-status
+          path: ${{ runner.temp }}/macos-smoke/app-store-status.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Merge the validated hotfix into main
         if: inputs.submit_for_review && inputs.dry_run == false && inputs.merge_pull_request != ''
         env:
@@ -257,16 +277,3 @@ jobs:
             gh pr ready "$MERGE_PULL_REQUEST"
           fi
           gh pr merge "$MERGE_PULL_REQUEST" --merge --match-head-commit "$GITHUB_SHA"
-      - uses: actions/upload-artifact@v6
-        with:
-          name: crispchess-macos-appstore-pkg
-          path: dist/*.pkg
-          if-no-files-found: error
-          retention-days: 14
-      - uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: macos-installed-app-smoke
-          path: ${{ runner.temp }}/macos-smoke
-          if-no-files-found: warn
-          retention-days: 14
