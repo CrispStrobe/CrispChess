@@ -30,7 +30,7 @@ def release_status(platform: str) -> dict:
             'state': attrs['appStoreState'], 'buildId': build.get('id'),
             'build': build.get('attributes', {}).get('version')})
     builds = []
-    path = f'/v1/apps/{APP}/builds?include=preReleaseVersion&sort=-uploadedDate&limit=200'
+    path = f'/v1/builds?filter[app]={APP}&include=preReleaseVersion&sort=-uploadedDate&limit=200'
     while path:
         doc = client.expect('GET', path)
         releases = {item['id']: item['attributes'] for item in doc.get('included', [])

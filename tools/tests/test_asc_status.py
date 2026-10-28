@@ -32,6 +32,7 @@ class StatusTests(unittest.TestCase):
         result = status.release_status('MAC_OS')
         self.assertEqual(result['candidate'], {'version': '2.3.1', 'build': '19'})
         self.assertEqual(result['versions'][0]['build'], '17')
+        self.assertTrue(self.expect.call_args.args[1].startswith('/v1/builds?filter[app]='))
         self.call.assert_called_once_with('GET', '/v1/appStoreVersions/mac/build')
 
     def test_approved_release_gets_new_patch_version(self):
