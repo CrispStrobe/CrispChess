@@ -31,3 +31,9 @@ class SmokeTests(unittest.TestCase):
         self.log.write_text('CrispChess first frame rendered\n')
         with self.assertRaisesRegex(ValueError, 'opponent'):
             verify_log(self.log)
+
+    def test_requires_the_requested_locale_in_the_render_marker(self):
+        self.log.write_text('CrispChess first frame rendered; locale=de\n' + self.clean)
+        verify_log(self.log, 'de')
+        with self.assertRaisesRegex(ValueError, 'requested locale en'):
+            verify_log(self.log, 'en')

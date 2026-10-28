@@ -3,6 +3,22 @@ name: macOS App Store
 on:
   workflow_dispatch:
     inputs:
+      merge_pull_request:
+        description: Optional PR to merge only after the checked replacement is submitted
+        type: string
+        default: ''
+      submit_for_review:
+        description: Replace the expected pending build after native checks and upload pass
+        type: boolean
+        default: false
+      expected_build:
+        description: Current build that may be replaced (required for submission)
+        type: string
+        default: ''
+      review_note:
+        description: Explanation to append to the checked replacement's App Review notes
+        type: string
+        default: ''
       mac_runner:
         description: Hosted Mac runner used for the native package check
         type: choice
@@ -14,7 +30,8 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: macos-appstore
@@ -38,6 +55,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Preflight secrets
         env:
+          MERGE_PULL_REQUEST: ${{ inputs.merge_pull_request }}
+          SUBMIT_FOR_REVIEW: ${{ inputs.submit_for_review }}
+          EXPECTED_BUILD: ${{ inputs.expected_build }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
           HAS_KEY: ${{ secrets.ASC_API_KEY_P8_BASE64 != '' }}
           HAS_KEY_ID: ${{ secrets.ASC_KEY_ID != '' }}
           HAS_ISSUER: ${{ secrets.ASC_ISSUER_ID != '' }}
@@ -47,6 +68,15 @@ jobs:
           HAS_INSTALLER_KEY: ${{ secrets.MAC_INSTALLER_KEY_PEM_BASE64 != '' }}
         run: |
           set -euo pipefail
+          if [ "$SUBMIT_FOR_REVIEW" = true ]; then
+            [ "$DRY_RUN" = false ]
+            [ -n "$EXPECTED_BUILD" ]
+            [ -n "$REVIEW_NOTE" ]
+          fi
+          if [ -n "$MERGE_PULL_REQUEST" ]; then
+            [ "$SUBMIT_FOR_REVIEW" = true ]
+            [[ "$MERGE_PULL_REQUEST" =~ ^[0-9]+$ ]]
+          fi
           for value in HAS_KEY HAS_KEY_ID HAS_ISSUER HAS_TEAM HAS_P12 HAS_P12_PW HAS_INSTALLER_KEY; do
             [ "${!value}" = true ] || { echo "::error::Missing secret represented by $value"; exit 1; }
           done
@@ -194,6 +224,39 @@ jobs:
           package="$PWD/dist/CrispChess-${version}-${build}.pkg"
           shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
           xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+      - name: Replace the expected pending build and submit for review
+        if: inputs.submit_for_review && inputs.dry_run == false
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          EXPECTED_BUILD: ${{ inputs.expected_build }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
+        run: |
+          set -euo pipefail
+          build=$(python3 -c 'import sys; sys.path.insert(0,"tools"); from release_version import read_version; print(read_version()[1])')
+          printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+          python3 tools/asc/replace_build.py --build "$build" --expected-build "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
+          python3 tools/asc/status.py --platform MAC_OS > "$RUNNER_TEMP/macos-smoke/app-store-status.json"
+      - name: Merge the validated hotfix into main
+        if: inputs.submit_for_review && inputs.dry_run == false && inputs.merge_pull_request != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MERGE_PULL_REQUEST: ${{ inputs.merge_pull_request }}
+        run: |
+          set -euo pipefail
+          gh pr view "$MERGE_PULL_REQUEST" --json headRefOid,baseRefName,isDraft > "$RUNNER_TEMP/pr.json"
+          python3 - "$RUNNER_TEMP/pr.json" <<'PY'
+          import json, os, sys
+          pr = json.load(open(sys.argv[1]))
+          assert pr['baseRefName'] == 'main', 'Expected main as the target branch'
+          assert pr['headRefOid'] == os.environ['GITHUB_SHA'], 'PR changed after this build started'
+          PY
+          if [ "$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["isDraft"]).lower())' "$RUNNER_TEMP/pr.json")" = true ]; then
+            gh pr ready "$MERGE_PULL_REQUEST"
+          fi
+          gh pr merge "$MERGE_PULL_REQUEST" --merge --match-head-commit "$GITHUB_SHA"
       - uses: actions/upload-artifact@v6
         with:
           name: crispchess-macos-appstore-pkg

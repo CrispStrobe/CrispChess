@@ -20,10 +20,10 @@ for language in en de; do
       echo '::error::CrispChess exited during launch'
       exit 1
     fi
-    if python3 "$root/tools/verify_macos_smoke.py" "$destination/app.log" > "$destination/check.txt" 2>&1; then break; fi
+    if python3 "$root/tools/verify_macos_smoke.py" "$destination/app.log" --locale "$language" > "$destination/check.txt" 2>&1; then break; fi
     sleep 1
   done
-  python3 "$root/tools/verify_macos_smoke.py" "$destination/app.log"
+  python3 "$root/tools/verify_macos_smoke.py" "$destination/app.log" --locale "$language"
   swift "$root/tools/verify_macos_running.swift" "$app_pid" "$destination/window.txt" | tee "$destination/running-app.txt"
   window_id=$(cat "$destination/window.txt")
   screencapture -x -l "$window_id" "$destination/window.png"
