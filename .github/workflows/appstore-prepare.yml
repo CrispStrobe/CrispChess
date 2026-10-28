@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         type: choice
-        options: [audit, diagnose, listing, listing-ios, listing-mac, store, beta, mac, submit-dry-run, submit]
+        options: [audit, status, diagnose, listing, listing-ios, listing-mac, store, beta, mac, review-notes, resubmit-mac, submit-dry-run, submit]
         default: audit
       build:
         description: 'Build number required for store / submit'
@@ -16,6 +16,14 @@ on:
         type: choice
         options: [IOS, MAC_OS]
         default: IOS
+      runner:
+        description: Runner label for release tooling; defaults to a GitHub-hosted Linux runner
+        type: string
+        default: ubuntu-latest
+      review_note:
+        description: Explanation to append to App Review notes
+        type: string
+        default: ''
       attach_only:
         description: Attach a build while preserving existing shared age-rating and price metadata
         type: boolean
@@ -26,14 +34,17 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-      - run: python3 -m pip install --quiet --disable-pip-version-check cryptography
+          persist-credentials: false
+      - name: Prepare isolated Python environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/asc"
+          "$RUNNER_TEMP/asc/bin/pip" install --quiet --disable-pip-version-check cryptography
+          echo "$RUNNER_TEMP/asc/bin" >> "$GITHUB_PATH"
       - name: Audit or prepare App Store Connect
         env:
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
@@ -42,19 +53,46 @@ jobs:
           ACTION: ${{ inputs.action }}
           BUILD: ${{ inputs.build }}
           PLATFORM: ${{ inputs.platform }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
           ATTACH_ONLY: ${{ inputs.attach_only }}
         run: |
+          set -euo pipefail
           attach_args=()
           if [ "$ATTACH_ONLY" = true ]; then attach_args+=(--attach-only); fi
           case "$ACTION" in
             audit) python3 tools/asc/audit.py ;;
+            status)
+              python3 tools/asc/status.py --platform "$PLATFORM" | tee "$RUNNER_TEMP/app-store-status.json"
+              ;;
             diagnose) python3 tools/asc/diagnose.py ;;
             listing) python3 tools/asc/listing.py ;;
             listing-ios) python3 tools/asc/listing.py --platform IOS ;;
             listing-mac) python3 tools/asc/listing.py --platform MAC_OS ;;
             store) python3 tools/asc/store.py ${BUILD:+--build "$BUILD"} --platform "$PLATFORM" "${attach_args[@]}" ;;
+            review-notes)
+              printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/review_notes.py --build "$BUILD" --platform "$PLATFORM" --notes-file "$RUNNER_TEMP/review-note.txt"
+              ;;
+            resubmit-mac)
+              [ "$PLATFORM" = MAC_OS ]
+              [ -n "$BUILD" ]
+              [ -n "$REVIEW_NOTE" ]
+              python3 tools/asc/store.py --build "$BUILD" --platform MAC_OS --attach-only
+              printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/review_notes.py --build "$BUILD" --platform MAC_OS --notes-file "$RUNNER_TEMP/review-note.txt"
+              python3 tools/asc/submit.py --build "$BUILD" --platform MAC_OS --dry-run
+              python3 tools/asc/submit.py --build "$BUILD" --platform MAC_OS
+              python3 tools/asc/status.py --platform MAC_OS
+              ;;
             submit-dry-run) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" --dry-run ;;
             submit) python3 tools/asc/submit.py --build "$BUILD" --platform "$PLATFORM" ;;
             beta) python3 tools/asc/beta.py ;;
             mac) python3 tools/asc/mac.py && python3 tools/asc/listing.py ;;
           esac
+
+      - uses: actions/upload-artifact@v6
+        if: inputs.action == 'status'
+        with:
+          name: app-store-status
+          path: ${{ runner.temp }}/app-store-status.json
+          if-no-files-found: error

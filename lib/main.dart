@@ -12,6 +12,7 @@ final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
 final localeNotifier = ValueNotifier<Locale?>(null);
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   Logger.root.level = Level.WARNING;
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
