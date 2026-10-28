@@ -3,6 +3,11 @@ name: macOS App Store
 on:
   workflow_dispatch:
     inputs:
+      mac_runner:
+        description: Hosted Mac runner used for the native package check
+        type: choice
+        options: [macos-15, macos-15-intel, macos-latest]
+        default: macos-15
       dry_run:
         description: Build, sign, and validate without uploading
         type: boolean
@@ -27,7 +32,7 @@ env:
 jobs:
   build-upload:
     name: Build, sign, and validate Mac App Store package
-    runs-on: macos-latest
+    runs-on: ${{ inputs.mac_runner }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
@@ -62,7 +67,13 @@ jobs:
           set -euo pipefail
           flutter config --no-enable-swift-package-manager
           flutter pub get
-          cargo build --release --manifest-path native/frozenight/Cargo.toml
+          python3 -m unittest discover -s tools/tests -v
+          flutter test test/startup_test.dart test/widget_test.dart
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin --manifest-path native/frozenight/Cargo.toml
+          cargo build --release --target x86_64-apple-darwin --manifest-path native/frozenight/Cargo.toml
+          mkdir -p native/frozenight/target/release
+          lipo -create native/frozenight/target/aarch64-apple-darwin/release/libfrozenight_ffi.dylib native/frozenight/target/x86_64-apple-darwin/release/libfrozenight_ffi.dylib -output native/frozenight/target/release/libfrozenight_ffi.dylib
           python3 -m pip install --quiet --disable-pip-version-check cryptography
       - name: Install Distribution identity and API key
         env:
@@ -133,7 +144,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_path"
           codesign --display --entitlements :- "$app_path" > "$RUNNER_TEMP/signed-entitlements.plist"
           [ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$RUNNER_TEMP/signed-entitlements.plist")" = "$application_identifier" ]
-      - name: Package, validate, and optionally upload
+      - name: Package and validate the original distribution payload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -144,15 +155,55 @@ jobs:
           package="$RUNNER_TEMP/CrispChess-${version}-${build}.pkg"
           productbuild --component "$PWD/build/macos/Build/Products/Release/CrispChess.app" /Applications --sign "$INSTALLER_IDENTITY" "$package"
           pkgutil --check-signature "$package"
-          xcrun altool --validate-app -f "$package" --type macos --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+          xcrun altool --validate-app -f "$package" --type macos --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
           mkdir -p dist
           cp "$package" "dist/CrispChess-${version}-${build}.pkg"
-          if [ "$DRY_RUN" != true ]; then
-            xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
-          fi
+          mkdir -p "$RUNNER_TEMP/macos-smoke"
+          shasum -a 256 "dist/CrispChess-${version}-${build}.pkg" > "$RUNNER_TEMP/macos-smoke/package.sha256"
+      - name: Install and smoke test the exact signed package
+        run: |
+          set -euo pipefail
+          package=$(find "$PWD/dist" -maxdepth 1 -name '*.pkg' -print)
+          [ -f "$package" ]
+          sudo installer -pkg "$package" -target /
+          python3 tools/verify_macos_app.py /Applications/CrispChess.app
+          codesign --verify --deep --strict /Applications/CrispChess.app
+          # Distribution signatures cannot be launched directly (Apple QA1884).
+          # Test a local-only copy; the signed upload package stays unchanged.
+          app="$RUNNER_TEMP/local-launch/CrispChess.app"
+          mkdir -p "$(dirname "$app")"
+          ditto /Applications/CrispChess.app "$app"
+          find "$app/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -111 \) -print0 | while IFS= read -r -d '' item; do
+            codesign --force --options runtime --sign - "$item"
+          done
+          find "$app/Contents/Frameworks" -depth -type d -name '*.framework' -print0 | while IFS= read -r -d '' framework; do
+            codesign --force --options runtime --sign - "$framework"
+          done
+          bash tool/sign_macos_adhoc.sh "$app"
+          bash tool/smoke_macos_app.sh "$app" "$RUNNER_TEMP/macos-smoke"
+          shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
+      - name: Upload the tested original package
+        if: inputs.dry_run == false
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version:[[:space:]]*\([^+]*\)+.*$/\1/p' pubspec.yaml | head -1)
+          build=$(sed -n 's/^version:[[:space:]]*[^+]*+\(.*\)$/\1/p' pubspec.yaml | head -1)
+          package="$PWD/dist/CrispChess-${version}-${build}.pkg"
+          shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
+          xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
       - uses: actions/upload-artifact@v6
         with:
           name: crispchess-macos-appstore-pkg
           path: dist/*.pkg
           if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: macos-installed-app-smoke
+          path: ${{ runner.temp }}/macos-smoke
+          if-no-files-found: warn
           retention-days: 14

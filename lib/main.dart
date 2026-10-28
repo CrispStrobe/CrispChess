@@ -33,6 +33,9 @@ void main() {
   });
 
   runApp(const CrispChessApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    debugPrint('CrispChess first frame rendered');
+  });
 }
 
 class CrispChessApp extends StatelessWidget {

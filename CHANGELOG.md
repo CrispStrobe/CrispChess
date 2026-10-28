@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.3.1 — macOS build 18
 
 - Initialize Flutter before reading platform preferences during startup.
 - Validate the macOS executable and all localized app names before release.
