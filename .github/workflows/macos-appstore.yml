@@ -195,7 +195,15 @@ jobs:
           set -euo pipefail
           package=$(find "$PWD/dist" -maxdepth 1 -name '*.pkg' -print)
           [ -f "$package" ]
-          sudo installer -pkg "$package" -target /
+          sudo installer -dumplog -pkg "$package" -target /
+          if [ ! -d /Applications/CrispChess.app ]; then
+            echo "::error::Installed app was not found at the expected path; collecting package and installer diagnostics"
+            pkgutil --expand "$package" "$RUNNER_TEMP/package-expanded"
+            find "$RUNNER_TEMP/package-expanded" -name PackageInfo -exec cat {} \;
+            sudo find /Applications /Users/runner/work -name CrispChess.app -type d -print 2>/dev/null || true
+            pkgutil --pkgs | grep -i crispchess || true
+            exit 1
+          fi
           python3 tools/verify_macos_app.py /Applications/CrispChess.app
           codesign --verify --deep --strict /Applications/CrispChess.app
           # Distribution signatures cannot be launched directly (Apple QA1884).
