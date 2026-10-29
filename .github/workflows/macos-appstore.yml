@@ -3,13 +3,35 @@ name: macOS App Store
 on:
   workflow_dispatch:
     inputs:
+      merge_pull_request:
+        description: Optional PR to merge only after the checked replacement is submitted
+        type: string
+        default: ''
+      submit_for_review:
+        description: Replace the expected pending build after native checks and upload pass
+        type: boolean
+        default: false
+      expected_build:
+        description: Current build that may be replaced (required for submission)
+        type: string
+        default: ''
+      review_note:
+        description: Explanation to append to the checked replacement's App Review notes
+        type: string
+        default: ''
+      mac_runner:
+        description: Hosted Mac runner used for the native package check
+        type: choice
+        options: [macos-15, macos-15-intel, macos-latest]
+        default: macos-15
       dry_run:
         description: Build, sign, and validate without uploading
         type: boolean
         default: true
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: macos-appstore
@@ -27,12 +49,16 @@ env:
 jobs:
   build-upload:
     name: Build, sign, and validate Mac App Store package
-    runs-on: macos-latest
+    runs-on: ${{ inputs.mac_runner }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - name: Preflight secrets
         env:
+          MERGE_PULL_REQUEST: ${{ inputs.merge_pull_request }}
+          SUBMIT_FOR_REVIEW: ${{ inputs.submit_for_review }}
+          EXPECTED_BUILD: ${{ inputs.expected_build }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
           HAS_KEY: ${{ secrets.ASC_API_KEY_P8_BASE64 != '' }}
           HAS_KEY_ID: ${{ secrets.ASC_KEY_ID != '' }}
           HAS_ISSUER: ${{ secrets.ASC_ISSUER_ID != '' }}
@@ -42,6 +68,15 @@ jobs:
           HAS_INSTALLER_KEY: ${{ secrets.MAC_INSTALLER_KEY_PEM_BASE64 != '' }}
         run: |
           set -euo pipefail
+          if [ "$SUBMIT_FOR_REVIEW" = true ]; then
+            [ "$DRY_RUN" = false ]
+            [ -n "$EXPECTED_BUILD" ]
+            [ -n "$REVIEW_NOTE" ]
+          fi
+          if [ -n "$MERGE_PULL_REQUEST" ]; then
+            [ "$SUBMIT_FOR_REVIEW" = true ]
+            [[ "$MERGE_PULL_REQUEST" =~ ^[0-9]+$ ]]
+          fi
           for value in HAS_KEY HAS_KEY_ID HAS_ISSUER HAS_TEAM HAS_P12 HAS_P12_PW HAS_INSTALLER_KEY; do
             [ "${!value}" = true ] || { echo "::error::Missing secret represented by $value"; exit 1; }
           done
@@ -62,7 +97,13 @@ jobs:
           set -euo pipefail
           flutter config --no-enable-swift-package-manager
           flutter pub get
-          cargo build --release --manifest-path native/frozenight/Cargo.toml
+          python3 -m unittest discover -s tools/tests -v
+          flutter test test/startup_test.dart test/widget_test.dart
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin --manifest-path native/frozenight/Cargo.toml
+          cargo build --release --target x86_64-apple-darwin --manifest-path native/frozenight/Cargo.toml
+          mkdir -p native/frozenight/target/release
+          lipo -create native/frozenight/target/aarch64-apple-darwin/release/libfrozenight_ffi.dylib native/frozenight/target/x86_64-apple-darwin/release/libfrozenight_ffi.dylib -output native/frozenight/target/release/libfrozenight_ffi.dylib
           python3 -m pip install --quiet --disable-pip-version-check cryptography
       - name: Install Distribution identity and API key
         env:
@@ -133,7 +174,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_path"
           codesign --display --entitlements :- "$app_path" > "$RUNNER_TEMP/signed-entitlements.plist"
           [ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$RUNNER_TEMP/signed-entitlements.plist")" = "$application_identifier" ]
-      - name: Package, validate, and optionally upload
+      - name: Package and validate the original distribution payload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -144,15 +185,103 @@ jobs:
           package="$RUNNER_TEMP/CrispChess-${version}-${build}.pkg"
           productbuild --component "$PWD/build/macos/Build/Products/Release/CrispChess.app" /Applications --sign "$INSTALLER_IDENTITY" "$package"
           pkgutil --check-signature "$package"
-          xcrun altool --validate-app -f "$package" --type macos --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+          xcrun altool --validate-app -f "$package" --type macos --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
           mkdir -p dist
           cp "$package" "dist/CrispChess-${version}-${build}.pkg"
-          if [ "$DRY_RUN" != true ]; then
-            xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID"
+          mkdir -p "$RUNNER_TEMP/macos-smoke"
+          shasum -a 256 "dist/CrispChess-${version}-${build}.pkg" > "$RUNNER_TEMP/macos-smoke/package.sha256"
+      - name: Install and smoke test the exact signed package
+        run: |
+          set -euo pipefail
+          package=$(find "$PWD/dist" -maxdepth 1 -name '*.pkg' -print)
+          [ -f "$package" ]
+          sudo installer -dumplog -pkg "$package" -target /
+          if [ ! -d /Applications/CrispChess.app ]; then
+            echo "::error::Installed app was not found at the expected path; collecting package and installer diagnostics"
+            pkgutil --expand "$package" "$RUNNER_TEMP/package-expanded"
+            find "$RUNNER_TEMP/package-expanded" -name PackageInfo -exec cat {} \;
+            sudo find /Applications /Users/runner/work -name CrispChess.app -type d -print 2>/dev/null || true
+            pkgutil --pkgs | grep -i crispchess || true
+            exit 1
           fi
+          python3 tools/verify_macos_app.py /Applications/CrispChess.app
+          codesign --verify --deep --strict /Applications/CrispChess.app
+          # Distribution signatures cannot be launched directly (Apple QA1884).
+          # Test a local-only copy; the signed upload package stays unchanged.
+          app="$RUNNER_TEMP/local-launch/CrispChess.app"
+          mkdir -p "$(dirname "$app")"
+          ditto /Applications/CrispChess.app "$app"
+          find "$app/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -111 \) -print0 | while IFS= read -r -d '' item; do
+            codesign --force --options runtime --sign - "$item"
+          done
+          find "$app/Contents/Frameworks" -depth -type d -name '*.framework' -print0 | while IFS= read -r -d '' framework; do
+            codesign --force --options runtime --sign - "$framework"
+          done
+          bash tool/sign_macos_adhoc.sh "$app"
+          bash tool/smoke_macos_app.sh "$app" "$RUNNER_TEMP/macos-smoke"
+          shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
       - uses: actions/upload-artifact@v6
         with:
           name: crispchess-macos-appstore-pkg
           path: dist/*.pkg
           if-no-files-found: error
           retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: macos-installed-app-smoke
+          path: ${{ runner.temp }}/macos-smoke
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload the tested original package
+        if: inputs.dry_run == false
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version:[[:space:]]*\([^+]*\)+.*$/\1/p' pubspec.yaml | head -1)
+          build=$(sed -n 's/^version:[[:space:]]*[^+]*+\(.*\)$/\1/p' pubspec.yaml | head -1)
+          package="$PWD/dist/CrispChess-${version}-${build}.pkg"
+          shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
+          xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+      - name: Replace the expected pending build and submit for review
+        if: inputs.submit_for_review && inputs.dry_run == false
+        env:
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          EXPECTED_BUILD: ${{ inputs.expected_build }}
+          REVIEW_NOTE: ${{ inputs.review_note }}
+        run: |
+          set -euo pipefail
+          build=$(python3 -c 'import sys; sys.path.insert(0,"tools"); from release_version import read_version; print(read_version()[1])')
+          printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
+          python3 tools/asc/replace_build.py --build "$build" --expected-build "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
+          python3 tools/asc/status.py --platform MAC_OS > "$RUNNER_TEMP/macos-smoke/app-store-status.json"
+      - uses: actions/upload-artifact@v6
+        if: inputs.submit_for_review && inputs.dry_run == false
+        with:
+          name: macos-app-store-status
+          path: ${{ runner.temp }}/macos-smoke/app-store-status.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Merge the validated hotfix into main
+        if: inputs.submit_for_review && inputs.dry_run == false && inputs.merge_pull_request != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MERGE_PULL_REQUEST: ${{ inputs.merge_pull_request }}
+        run: |
+          set -euo pipefail
+          gh pr view "$MERGE_PULL_REQUEST" --json headRefOid,baseRefName,isDraft > "$RUNNER_TEMP/pr.json"
+          python3 - "$RUNNER_TEMP/pr.json" <<'PY'
+          import json, os, sys
+          pr = json.load(open(sys.argv[1]))
+          assert pr['baseRefName'] == 'main', 'Expected main as the target branch'
+          assert pr['headRefOid'] == os.environ['GITHUB_SHA'], 'PR changed after this build started'
+          PY
+          if [ "$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1]))["isDraft"]).lower())' "$RUNNER_TEMP/pr.json")" = true ]; then
+            gh pr ready "$MERGE_PULL_REQUEST"
+          fi
+          gh pr merge "$MERGE_PULL_REQUEST" --merge --match-head-commit "$GITHUB_SHA"
