@@ -22,6 +22,11 @@
   saved games retain custom starting positions and completion is counted once.
 - New controls are localized in English and German.
 
+## 2.3.2 — macOS build 19
+
+- Initialize Flutter before reading platform preferences during startup.
+- Validate the macOS executable and all localized app names before release.
+
 ## 2.3.1
 
 ### What to test

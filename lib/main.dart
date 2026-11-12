@@ -33,6 +33,10 @@ void main() {
   });
 
   runApp(const CrispChessApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    debugPrint('CrispChess first frame rendered; '
+        'locale=${localeNotifier.value?.languageCode ?? WidgetsBinding.instance.platformDispatcher.locale.languageCode}');
+  });
 }
 
 class CrispChessApp extends StatelessWidget {

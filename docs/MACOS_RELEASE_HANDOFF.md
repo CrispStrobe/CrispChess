@@ -1,5 +1,7 @@
 # macOS App Store release handoff
 
+**Update 2026-11-12:** A fresh read-only App Store audit ([run 43232579031](https://github.com/CrispStrobe/CrispChess/actions/runs/43232579031)) confirms macOS 2.3.1 build 17 is READY_FOR_SALE; Apple validation says the 2.3.1 train is closed. The next candidate is 2.3.2 build 19. Do not withdraw or replace the approved release. The workflow must support creating and submitting a new version before any release submission. Earlier notes below are historical.
+
 Status recorded 2026-10-29. Recheck live GitHub and App Store Connect state before acting; this is a snapshot, not proof of the current review status.
 
 ## Objective and current state
