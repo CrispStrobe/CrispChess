@@ -50,14 +50,18 @@ def release(build: str, expected_previous: str, notes_file: Path, *, attempts=60
         raise ValueError('Another macOS version is in progress')
     if target and (target[0]['state'] not in EDITABLE or target[0]['build'] not in (None, build)):
         raise ValueError('Target version is not editable or carries another build')
-    submissions = client.paged(f'/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=MAC_OS&limit=20')
-    if any(s['attributes'].get('state') in ('UNRESOLVED_ISSUES', 'READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW') for s in submissions):
-        raise ValueError('Another review submission exists; refusing to alter it')
+    # Inspect before preparation writes, using the same ownership rules as submit.
+    submit.submission_plan('MAC_OS', target[0]['id'] if target else None)
+    # The expected previous approved release above establishes this is an
+    # update, even when its target version has not yet been created.
+    if target:
+        submit.check_localized_whats_new(target[0]['id'])
     if not target:
-        client.expect('POST', '/v1/appStoreVersions', {'data': {
+        created = client.expect('POST', '/v1/appStoreVersions', {'data': {
             'type': 'appStoreVersions',
             'attributes': {'platform': 'MAC_OS', 'versionString': version},
             'relationships': {'app': {'data': {'type': 'apps', 'id': APP}}}}})
+        submit.check_localized_whats_new(created['data']['id'])
     invoke(store, ['--build', build, '--platform', 'MAC_OS', '--attach-only'])
     invoke(review_notes, ['--build', build, '--platform', 'MAC_OS', '--notes-file', str(notes_file)])
     invoke(submit, ['--build', build, '--platform', 'MAC_OS', '--dry-run'])
