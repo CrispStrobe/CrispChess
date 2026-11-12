@@ -9,6 +9,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import '../services/model_download_registry.dart';
 import 'package:chess/chess.dart' as chess_lib;
 
 import 'chess_engine.dart';
@@ -101,6 +102,9 @@ class Maia3DartEngine implements ChessEngine {
         await native.load();
         backendName = 'native ONNX Runtime';
         return native;
+      } on DownloadCancelled {
+        await native.close();
+        rethrow;
       } catch (e) {
         debugPrint('[Maia3Dart] Native runtime unavailable, using Dart: $e');
         await native.close();

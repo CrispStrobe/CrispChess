@@ -7,6 +7,8 @@
 /// License: GPL-3.0 (weights downloaded separately, not linked).
 library;
 
+import 'maia3_dart/onnx/model_fetch.dart';
+
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:math';
@@ -23,7 +25,7 @@ import 'uci_position.dart';
 
 // JS bridge functions (defined in web/lc0_onnx_bridge.js)
 @JS('lc0OnnxLoad')
-external JSPromise<JSAny?> _jsLc0Load(JSString modelUrl);
+external JSPromise<JSAny?> _jsLc0Load(JSString modelUrl, JSUint8Array bytes);
 
 // Returns Float32Array of 1861 elements: [policy(1858), wdl(3)]
 @JS('lc0OnnxInfer')
@@ -82,7 +84,9 @@ class Lc0Engine implements ChessEngine {
       final variant = getLc0Variant(variantId);
       debugPrint(
           '[Lc0/Web] Loading ${variant.displayName} from ${variant.url}');
-      await _jsLc0Load(variant.url.toJS).toDart;
+      final bytes =
+          await fetchModelBytes(variant.url, 'lc0_${variant.id}.onnx');
+      await _jsLc0Load(variant.url.toJS, bytes.toJS).toDart;
       _modelLoaded = true;
       await _warmUp();
       _stateNotifier.value = EngineState.ready;

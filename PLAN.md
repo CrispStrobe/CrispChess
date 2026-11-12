@@ -8,6 +8,12 @@
 
 ---
 
+## Active release handoff
+
+See [macOS release handoff](docs/MACOS_RELEASE_HANDOFF.md) for the open App Store rejection, current evidence, worktree precautions, and ordered completion steps.
+
+---
+
 ## Completed
 
 ### Engine Architecture (7 engines)

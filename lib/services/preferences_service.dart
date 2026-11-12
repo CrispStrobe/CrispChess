@@ -133,15 +133,22 @@ class PreferencesService {
   static const _keyGameFen = 'gameFen';
   static const _keyGameMoves = 'gameMoves';
 
+  String? get savedGameStartFen => _prefs?.getString('gameStartFen');
+
   String? get savedGameFen => _prefs?.getString(_keyGameFen);
   String? get savedGameMoves => _prefs?.getString(_keyGameMoves);
 
-  void saveGame(String fen, List<String> moves) {
+  void saveGame(String fen, List<String> moves, {String? startFen}) {
+    if (startFen != null)
+      _prefs?.setString('gameStartFen', startFen);
+    else
+      _prefs?.remove('gameStartFen');
     _prefs?.setString(_keyGameFen, fen);
     _prefs?.setString(_keyGameMoves, moves.join(' '));
   }
 
   void clearSavedGame() {
+    _prefs?.remove('gameStartFen');
     _prefs?.remove(_keyGameFen);
     _prefs?.remove(_keyGameMoves);
   }

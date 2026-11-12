@@ -7,9 +7,10 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'model.dart';
+import '../maia3_dart/onnx/model_fetch.dart';
 
 @JS('searchlessOnnxLoad')
-external JSPromise<JSAny?> _load(JSString key, JSString url);
+external JSPromise<JSAny?> _load(JSString key, JSString url, JSUint8Array bytes);
 
 @JS('searchlessOnnxInfer')
 external JSPromise<JSFloat32Array> _infer(JSString key, JSInt32Array tokens, JSNumber rows);
@@ -24,7 +25,8 @@ class WebSearchlessModel implements SearchlessModel {
   static bool get isSupported => true;
 
   static Future<WebSearchlessModel> load(String key, String url) async {
-    await _load(key.toJS, url.toJS).toDart;
+    final bytes = await fetchModelBytes(url, 'searchless_$key.onnx');
+    await _load(key.toJS, url.toJS, bytes.toJS).toDart;
     return WebSearchlessModel._(key);
   }
 

@@ -30,7 +30,10 @@ import '../widgets/eval_chart.dart';
 import '../widgets/horizontal_evaluation_bar.dart';
 import '../chess/openings.dart';
 import '../chess/puzzle.dart';
-import '../chess/xp_system.dart' show XpAwards, levelFromXp, PlayerLevel;
+import '../chess/xp_system.dart' show PlayerLevel;
+import '../controllers/game_session_controller.dart';
+import '../controllers/voice_move_controller.dart';
+import 'model_manager_screen.dart';
 import '../main.dart' show themeNotifier, localeNotifier;
 import 'about_screen.dart';
 import 'coordinate_trainer_screen.dart';
@@ -92,6 +95,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   final SoundService _sound = createSoundService();
   final PreferencesService _prefs = PreferencesService();
   final PuzzleDatabase _puzzleDb = PuzzleDatabase();
+  late final _session = GameSessionController(_prefs);
+  final _keyboardFocus = FocusNode(debugLabel: 'game shortcuts');
 
   final ValueNotifier<double?> _evalNotifier = ValueNotifier<double?>(null);
   final ValueNotifier<int> _depthNotifier = ValueNotifier<int>(0);
@@ -102,7 +107,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   /// Voice moves: shown only when this build has the speech library.
   final bool _voiceAvailable =
       VoiceInput.available || ChessGameScreen.debugVoiceRanking != null;
-  VoiceInput? _voice;
+  final _voice = VoiceMoveController();
   bool _voiceBusy = false; // loading the model or recognising
 
   /// Multi-PV lines from engine analysis (index 0 = best line).
@@ -229,12 +234,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _resumeSavedGame() {
     final moves = _prefs.savedGameMoves;
     if (moves == null || moves.isEmpty) return;
-    // Replay moves
-    final moveList = moves.split(' ');
-    _game.reset();
-    for (final m in moveList) {
-      if (!_game.makeMove(m)) break;
-    }
+    final moveList = _session.restore(_game);
     setState(() {
       _state = _state.copyWith(
         statusMessage: AppLocalizations.of(context)?.gameResumed ?? 'Game resumed',
@@ -730,15 +730,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       return _playVoiceMove(ranked);
     }
     final l10n = AppLocalizations.of(context);
-    final voice = _voice;
-    if (voice != null && voice.listening) {
+    if (_voice.listening) {
       final fen = _game.currentFEN;
       setState(() {
         _voiceBusy = true;
         _state = _state.copyWith(statusMessage: l10n?.voiceRecognizing ?? 'Recognising…');
       });
       try {
-        final ranked = await voice.stopAndRank(fen, _voiceLanguage);
+        final ranked = await _voice.recognize(fen, _voiceLanguage);
         if (!mounted) return;
         setState(() => _voiceBusy = false);
         // The position may have changed while recognising (undo, new game).
@@ -752,17 +751,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       return;
     }
     try {
-      if (voice == null) {
-        setState(() {
+      setState(() {
           _voiceBusy = true;
           _state = _state.copyWith(
               statusMessage: l10n?.voiceLoading('${VoiceModel.base.megabytes}') ??
                   'Loading the speech model…');
         });
-        _voice = await VoiceInput.open(model: VoiceModel.base);
-        if (!mounted) return;
-      }
-      await _voice!.startListening();
+      await _voice.start();
       if (!mounted) return;
       setState(() {
         _voiceBusy = false;
@@ -994,28 +989,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _showGameOverDialog() {
-    // Track game stats + award XP
-    _prefs.gamesPlayed = _prefs.gamesPlayed + 1;
-    final levelBefore = levelFromXp(_prefs.totalXp);
-    bool playerWon = false;
-    if (_game.winner != null) {
-      playerWon = (_state.playAsBlack && _game.winner == 'Black') ||
-          (!_state.playAsBlack && _game.winner == 'White');
-      if (playerWon) {
-        _prefs.gamesWon = _prefs.gamesWon + 1;
-        _prefs.addXp(XpAwards.gameWin(_state.strengthLevel));
-      } else {
-        _prefs.addXp(XpAwards.gameLoss);
-      }
-    } else {
-      _prefs.addXp(XpAwards.gameDraw);
-    }
-
-    // Check for level-up
-    final levelAfter = levelFromXp(_prefs.totalXp);
-    if (levelAfter != levelBefore) {
+    final completion = _session.finish(_game,
+        engineName: _engineService.engineName,
+        playAsBlack: _state.playAsBlack,
+        twoPlayer: _state.twoPlayerMode,
+        strengthLevel: _state.strengthLevel);
+      if (completion == null) return;
+    final playerWon = completion.playerWon;
+    if (completion.levelAfter != completion.levelBefore) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) _showLevelUpDialog(levelAfter);
+        if (mounted) _showLevelUpDialog(completion.levelAfter);
       });
     }
 
@@ -1036,14 +1019,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         }
       });
     }
-
-    // Save completed game to history
-    final pgn = _game.toPgn(
-      engineName: _state.twoPlayerMode ? 'Human' : _engineService.engineName,
-      playAsBlack: _state.playAsBlack,
-    );
-    _prefs.addGameToHistory(pgn);
-    _prefs.clearSavedGame();
 
     showDialog(
       context: context,
@@ -1276,7 +1251,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   @override
   void dispose() {
-    _voice?.dispose();
+    _voice.dispose();
+    _keyboardFocus.dispose();
     _eventSubscription?.cancel();
     _multiEngineSub?.cancel();
     _multiEngine?.dispose();
@@ -2030,13 +2006,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
   }
 
-  void _autoSaveGame() {
-    if (_game.hasMoves && !_game.isGameOver) {
-      _prefs.saveGame(_game.currentFEN, _game.moveHistory);
-    } else {
-      _prefs.clearSavedGame();
-    }
-  }
+  void _autoSaveGame() => _session.save(_game);
 
   void _playMoveSound(String uci) {
     if (_game.inCheck) {
@@ -2421,6 +2391,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         const Divider(height: 1),
         // 7. Settings
         item(Icons.settings, l?.settings ?? 'Settings', _openSettings),
+        item(Icons.download, l?.modelManager ?? 'Downloads & storage', () {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const ModelManagerScreen()));
+        }),
         // 8. About
         item(Icons.info_outline, l?.about ?? 'About', () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
@@ -2433,7 +2407,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
+      focusNode: _keyboardFocus,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: Scaffold(
@@ -2580,12 +2554,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           if (_voiceAvailable)
             IconButton(
               icon: Icon(
-                _voice?.listening == true ? Icons.mic : Icons.mic_none,
+                _voice.listening == true ? Icons.mic : Icons.mic_none,
                 size: 20,
-                color: _voice?.listening == true ? Colors.red : null,
+                color: _voice.listening == true ? Colors.red : null,
               ),
               tooltip: AppLocalizations.of(context)?.voiceMove ?? 'Speak a move',
-              onPressed: _voiceBusy || (_voice?.listening != true && (!_isPlayerTurn || _state.isThinking))
+              onPressed: _voiceBusy || (_voice.listening != true && (!_isPlayerTurn || _state.isThinking))
                   ? null
                   : _toggleVoice,
             ),
@@ -2776,7 +2750,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       _toggleAnalysis();
     } else if (key == LogicalKeyboardKey.keyV) {
       if (_voiceAvailable && !_voiceBusy &&
-          (_voice?.listening == true || (_isPlayerTurn && !_state.isThinking))) {
+          (_voice.listening == true || (_isPlayerTurn && !_state.isThinking))) {
         _toggleVoice();
       }
     }

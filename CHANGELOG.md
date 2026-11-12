@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- Initialize the Flutter binding before reading platform preferences at startup,
+  fixing the launch exception seen in the archived macOS smoke-test logs.
+- macOS release validation checks the executable name and localized app names,
+  preventing a localized “Runner” name from reaching a future submission.
+- Direct Play, Review and Train navigation, with daily practice goals and recall progress.
+- Independent game reviews use the same engine and depth for adjacent positions;
+  accuracy follows the player's recorded color. Pending or shallow evaluations
+  are excluded, and score changes alone never earn a brilliant label.
+- Reviews save missed positions to a deduplicated practice queue. Solve them,
+  step through legal continuations, and revisit them on a 1/3/7/14/30-day schedule.
+- Human Lens positions and missed moves link directly to practice, including
+  isolated replays against Your Ghost that leave the main game and stats intact.
+- Opponent presets for similar strength, human-like play and strong analysis.
+- Shared model downloads show progress, cancellation and cached storage removal;
+  failed or interrupted transfers do not become usable cache files.
+- Board square semantics, keyboard move input and system reduced-motion support.
+- Extracted review, game-session, voice and practice-opponent controllers;
+  saved games retain custom starting positions and completion is counted once.
+- New controls are localized in English and German.
+
 ## 2.3.1
 
 ### What to test

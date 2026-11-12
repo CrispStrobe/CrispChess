@@ -5,7 +5,7 @@
 
 const searchlessSessions = {};
 
-async function searchlessOnnxLoad(key, modelUrl) {
+async function searchlessOnnxLoad(key, modelUrl, modelBytes) {
   if (searchlessSessions[key]) return;
   if (typeof globalThis.ort === 'undefined' && typeof window._loadOrt === 'function') {
     await window._loadOrt();
@@ -17,25 +17,29 @@ async function searchlessOnnxLoad(key, modelUrl) {
       globalThis.ort.env.wasm.wasmPaths = await resolveWasmPaths(); // lc0_onnx_bridge.js
     }
   }
-  let bytes;
-  try {
-    const cache = await caches.open('searchless-models');
-    const hit = await cache.match(modelUrl);
-    if (hit) {
-      bytes = new Uint8Array(await hit.arrayBuffer());
-    } else {
+  let bytes = modelBytes;
+  if (!bytes) {
+    try {
+      const cache = await caches.open('searchless-models');
+      const hit = await cache.match(modelUrl);
+      if (hit) {
+        bytes = new Uint8Array(await hit.arrayBuffer());
+      } else {
+        const response = await fetch(modelUrl);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const copy = response.clone();
+        bytes = new Uint8Array(await response.arrayBuffer());
+        try { await cache.put(modelUrl, copy); } catch (_) {}
+      }
+    } catch (e) {
       const response = await fetch(modelUrl);
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const copy = response.clone();
       bytes = new Uint8Array(await response.arrayBuffer());
-      try { await cache.put(modelUrl, copy); } catch (_) {}
     }
-  } catch (e) {
-    const response = await fetch(modelUrl);
-    bytes = new Uint8Array(await response.arrayBuffer());
   }
   searchlessSessions[key] = await globalThis.ort.InferenceSession.create(
-    bytes.buffer, { executionProviders: ['wasm'] });
+    bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+      ? bytes.buffer
+      : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), { executionProviders: ['wasm'] });
   console.log('[Searchless] ' + key + ' ready (ONNX Runtime Web)');
 }
 

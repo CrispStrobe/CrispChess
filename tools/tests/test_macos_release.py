@@ -233,6 +233,57 @@ class AppValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "CFBundleExecutable"):
             verify_app(self.app, "3.2.1", "42")
 
+    def test_rejects_runner_executable_even_when_it_exists(self):
+        self.executable.rename(self.executable.with_name("Runner"))
+        self.write_info(self.info | {"CFBundleExecutable": "Runner"})
+        with self.assertRaisesRegex(ValueError, "CFBundleExecutable"):
+            verify_app(self.app, "3.2.1", "42")
+
+    def localized_names(self, locale):
+        path = self.app / "Contents/Resources" / f"{locale}.lproj/InfoPlist.strings"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def test_accepts_localized_plist_names_and_inherited_names(self):
+        for locale, fmt in (("en", plistlib.FMT_XML), ("de", plistlib.FMT_BINARY)):
+            self.localized_names(locale).write_bytes(plistlib.dumps({
+                "CFBundleName": "CrispChess", "CFBundleDisplayName": "CrispChess",
+            }, fmt=fmt))
+        self.localized_names("fr").write_text('"NSMicrophoneUsageDescription" = "Speak a move";')
+        verify_app(self.app, "3.2.1", "42")
+
+    def test_accepts_utf8_and_utf16_names_without_reading_comments_as_overrides(self):
+        text = r'''/* CFBundleName = "Runner"; */
+"CFBundleName" = "\U0043rispChess";
+CFBundleDisplayName = "CrispChess";
+"NSMicrophoneUsageDescription" = "See https://example.com/CFBundleName";
+// CFBundleDisplayName = "Runner";
+'''
+        for locale, encoding in (("en", "utf-8-sig"), ("de", "utf-16")):
+            self.localized_names(locale).write_text(text, encoding=encoding)
+        verify_app(self.app, "3.2.1", "42")
+
+    def test_rejects_localized_name_mismatch_in_every_supported_format(self):
+        for key in ("CFBundleName", "CFBundleDisplayName"):
+            for fmt in (plistlib.FMT_XML, plistlib.FMT_BINARY, "utf-8", "utf-16"):
+                with self.subTest(key=key, fmt=fmt):
+                    path = self.localized_names("de")
+                    if isinstance(fmt, str):
+                        path.write_text(f'"{key}" = "Runner";', encoding=fmt)
+                    else:
+                        path.write_bytes(plistlib.dumps({key: "Runner"}, fmt=fmt))
+                    with self.assertRaisesRegex(ValueError, rf"de.lproj.*{key}"):
+                        verify_app(self.app, "3.2.1", "42")
+
+    def test_rejects_unreadable_localized_names(self):
+        path = self.localized_names("en")
+        for content in (b'"CFBundleName" = "CrispChess"', b'\xffbad',
+                        plistlib.dumps(["Runner"]), b'"CFBundleName" ? "Runner";'):
+            with self.subTest(content=content):
+                path.write_bytes(content)
+                with self.assertRaisesRegex(ValueError, "cannot read.*en.lproj"):
+                    verify_app(self.app, "3.2.1", "42")
+
     def test_rejects_wrong_bundle_filename(self):
         runner = self.app.with_name("Runner.app")
         self.app.rename(runner)

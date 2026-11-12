@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../chess/chess_game.dart';
 import '../chess/drill.dart';
 import '../widgets/chess_board.dart';
+import '../services/daily_practice_service.dart';
 
 /// Screen listing available drills.
 class DrillListScreen extends StatelessWidget {
@@ -142,6 +143,7 @@ class _DrillPlayerScreenState extends State<DrillPlayerScreen> {
     SharedPreferences.getInstance().then((prefs) {
       final key = 'drill_${widget.drill.id}';
       prefs.setBool(key, true);
+      if (widget.drill.category == 'endgame') DailyPracticeService(prefs).record('endgame');
     });
 
     showDialog(

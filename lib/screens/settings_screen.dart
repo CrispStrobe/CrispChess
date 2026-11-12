@@ -12,6 +12,7 @@ import '../engines/ghost_engine.dart' show ghostEngineName;
 import '../engines/searchless_engine.dart';
 import '../widgets/ghost_profile_card.dart';
 import 'engine_manager_screen.dart';
+import 'model_manager_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int strengthLevel;
@@ -59,6 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _lc0Backend;
   int _customBaseMinutes = 10;
   int _customIncrementSeconds = 0;
+  int _suggestedElo = 1500;
   int _engineHashMb = 64;
   int _engineThreads = 1;
   String _boardTheme = 'brown';
@@ -106,6 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSavedPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    _suggestedElo = prefs.getInt('ghostElo') ?? 1500;
     final lang = prefs.getString('locale') ?? 'system';
     final solid = prefs.getBool('solidBlackPieces') ?? false;
     final customBase = prefs.getInt('customBaseMinutes') ?? 10;
@@ -398,11 +401,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final labels = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l?.settings ?? 'Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(labels.opponentPresets,
+              style: Theme.of(context).textTheme.titleLarge),
+          Card(
+              child: Column(children: [
+            ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(labels.aroundMyLevel),
+                subtitle: Text(labels.aroundMyLevelNote),
+                onTap: () => setState(() {
+                      _selectedEngine = 'Maia3 Dart';
+                      _maia3Variant = '5m';
+                      _strengthLevel =
+                          ((_suggestedElo - 800) / 60).round().clamp(0, 20);
+                    })),
+            ListTile(
+                leading: const Icon(Icons.groups),
+                title: Text(labels.humanLike),
+                subtitle: Text(labels.humanLikeNote),
+                onTap: () => setState(() {
+                      _selectedEngine = ghostEngineName;
+                      _maia3Variant = '5m';
+                    })),
+            ListTile(
+                leading: const Icon(Icons.analytics),
+                title: Text(labels.strongAnalysis),
+                subtitle: Text(labels.strongAnalysisNote),
+                onTap: () => setState(() {
+                      _selectedEngine = _availableEngines
+                              .any((e) => e.name == 'Lynx' && e.available)
+                          ? 'Lynx'
+                          : 'Frozenight';
+                      _maia3Variant = '5m';
+                      _strengthLevel = 20;
+                    })),
+          ])),
+          ListTile(
+              leading: const Icon(Icons.download),
+              title: Text(labels.modelManager),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ModelManagerScreen()))),
+          const SizedBox(height: 12),
+          Text(labels.advancedSettings,
+              style: Theme.of(context).textTheme.titleMedium),
           // Engine selector
           Text(l?.chessEngine ?? 'Chess Engine', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),

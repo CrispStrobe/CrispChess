@@ -1120,4 +1120,210 @@ class AppLocalizationsEn extends AppLocalizations {
   String voiceFailed(Object error) {
     return 'Voice input failed: $error';
   }
+
+  @override
+  String get playTab => 'Play';
+
+  @override
+  String get reviewTab => 'Review';
+
+  @override
+  String get trainTab => 'Train';
+
+  @override
+  String get dailyPractice => 'Your daily practice';
+
+  @override
+  String get practiceMistakes => 'Practise my mistakes';
+
+  @override
+  String get reviewGameAction => 'Analyse this game';
+
+  @override
+  String get reviewConsistentNote =>
+      'Review uses the built-in engine at depth 8 for every position. Accuracy is the share of reviewed moves losing less than half a pawn; it is an estimate.';
+
+  @override
+  String get reviewPending =>
+      'Run a review to get comparable evaluations and save practice positions.';
+
+  @override
+  String get reviewIncomplete =>
+      'Some positions did not reach the review depth and are excluded from accuracy and practice.';
+
+  @override
+  String get cancelAction => 'Cancel';
+
+  @override
+  String get retryAction => 'Try again';
+
+  @override
+  String get practiceEmpty =>
+      'No positions due. Review a game to build your practice queue.';
+
+  @override
+  String get practiceCorrect =>
+      'Correct. Now explore the continuation or replay against your Ghost.';
+
+  @override
+  String get practiceIncorrect =>
+      'Try another move. This position will return tomorrow.';
+
+  @override
+  String get showSolutionAction => 'Show solution';
+
+  @override
+  String get continuationAction => 'Show continuation';
+
+  @override
+  String get nextPosition => 'Next position';
+
+  @override
+  String get practiceComplete => 'Practice complete';
+
+  @override
+  String get practiceSaved => 'Saved for practice';
+
+  @override
+  String get addToPractice => 'Practise this position';
+
+  @override
+  String get playGhost => 'Replay against my Ghost';
+
+  @override
+  String get ghostPracticeNote =>
+      'Your Ghost uses your games and Maia. First use downloads the 25 MB model. This practice game does not change your game history or rating.';
+
+  @override
+  String get ghostPracticeTitle => 'Practise against your Ghost';
+
+  @override
+  String get whiteToMoveLabel => 'White to move';
+
+  @override
+  String get blackToMoveLabel => 'Black to move';
+
+  @override
+  String get ghostThinking => 'Your Ghost is thinking…';
+
+  @override
+  String get loadingOpponent => 'Loading opponent…';
+
+  @override
+  String get practiceProgress => 'Practice progress';
+
+  @override
+  String get puzzlePractice => 'Solve five puzzles';
+
+  @override
+  String get endgamePractice => 'Practise an endgame';
+
+  @override
+  String get recentGames => 'Review a recent game';
+
+  @override
+  String get opponentPresets => 'Choose an opponent';
+
+  @override
+  String get aroundMyLevel => 'Around my level';
+
+  @override
+  String get humanLike => 'Human-like';
+
+  @override
+  String get strongAnalysis => 'Strong analysis';
+
+  @override
+  String get aroundMyLevelNote =>
+      'Maia 5M at your estimated level; 25 MB on first use.';
+
+  @override
+  String get humanLikeNote =>
+      'Your Ghost: your openings and human-like choices; 25 MB on first use.';
+
+  @override
+  String get strongAnalysisNote =>
+      'Full strength: Lynx where supported, otherwise Frozenight. Desktop Lynx downloads on first use.';
+
+  @override
+  String get advancedSettings => 'Advanced settings';
+
+  @override
+  String get modelManager => 'Downloads & storage';
+
+  @override
+  String get noModelDownloads =>
+      'No downloaded models yet. Models appear here when first used.';
+
+  @override
+  String get cachedModelsNote =>
+      'Removing a download frees its stored copy. Loaded models stay available until you leave the feature or restart the app.';
+
+  @override
+  String get downloadCancelled =>
+      'Download cancelled. You can retry from the feature.';
+
+  @override
+  String get removeDownload => 'Remove download';
+
+  @override
+  String get clearMistakesAction => 'Clear practice queue';
+
+  @override
+  String get queueCleared => 'Practice queue cleared';
+
+  @override
+  String get promoteTo => 'Promote to';
+
+  @override
+  String get practiceAll => 'Practise all saved positions';
+
+  @override
+  String get closeAction => 'Close';
+
+  @override
+  String get piecePawn => 'pawn';
+
+  @override
+  String get pieceKnight => 'knight';
+
+  @override
+  String get pieceBishop => 'bishop';
+
+  @override
+  String get pieceRook => 'rook';
+
+  @override
+  String get pieceQueen => 'queen';
+
+  @override
+  String get pieceKing => 'king';
+
+  @override
+  String get emptySquare => 'empty';
+
+  @override
+  String get legalDestination => 'legal destination';
+
+  @override
+  String get inCheckLabel => 'in check';
+
+  @override
+  String get boardKeyboardHint =>
+      'Chessboard. Use arrow keys to choose a square; Enter or Space to select or move. Tab leaves the board.';
+
+  @override
+  String get practicePositions => 'positions';
+
+  @override
+  String get reviewSide => 'Which side did you play?';
+
+  @override
+  String get white => 'White';
+
+  @override
+  String get black => 'Black';
+
+  @override
+  String get invalidReviewPgn => 'This PGN could not be loaded.';
 }

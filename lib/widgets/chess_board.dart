@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../chess/board_annotations.dart';
 import '../chess/board_theme.dart';
 import '../chess/chess_game.dart';
@@ -63,6 +65,61 @@ class _ChessBoardState extends State<ChessBoard>
   late AnimationController _animController;
   late CurvedAnimation _curvedAnim;
   String? _lastProcessedMove;
+  final _boardFocus = FocusNode(debugLabel: 'chessboard');
+  int _focusRow = 7, _focusCol = 0;
+  (int, int)? _keyboardFrom;
+  bool get _reduceMotion =>
+      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+  void _activateSquare(int row, int col) {
+    _boardFocus.requestFocus();
+    setState(() {
+      _focusRow = row;
+      _focusCol = col;
+    });
+    if (widget.onSquareTap != null) {
+      widget.onSquareTap!(row, col);
+      return;
+    }
+    final from = _keyboardFrom;
+    if (from != null && widget.onMove != null) {
+      widget.onMove!(from.$1, from.$2, row, col);
+      setState(() => _keyboardFrom = null);
+    } else if (widget.onMove != null) {
+      setState(() => _keyboardFrom = (row, col));
+    }
+  }
+
+  KeyEventResult _onBoardKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent)
+      return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final direction = widget.flipped ? -1 : 1;
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+      _activateSquare(_focusRow, _focusCol);
+      return KeyEventResult.handled;
+    }
+    var row = _focusRow, col = _focusCol;
+    if (key == LogicalKeyboardKey.arrowUp)
+      row -= direction;
+    else if (key == LogicalKeyboardKey.arrowDown)
+      row += direction;
+    else if (key == LogicalKeyboardKey.arrowLeft)
+      col -= direction;
+    else if (key == LogicalKeyboardKey.arrowRight)
+      col += direction;
+    else if (key == LogicalKeyboardKey.escape) {
+      setState(() => _keyboardFrom = null);
+      return KeyEventResult.handled;
+    } else {
+      return KeyEventResult.ignored;
+    }
+    setState(() {
+      _focusRow = row.clamp(0, 7);
+      _focusCol = col.clamp(0, 7);
+    });
+    return KeyEventResult.handled;
+  }
 
   // Animation state: piece sliding from one square to another
   int? _animFromRow, _animFromCol, _animToRow, _animToCol;
@@ -75,6 +132,10 @@ class _ChessBoardState extends State<ChessBoard>
   @override
   void initState() {
     super.initState();
+    if (widget.flipped) {
+      _focusRow = 0;
+      _focusCol = 7;
+    }
     _animController = AnimationController(
       duration: Duration(milliseconds: widget.animationDurationMs.clamp(100, 2000)),
       vsync: this,
@@ -108,7 +169,8 @@ class _ChessBoardState extends State<ChessBoard>
 
     if (widget.lastMoveUci != null &&
         widget.lastMoveUci != _lastProcessedMove &&
-        widget.animationDurationMs > 0) {
+        widget.animationDurationMs > 0 &&
+        !_reduceMotion) {
       _lastProcessedMove = widget.lastMoveUci;
       _startMoveAnimation(widget.lastMoveUci!);
     } else if (widget.lastMoveUci != null &&
@@ -146,6 +208,7 @@ class _ChessBoardState extends State<ChessBoard>
 
   @override
   void dispose() {
+    _boardFocus.dispose();
     _curvedAnim.dispose();
     _animController.dispose();
     super.dispose();
@@ -175,9 +238,25 @@ class _ChessBoardState extends State<ChessBoard>
       lastTo = widget.lastMoveUci!.substring(2, 4);
     }
 
-    final isAnimating = _animPiece != null;
+    final isAnimating = _animPiece != null && !_reduceMotion;
 
-    return AspectRatio(
+    final l = AppLocalizations.of(context);
+    final interactive = widget.onSquareTap != null || widget.onMove != null;
+
+    return Semantics(
+        container: true,
+        explicitChildNodes: true,
+        label:
+            '${l?.boardKeyboardHint ?? 'Chessboard. Arrow keys move; Enter selects.'} '
+            '${widget.whiteToMove ? (l?.whiteToMoveLabel ?? 'White to move') : (l?.blackToMoveLabel ?? 'Black to move')}',
+        child: Focus(
+            focusNode: _boardFocus,
+            canRequestFocus: interactive,
+            onFocusChange: (_) {
+              if (mounted) setState(() {});
+            },
+            onKeyEvent: _onBoardKey,
+            child: AspectRatio(
       aspectRatio: 1,
       child: Container(
         decoration: BoxDecoration(
@@ -211,8 +290,10 @@ class _ChessBoardState extends State<ChessBoard>
                             final squareName =
                                 widget.squareToAlgebraic(row, col);
                             final isLight = (row + col) % 2 == 0;
-                            final isSelected = widget.selectedRow == row &&
-                                widget.selectedCol == col;
+                            final isSelected =
+                                        (widget.selectedRow == row &&
+                                widget.selectedCol == col) ||
+                                            _keyboardFrom == (row, col);
                             final isValidTarget =
                                 validTargets.contains(squareName);
                             final isHintFrom = squareName == hintFrom;
@@ -244,7 +325,11 @@ class _ChessBoardState extends State<ChessBoard>
                               row: row,
                               col: col,
                               piece: piece,
-                              squareName: squareName,
+                                      semanticPiece: widget.board[row][col],
+                                      isKeyboardFocused: _boardFocus.hasFocus &&
+                                          row == _focusRow &&
+                                          col == _focusCol,
+                                      squareName: squareName,
                               isLight: isLight,
                               isSelected: isSelected,
                               isValidTarget: isValidTarget,
@@ -259,7 +344,8 @@ class _ChessBoardState extends State<ChessBoard>
                                   : visualRow == 7
                                       ? String.fromCharCode(97 + col)
                                       : null,
-                              onSquareTap: widget.onSquareTap,
+                              onSquareTap:
+                                          interactive ? _activateSquare : null,
                               onMove: widget.onMove,
                               pieceTheme: widget.pieceTheme,
                               solidBlackPieces: widget.solidBlackPieces,
@@ -330,7 +416,8 @@ class _ChessBoardState extends State<ChessBoard>
                       },
                     ),
                   // Capture particle burst effect
-                  if (_showCaptureEffect && _captureRow != null && _captureCol != null)
+                  if (!_reduceMotion &&
+                              _showCaptureEffect && _captureRow != null && _captureCol != null)
                     CaptureEffect(
                       row: _captureRow!,
                       col: _captureCol!,
@@ -348,7 +435,7 @@ class _ChessBoardState extends State<ChessBoard>
           ),
         ),
       ),
-    );
+    )));
   }
 }
 
@@ -356,6 +443,8 @@ class _ChessSquare extends StatelessWidget {
   final int row;
   final int col;
   final ChessPiece? piece;
+  final ChessPiece? semanticPiece;
+  final bool isKeyboardFocused;
   final String squareName;
   final bool isLight;
   final bool isSelected;
@@ -378,6 +467,8 @@ class _ChessSquare extends StatelessWidget {
     required this.col,
     required this.piece,
     required this.squareName,
+    this.semanticPiece,
+    this.isKeyboardFocused = false,
     required this.isLight,
     required this.isSelected,
     required this.isValidTarget,
@@ -405,7 +496,33 @@ class _ChessSquare extends StatelessWidget {
     final isHintSquare = isHintFrom || isHintTo;
     final pieceSize = squareSize * 0.85;
 
+    final l = AppLocalizations.of(context);
+    final actualPiece = semanticPiece ?? piece;
+    String pieceName(ChessPiece p) => switch (p.type) {
+          PieceType.pawn => l?.piecePawn ?? 'pawn',
+          PieceType.knight => l?.pieceKnight ?? 'knight',
+          PieceType.bishop => l?.pieceBishop ?? 'bishop',
+          PieceType.rook => l?.pieceRook ?? 'rook',
+          PieceType.queen => l?.pieceQueen ?? 'queen',
+          PieceType.king => l?.pieceKing ?? 'king',
+        };
+    final label = [
+      squareName,
+      if (!blindfold)
+        actualPiece == null
+            ? (l?.emptySquare ?? 'empty')
+            : '${actualPiece.color == PieceColor.white ? (l?.white ?? 'White') : (l?.black ?? 'Black')} ${pieceName(actualPiece)}',
+      if (isValidTarget) l?.legalDestination ?? 'legal destination',
+      if (isKingInDanger) l?.inCheckLabel ?? 'in check',
+    ].join(', ');
     return Expanded(
+        child: Semantics(
+      label: label,
+      button: onSquareTap != null,
+      selected: isSelected,
+      focused: isKeyboardFocused,
+      onTap: onSquareTap == null ? null : () => onSquareTap!(row, col),
+      excludeSemantics: true,
       child: GestureDetector(
         onTap: () => onSquareTap?.call(row, col),
         child: DragTarget<Map<String, int>>(
@@ -443,7 +560,10 @@ class _ChessSquare extends StatelessWidget {
             return Container(
               decoration: BoxDecoration(
                 color: bgColor,
-                border: candidateData.isNotEmpty
+                border: isKeyboardFocused
+                    ? Border.all(
+                        color: Theme.of(context).colorScheme.primary, width: 3)
+                    : candidateData.isNotEmpty
                     ? Border.all(color: Colors.green, width: 3)
                     : isSelected
                         ? Border.all(color: Colors.blue, width: 3)
@@ -490,6 +610,7 @@ class _ChessSquare extends StatelessWidget {
                   if (piece != null && !blindfold)
                     Draggable<Map<String, int>>(
                       data: {'row': row, 'col': col},
+                      maxSimultaneousDrags: onMove == null ? 0 : 1,
                       feedback: _PieceWidget(
                         piece: piece!,
                         size: pieceSize * 1.15,
@@ -510,7 +631,7 @@ class _ChessSquare extends StatelessWidget {
           },
         ),
       ),
-    );
+    ));
   }
 }
 

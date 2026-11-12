@@ -2102,6 +2102,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Voice input failed: {error}'**
   String voiceFailed(Object error);
+
+  /// No description provided for @playTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get playTab;
+
+  /// No description provided for @reviewTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get reviewTab;
+
+  /// No description provided for @trainTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Train'**
+  String get trainTab;
+
+  /// No description provided for @dailyPractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily practice'**
+  String get dailyPractice;
+
+  /// No description provided for @practiceMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise my mistakes'**
+  String get practiceMistakes;
+
+  /// No description provided for @reviewGameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyse this game'**
+  String get reviewGameAction;
+
+  /// No description provided for @reviewConsistentNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Review uses the built-in engine at depth 8 for every position. Accuracy is the share of reviewed moves losing less than half a pawn; it is an estimate.'**
+  String get reviewConsistentNote;
+
+  /// No description provided for @reviewPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Run a review to get comparable evaluations and save practice positions.'**
+  String get reviewPending;
+
+  /// No description provided for @reviewIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some positions did not reach the review depth and are excluded from accuracy and practice.'**
+  String get reviewIncomplete;
+
+  /// No description provided for @cancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelAction;
+
+  /// No description provided for @retryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get retryAction;
+
+  /// No description provided for @practiceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No positions due. Review a game to build your practice queue.'**
+  String get practiceEmpty;
+
+  /// No description provided for @practiceCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct. Now explore the continuation or replay against your Ghost.'**
+  String get practiceCorrect;
+
+  /// No description provided for @practiceIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another move. This position will return tomorrow.'**
+  String get practiceIncorrect;
+
+  /// No description provided for @showSolutionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show solution'**
+  String get showSolutionAction;
+
+  /// No description provided for @continuationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show continuation'**
+  String get continuationAction;
+
+  /// No description provided for @nextPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Next position'**
+  String get nextPosition;
+
+  /// No description provided for @practiceComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice complete'**
+  String get practiceComplete;
+
+  /// No description provided for @practiceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved for practice'**
+  String get practiceSaved;
+
+  /// No description provided for @addToPractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise this position'**
+  String get addToPractice;
+
+  /// No description provided for @playGhost.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay against my Ghost'**
+  String get playGhost;
+
+  /// No description provided for @ghostPracticeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Ghost uses your games and Maia. First use downloads the 25 MB model. This practice game does not change your game history or rating.'**
+  String get ghostPracticeNote;
+
+  /// No description provided for @ghostPracticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise against your Ghost'**
+  String get ghostPracticeTitle;
+
+  /// No description provided for @whiteToMoveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'White to move'**
+  String get whiteToMoveLabel;
+
+  /// No description provided for @blackToMoveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Black to move'**
+  String get blackToMoveLabel;
+
+  /// No description provided for @ghostThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Ghost is thinking…'**
+  String get ghostThinking;
+
+  /// No description provided for @loadingOpponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading opponent…'**
+  String get loadingOpponent;
+
+  /// No description provided for @practiceProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice progress'**
+  String get practiceProgress;
+
+  /// No description provided for @puzzlePractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Solve five puzzles'**
+  String get puzzlePractice;
+
+  /// No description provided for @endgamePractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise an endgame'**
+  String get endgamePractice;
+
+  /// No description provided for @recentGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Review a recent game'**
+  String get recentGames;
+
+  /// No description provided for @opponentPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an opponent'**
+  String get opponentPresets;
+
+  /// No description provided for @aroundMyLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Around my level'**
+  String get aroundMyLevel;
+
+  /// No description provided for @humanLike.
+  ///
+  /// In en, this message translates to:
+  /// **'Human-like'**
+  String get humanLike;
+
+  /// No description provided for @strongAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong analysis'**
+  String get strongAnalysis;
+
+  /// No description provided for @aroundMyLevelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Maia 5M at your estimated level; 25 MB on first use.'**
+  String get aroundMyLevelNote;
+
+  /// No description provided for @humanLikeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Ghost: your openings and human-like choices; 25 MB on first use.'**
+  String get humanLikeNote;
+
+  /// No description provided for @strongAnalysisNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Full strength: Lynx where supported, otherwise Frozenight. Desktop Lynx downloads on first use.'**
+  String get strongAnalysisNote;
+
+  /// No description provided for @advancedSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced settings'**
+  String get advancedSettings;
+
+  /// No description provided for @modelManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads & storage'**
+  String get modelManager;
+
+  /// No description provided for @noModelDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloaded models yet. Models appear here when first used.'**
+  String get noModelDownloads;
+
+  /// No description provided for @cachedModelsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing a download frees its stored copy. Loaded models stay available until you leave the feature or restart the app.'**
+  String get cachedModelsNote;
+
+  /// No description provided for @downloadCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled. You can retry from the feature.'**
+  String get downloadCancelled;
+
+  /// No description provided for @removeDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove download'**
+  String get removeDownload;
+
+  /// No description provided for @clearMistakesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear practice queue'**
+  String get clearMistakesAction;
+
+  /// No description provided for @queueCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice queue cleared'**
+  String get queueCleared;
+
+  /// No description provided for @promoteTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Promote to'**
+  String get promoteTo;
+
+  /// No description provided for @practiceAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise all saved positions'**
+  String get practiceAll;
+
+  /// No description provided for @closeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeAction;
+
+  /// No description provided for @piecePawn.
+  ///
+  /// In en, this message translates to:
+  /// **'pawn'**
+  String get piecePawn;
+
+  /// No description provided for @pieceKnight.
+  ///
+  /// In en, this message translates to:
+  /// **'knight'**
+  String get pieceKnight;
+
+  /// No description provided for @pieceBishop.
+  ///
+  /// In en, this message translates to:
+  /// **'bishop'**
+  String get pieceBishop;
+
+  /// No description provided for @pieceRook.
+  ///
+  /// In en, this message translates to:
+  /// **'rook'**
+  String get pieceRook;
+
+  /// No description provided for @pieceQueen.
+  ///
+  /// In en, this message translates to:
+  /// **'queen'**
+  String get pieceQueen;
+
+  /// No description provided for @pieceKing.
+  ///
+  /// In en, this message translates to:
+  /// **'king'**
+  String get pieceKing;
+
+  /// No description provided for @emptySquare.
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get emptySquare;
+
+  /// No description provided for @legalDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'legal destination'**
+  String get legalDestination;
+
+  /// No description provided for @inCheckLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'in check'**
+  String get inCheckLabel;
+
+  /// No description provided for @boardKeyboardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Chessboard. Use arrow keys to choose a square; Enter or Space to select or move. Tab leaves the board.'**
+  String get boardKeyboardHint;
+
+  /// No description provided for @practicePositions.
+  ///
+  /// In en, this message translates to:
+  /// **'positions'**
+  String get practicePositions;
+
+  /// No description provided for @reviewSide.
+  ///
+  /// In en, this message translates to:
+  /// **'Which side did you play?'**
+  String get reviewSide;
+
+  /// No description provided for @white.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get white;
+
+  /// No description provided for @black.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get black;
+
+  /// No description provided for @invalidReviewPgn.
+  ///
+  /// In en, this message translates to:
+  /// **'This PGN could not be loaded.'**
+  String get invalidReviewPgn;
 }
 
 class _AppLocalizationsDelegate

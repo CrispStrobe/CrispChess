@@ -5,6 +5,10 @@ import '../engines/uci_position.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../screens/human_lens_sheet.dart' show findabilityColor, sanForUci;
 import '../services/human_lens_service.dart';
+import '../chess/spaced_repetition.dart';
+import '../services/practice_service.dart';
+import '../services/preferences_service.dart';
+import '../screens/practice_screen.dart';
 
 /// Post-game "human review": the player's costly misses, split into ones that
 /// were genuinely hard to find and plain slips, plus the rating their moves
@@ -173,6 +177,21 @@ class _HumanReviewCardState extends State<HumanReviewCard> {
     ];
   }
 
+  Future<void> _practise(HumanMoveReview move) async {
+    final item = SrItem(
+        fen: _fenBefore(move.ply),
+        solution: move.bestMove!,
+        description: move.played,
+        continuation: [move.bestMove!],
+        source: 'humanLens');
+    final prefs = PreferencesService();
+    await prefs.init();
+    PracticeService(prefs).add(item);
+    if (!mounted) return;
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => PracticeScreen(initialItem: item)));
+  }
+
   Widget _missTile(AppLocalizations? l, HumanMoveReview m) {
     final fen = _fenBefore(m.ply);
     final played = sanForUci(fen, m.played);
@@ -182,7 +201,8 @@ class _HumanReviewCardState extends State<HumanReviewCard> {
     final hard = m.bestProbability < 0.1;
     final moveNo = '${m.ply ~/ 2 + 1}${m.ply.isEven ? '.' : '...'}';
     final percent = (m.bestProbability * 100).round();
-    return ListTile(
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
       onTap: widget.onShowPly == null ? null : () => widget.onShowPly!(m.ply),
@@ -197,6 +217,11 @@ class _HumanReviewCardState extends State<HumanReviewCard> {
         style: TextStyle(
             color: findabilityColor(f), fontWeight: FontWeight.bold),
       ),
-    );
+    ),
+      TextButton.icon(
+          onPressed: () => _practise(m),
+          icon: const Icon(Icons.school),
+          label: Text(l?.addToPractice ?? 'Practise this position')),
+    ]);
   }
 }

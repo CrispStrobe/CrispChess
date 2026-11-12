@@ -30,7 +30,7 @@ async function resolveWasmPaths() {
   return ortWasmPaths;
 }
 
-async function lc0OnnxLoad(modelUrl) {
+async function lc0OnnxLoad(modelUrl, downloadedBytes) {
   await lc0OnnxClose();
 
   // (Maia3 used to share ONNX Runtime here and its sessions had to be closed
@@ -61,30 +61,34 @@ async function lc0OnnxLoad(modelUrl) {
 
   console.log('[Lc0ONNX] Loading model from: ' + modelUrl);
 
-  let modelBytes;
-  try {
-    const cache = await caches.open('lc0-models');
-    const cached = await cache.match(modelUrl);
-    if (cached) {
-      console.log('[Lc0ONNX] Found in cache');
-      modelBytes = new Uint8Array(await cached.arrayBuffer());
-    } else {
-      console.log('[Lc0ONNX] Downloading...');
+  let modelBytes = downloadedBytes;
+  if (!modelBytes) {
+    try {
+      const cache = await caches.open('lc0-models');
+      const cached = await cache.match(modelUrl);
+      if (cached) {
+        console.log('[Lc0ONNX] Found in cache');
+        modelBytes = new Uint8Array(await cached.arrayBuffer());
+      } else {
+        console.log('[Lc0ONNX] Downloading...');
+        const response = await fetch(modelUrl);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const cloned = response.clone();
+        modelBytes = new Uint8Array(await response.arrayBuffer());
+        try { await cache.put(modelUrl, cloned); } catch(_) {}
+        console.log('[Lc0ONNX] Downloaded (' + modelBytes.length + ' bytes)');
+      }
+    } catch (e) {
+      console.log('[Lc0ONNX] Cache unavailable: ' + e);
       const response = await fetch(modelUrl);
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const cloned = response.clone();
       modelBytes = new Uint8Array(await response.arrayBuffer());
-      try { await cache.put(modelUrl, cloned); } catch(_) {}
-      console.log('[Lc0ONNX] Downloaded (' + modelBytes.length + ' bytes)');
     }
-  } catch (e) {
-    console.log('[Lc0ONNX] Cache unavailable: ' + e);
-    const response = await fetch(modelUrl);
-    modelBytes = new Uint8Array(await response.arrayBuffer());
-  }
 
+  }
   lc0OnnxSession = await globalThis.ort.InferenceSession.create(
-    modelBytes.buffer,
+    modelBytes.byteOffset === 0 && modelBytes.byteLength === modelBytes.buffer.byteLength
+      ? modelBytes.buffer
+      : modelBytes.buffer.slice(modelBytes.byteOffset, modelBytes.byteOffset + modelBytes.byteLength),
     { executionProviders: ['wasm'] }
   );
   console.log('[Lc0ONNX] Session ready');

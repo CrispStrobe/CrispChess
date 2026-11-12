@@ -94,7 +94,7 @@ chess.Chess? importPgn(String pgn) {
     if (moveText.isEmpty) return game; // Empty game is valid
 
     // Try loading via the chess package
-    if (game.load_pgn(moveText)) {
+    if (game.load_pgn(pgn.trim())) {
       return game;
     }
 

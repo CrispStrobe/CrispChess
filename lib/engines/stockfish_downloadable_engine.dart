@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'chess_engine.dart';
+import 'maia3_dart/onnx/model_fetch_native.dart' show downloadAssetFile;
 import 'uci_search_coordinator.dart';
 
 /// Download URL for stockfish.js WASM build (GPL-3.0, downloaded separately)
@@ -106,16 +107,11 @@ class StockfishDownloadableEngine
 
       // Download from CDN (GPL-3.0, never bundled with app)
       debugPrint('[Stockfish] Downloading from $_stockfishJsUrl...');
-      final client = HttpClient();
-      try {
-        final request = await client.getUrl(Uri.parse(_stockfishJsUrl));
-        final response = await request.close();
-        await response.pipe(targetFile.openWrite());
-        debugPrint('[Stockfish] Downloaded to ${targetFile.path}');
-        _downloadStatus.value = DownloadStatus.ready;
-      } finally {
-        client.close();
-      }
+      await downloadAssetFile(_stockfishJsUrl, targetFile, name: 'Stockfish',
+          onProgress: (received, total) {
+        if (total != null && total > 0) onProgress?.call(received / total);
+      });
+      _downloadStatus.value = DownloadStatus.ready;
     } catch (e) {
       debugPrint('[Stockfish] Download failed: $e');
       _downloadStatus.value = DownloadStatus.error;

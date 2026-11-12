@@ -4,6 +4,8 @@ import '../chess/puzzle.dart';
 import '../chess/chess_game.dart';
 import '../widgets/chess_board.dart';
 import 'puzzle_rush_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/daily_practice_service.dart';
 
 class PuzzleScreen extends StatefulWidget {
   final PuzzleDatabase puzzleDb;
@@ -171,6 +173,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     }
   }
 
+  void _recordSolved() {
+    SharedPreferences.getInstance().then((prefs) async {
+      await prefs.setInt('puzzlesSolved', (prefs.getInt('puzzlesSolved') ?? 0) + 1);
+      await DailyPracticeService(prefs).record('puzzle');
+    });
+  }
+
   void _tryMove(String uci) {
     if (_puzzle == null || _solved || _failed) return;
 
@@ -192,6 +201,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         setState(() {
           _solved = true;
           _solvedCount++;
+          _recordSolved();
           _message = 'Correct! Puzzle solved.';
         });
       } else {
@@ -204,6 +214,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           setState(() {
             _solved = true;
             _solvedCount++;
+          _recordSolved();
             _message = 'Correct! Puzzle solved.';
           });
         } else {

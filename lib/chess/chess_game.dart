@@ -64,6 +64,7 @@ class ChessGame with ChangeNotifier {
 
   double? _lastEvaluation;
   int? _lastDepth;
+  String _lastBestMove = '';
 
   /// Game tree for tracking variations.
   late GameTree _tree;
@@ -184,19 +185,12 @@ class ChessGame with ChangeNotifier {
   
   /// Update evaluation from Stockfish
   void updateEvaluation(double evaluation, String bestMove, int depth) {
+    if (_annotations.isNotEmpty && !_annotations.last.evaluation.isComplete) {
+      _completeLastAnnotation(evaluation, bestMove, depth);
+    }
     _lastEvaluation = evaluation;
     _lastDepth = depth;
-    
-    // If we have a pending annotation without complete evaluation, update it
-    if (_annotations.isNotEmpty) {
-      final last = _annotations.last;
-      // Check if this is an incomplete annotation (has scoreBefore but scoreAfter is 0)
-      if (last.evaluation.scoreBefore != 0.0 && 
-          last.evaluation.scoreAfter == 0.0 && 
-          last.evaluation.bestMove.isEmpty) {
-        _completeLastAnnotation(evaluation, bestMove, depth);
-      }
-    }
+    _lastBestMove = bestMove;
   }
   
   
@@ -233,8 +227,9 @@ class ChessGame with ChangeNotifier {
         evaluation: MoveEvaluation(
           scoreBefore: evalBefore,
           scoreAfter: 0.0,
-          bestMove: '',
-          bestMoveScore: 0.0,
+          bestMove: _lastBestMove,
+          bestMoveScore: evalBefore,
+          isComplete: false,
           depth: _lastDepth ?? 10,
           whiteToMove: wasWhite,
         ),
@@ -275,8 +270,9 @@ class ChessGame with ChangeNotifier {
     final tempEval = MoveEvaluation(
       scoreBefore: evalBefore,
       scoreAfter: 0.0,
-      bestMove: '',
-      bestMoveScore: 0.0,
+      bestMove: _lastBestMove,
+      bestMoveScore: evalBefore,
+      isComplete: false,
       depth: _lastDepth ?? 10,
       whiteToMove: whiteToMove,
     );
@@ -288,6 +284,8 @@ class ChessGame with ChangeNotifier {
 
     node.annotation = annotation;
     _annotations.add(annotation);
+    _lastEvaluation = null;
+    _lastBestMove = '';
     // Cap annotations to prevent unbounded memory growth
     if (_annotations.length > 500) _annotations.removeAt(0);
     notifyListeners();
@@ -300,6 +298,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   if (_annotations.isEmpty) return;
   
   final incomplete = _annotations.last;
+  if (incomplete.evaluation.bestMove.isEmpty) return;
   final evalBefore = incomplete.evaluation.scoreBefore;
   final whiteToMove = incomplete.evaluation.whiteToMove;  // GET THIS
   
@@ -307,8 +306,8 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   final completeEval = MoveEvaluation(
     scoreBefore: evalBefore,
     scoreAfter: evalAfter,
-    bestMove: bestMove,
-    bestMoveScore: evalAfter,
+    bestMove: incomplete.evaluation.bestMove,
+    bestMoveScore: evalBefore,
     depth: depth,
     whiteToMove: whiteToMove,  // ADD THIS
   );
@@ -320,6 +319,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   );
   
   _annotations[_annotations.length - 1] = completeAnnotation;
+  _tree.current.annotation = completeAnnotation;
 }
   
   bool _resigned = false;
@@ -514,39 +514,33 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
   bool loadPgn(String pgnText) {
     final loaded = importPgn(pgnText);
     if (loaded == null) return false;
-
-    _invalidatePositionCaches();
-    // Replace the game state — chess package doesn't support direct assignment
-    // so we reset and replay
-    _game.reset();
-    _annotations.clear();
-    _lastEvaluation = null;
-    _lastDepth = null;
-
-    // Load the PGN into our game instance
-    final moveText = pgnText.split('\n')
-        .where((l) => !l.trim().startsWith('[') && l.trim().isNotEmpty)
-        .join(' ')
-        .trim();
-    if (moveText.isNotEmpty) {
-      _game.load_pgn(moveText);
-    }
-
-    // Rebuild the tree from what was loaded. The tree is the source of truth
-    // for the move list, the notation and the engine's position command, so
-    // leaving it pointing at the previous game would describe the wrong game
-    // to the engine. Replaying through makeMove also fills in SAN and
-    // annotations exactly as if the moves had been played.
-    final replay = _game.history
+    final replay = loaded.history
         .map((h) =>
             '${h.move.fromAlgebraic}${h.move.toAlgebraic}${h.move.promotion?.name ?? ''}')
         .toList();
-    _game.reset();
-    _invalidatePositionCaches();
+    final startFen = parseHeaders(pgnText)['FEN'];
+    if (startFen == null) {
+      _game.reset();
+    } else if (!_game.load(startFen)) {
+      return false;
+    }
     _tree = GameTree(startFen: _game.fen);
     _annotations.clear();
+    _lastEvaluation = null;
+    _lastDepth = null;
+    _lastBestMove = '';
+    _resigned = false;
+    _drawAgreed = false;
+    _invalidatePositionCaches();
     for (final uci in replay) {
-      makeMove(uci);
+      if (!makeMove(uci)) return false;
+    }
+    final variations = importPgnWithVariations(pgnText);
+    if (variations != null &&
+        variations.root.mainLine.length == replay.length) {
+      _tree = variations;
+      _tree.current =
+          _tree.root.mainLine.isEmpty ? _tree.root : _tree.root.mainLine.last;
     }
 
     _invalidatePositionCaches();
@@ -563,6 +557,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _annotations.clear();
     _lastEvaluation = null;
     _lastDepth = null;
+    _lastBestMove = '';
     _resigned = false;
     _drawAgreed = false;
     whiteChecks = 0;
@@ -578,6 +573,7 @@ void _completeLastAnnotation(double evalAfter, String bestMove, int depth) {
     _annotations.clear();
     _lastEvaluation = null;
     _lastDepth = null;
+    _lastBestMove = '';
     _resigned = false;
     _drawAgreed = false;
     whiteChecks = 0;

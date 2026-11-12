@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test release tooling
         run: python3 -m unittest discover -s tools/tests -v
+      - name: Test web model bridges
+        run: node --test tests/model_bridge_bytes.test.cjs
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

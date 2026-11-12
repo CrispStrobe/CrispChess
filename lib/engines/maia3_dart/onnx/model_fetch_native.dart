@@ -3,9 +3,11 @@
 library;
 
 import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
+import '../../../../services/model_download_registry.dart';
 
 /// Where downloaded models live.
 ///
@@ -53,26 +55,115 @@ Future<Uint8List> fetchModelBytes(String url, String cacheFileName) async =>
 ///
 /// The download goes to a temporary file that is renamed only when complete,
 /// so an interrupted download is not mistaken for the model next time.
+final _pending = <String, Future<String>>{};
+
+Future<List<CachedModel>> listCachedModels({bool includeEngines = true}) async {
+  final dir = await _modelDir();
+  final result = <CachedModel>[];
+  if (await dir.exists()) {
+    await for (final entry in dir.list(followLinks: false)) {
+      if (entry is! File || entry.path.endsWith('.part')) continue;
+      final name = entry.uri.pathSegments.last;
+      result.add(CachedModel(name, name, await entry.length()));
+    }
+  }
+  if (!includeEngines) return result;
+  for (final entry in (await _engineLocations()).entries) {
+    final directory = entry.value;
+    if (!await directory.exists()) continue;
+    var bytes = 0;
+    await for (final file
+        in directory.list(recursive: true, followLinks: false)) {
+      if (file is File && !file.path.endsWith('.part'))
+        bytes += await file.length();
+    }
+    if (bytes > 0)
+      result.add(CachedModel('engine:${entry.key}', entry.key, bytes));
+  }
+  return result;
+}
+
+Future<Map<String, Directory>> _engineLocations() async {
+  final home = Platform.environment['HOME'] ??
+      Platform.environment['APPDATA'] ??
+      Directory.systemTemp.path;
+  Directory? support;
+  try {
+    support = await getApplicationSupportDirectory();
+  } catch (_) {}
+  return {
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows)
+      'Lynx': Directory('$home/.crispchess/engines/lynx'),
+    if (Platform.isIOS && support != null)
+      'Stockfish': Directory('${support.path}/engines'),
+  };
+}
+
+Future<void> removeCachedModel(String id) async {
+  if (id.startsWith('engine:')) {
+    final name = id.substring(7);
+    if (ModelDownloadRegistry.instance.active
+        .any((d) => d.name.startsWith(name))) {
+      throw StateError('Download still running');
+    }
+    final directory = (await _engineLocations())[name];
+    if (directory == null) throw ArgumentError('Invalid engine entry');
+    if (await directory.exists()) await directory.delete(recursive: true);
+    return;
+  }
+  // Only entries inside our cache may be removed.
+  if (id.contains('/') || id.contains('\\') || id == '.' || id == '..') {
+    throw ArgumentError('Invalid cache entry');
+  }
+  final dir = await _modelDir();
+  final file = File('${dir.path}/$id');
+  if (await file.exists()) await file.delete();
+}
+
 Future<String> fetchModelFile(String url, String cacheFileName,
     {void Function(int received, int? total)? onProgress}) async {
+  final key = _cacheName(url, cacheFileName);
+  final existing = _pending[key];
+  if (existing != null) return existing;
+  final task = _downloadModel(url, cacheFileName, onProgress);
+  _pending[key] = task;
+  try {
+    return await task;
+  } finally {
+    _pending.remove(key);
+  }
+}
+
+Future<String> _downloadModel(String url, String cacheFileName,
+    void Function(int received, int? total)? onProgress) async {
+  if (cacheFileName.contains('/') || cacheFileName.contains('\\')) {
+    throw ArgumentError('Invalid model name');
+  }
   final modelDir = await _modelDir();
-  if (!modelDir.existsSync()) modelDir.createSync(recursive: true);
+  await modelDir.create(recursive: true);
   final file = File('${modelDir.path}/${_cacheName(url, cacheFileName)}');
-  if (file.existsSync()) return file.path;
+  return downloadAssetFile(url, file,
+      name: cacheFileName, onProgress: onProgress);
+}
+
+/// The same bounded, cancellable transfer for separately downloaded engines.
+Future<String> downloadAssetFile(String url, File file,
+    {required String name,
+    void Function(int received, int? total)? onProgress}) async {
+  if (await file.exists()) return file.path;
+  await file.parent.create(recursive: true);
 
   final part = File('${file.path}.part');
-  final client = HttpClient();
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 30);
+  final registry = ModelDownloadRegistry.instance;
+  void Function()? cancelTransfer;
+  final download = registry.begin(file.uri.pathSegments.last, name, () {
+    cancelTransfer?.call();
+    client.close(force: true);
+  });
   try {
-    var request = await client.getUrl(Uri.parse(url));
-    var response = await request.close();
-    // HuggingFace's resolve/ URLs redirect to the actual CDN object.
-    while (response.statusCode == 301 || response.statusCode == 302) {
-      final redirect = response.headers.value('location');
-      if (redirect == null) break;
-      await response.drain<void>();
-      request = await client.getUrl(Uri.parse(url).resolve(redirect));
-      response = await request.close();
-    }
+    final request = await client.getUrl(Uri.parse(url));
+    final response = await request.close();
     if (response.statusCode != 200) {
       await response.drain<void>();
       throw HttpException('HTTP ${response.statusCode}', uri: Uri.parse(url));
@@ -81,21 +172,50 @@ Future<String> fetchModelFile(String url, String cacheFileName,
     final sink = part.openWrite();
     var received = 0;
     try {
-      await for (final chunk in response) {
-        sink.add(chunk);
+      if (download.cancelled) throw DownloadCancelled();
+      final transfer = Completer<void>();
+      late StreamSubscription<List<int>> subscription;
+      subscription =
+          response.timeout(const Duration(seconds: 30)).listen((chunk) {
+        try {
+          if (download.cancelled) throw DownloadCancelled();
+          sink.add(chunk);
         received += chunk.length;
-        onProgress?.call(received, total);
+          registry.progress(download, received, total);
+          onProgress?.call(received, total);
+        } catch (e, stack) {
+          if (!transfer.isCompleted) transfer.completeError(e, stack);
+        }
+      }, onError: (Object e, StackTrace stack) {
+        if (!transfer.isCompleted) transfer.completeError(e, stack);
+      }, onDone: () {
+        if (!transfer.isCompleted) transfer.complete();
+      });
+      cancelTransfer = () {
+        subscription.cancel();
+        if (!transfer.isCompleted) transfer.completeError(DownloadCancelled());
+      };
+      try {
+        await transfer.future;
+      } finally {
+        cancelTransfer = null;
+        await subscription.cancel();
       }
     } finally {
       await sink.close();
     }
+    if (download.cancelled) throw DownloadCancelled();
     if (total != null && received != total) {
       throw HttpException('download truncated ($received of $total bytes)', uri: Uri.parse(url));
     }
     await part.rename(file.path);
+    return file.path;
+  } catch (_) {
+    if (download.cancelled) throw DownloadCancelled();
+    rethrow;
   } finally {
-    client.close();
-    if (part.existsSync()) part.deleteSync();
-  }
-  return file.path;
+    client.close(force: true);
+    if (await part.exists()) await part.delete();
+    registry.finish(download);
+}
 }
