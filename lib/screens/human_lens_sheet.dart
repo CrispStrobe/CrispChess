@@ -6,6 +6,8 @@ import '../chess/human_lens.dart';
 import '../engines/uci_position.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/human_lens_service.dart';
+import '../chess/spaced_repetition.dart';
+import 'practice_screen.dart';
 
 /// SAN for a UCI move in [fen], or the UCI itself if it does not parse.
 String sanForUci(String fen, String uci) {
@@ -65,6 +67,7 @@ class _HumanLensSheetState extends State<HumanLensSheet> {
     super.initState();
     SharedPreferences.getInstance().then((p) {
       final saved = p.getInt(_prefKey);
+      if (!mounted) return;
       if (saved != null && defaultEloLadder.contains(saved)) _elo = saved;
       if (!_gameOver) _run();
     });
@@ -239,6 +242,19 @@ class _HumanLensSheetState extends State<HumanLensSheet> {
                 style: theme.textTheme.labelMedium),
             const SizedBox(height: 6),
             _ladderChart(theme, r),
+            TextButton.icon(
+                icon: const Icon(Icons.school),
+                label: Text(l?.addToPractice ?? 'Practise this position'),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => PracticeScreen(
+                            initialItem: SrItem(
+                                fen: _fen,
+                                solution: r.bestMove!,
+                                description: '',
+                                continuation: [r.bestMove!],
+                                source: 'humanLens'))))),
           ],
         ),
       ),

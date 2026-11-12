@@ -16,6 +16,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/foundation.dart';
 
 import 'chess_engine.dart';
+import '../services/model_download_registry.dart';
 import 'maia3_dart/onnx/model_fetch.dart';
 import 'searchless/model.dart';
 import 'searchless/native_model_stub.dart'
@@ -109,11 +110,13 @@ class SearchlessEngine implements ChessEngine {
         v.toDouble()
     ];
     if (WebSearchlessModel.isSupported) {
-      // The browser: ONNX Runtime Web downloads and caches the model itself.
+      // The browser uses the shared download cache, then ONNX Runtime Web.
       try {
         final m = await WebSearchlessModel.load(size.label, '$_base/${size.file}');
         _backend = 'ONNX Runtime Web';
         return (m as SearchlessModel, actions, buckets);
+      } on DownloadCancelled {
+        rethrow;
       } catch (e) {
         debugPrint('[Searchless] ONNX Runtime Web unavailable, using Dart: $e');
       }

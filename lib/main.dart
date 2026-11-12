@@ -3,7 +3,7 @@ import 'l10n/generated/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/chess_game_screen.dart';
+import 'screens/app_home_screen.dart';
 
 /// Global theme notifier — settings screen updates this, app rebuilds.
 final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
@@ -86,7 +86,7 @@ class CrispChessApp extends StatelessWidget {
             fontFamilyFallback: fontFamilyFallback,
           ),
           themeMode: themeMode,
-          home: const ChessGameScreen(),
+          home: const AppHomeScreen(),
         );
           },
         );

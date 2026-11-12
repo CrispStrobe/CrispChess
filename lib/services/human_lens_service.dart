@@ -39,6 +39,8 @@ class HumanLensService {
       await Future.wait([maia.initialize(), judge.initialize()]);
     } catch (_) {
       _loading = null;
+      maia.dispose();
+      judge.dispose();
       rethrow;
     }
     if (maia.state != EngineState.ready) {

@@ -1,75 +1,93 @@
-/// Spaced repetition system for re-presenting failed puzzles/mistakes.
-///
-/// Uses a simple interval schedule: 1 day, 3 days, 7 days, 14 days, 30 days.
-/// Each time the user gets it wrong, reset to interval 0.
-/// Each time they get it right, advance to the next interval.
-
 import 'dart:convert';
 
-const _intervals = [1, 3, 7, 14, 30]; // days
+const _intervals = [1, 3, 7, 14, 30];
 
-/// A single item in the spaced repetition queue.
+/// A position collected from a verified review or a Human Lens miss.
 class SrItem {
-  final String fen;       // position FEN
-  final String solution;  // correct move (UCI)
-  final String description; // e.g. "Blunder: Qd1 instead of Nf3"
-  int interval;            // current interval index (0-4)
-  DateTime nextReview;     // when to show again
-  int timesCorrect;        // streak of correct answers
+  final String fen;
+  final String solution;
+  final String description;
+  final List<String> continuation;
+  final String source;
+  int interval;
+  DateTime nextReview;
+  int timesCorrect;
+  int attempts;
+  int correctAttempts;
+  DateTime? lastAttempt;
 
   SrItem({
     required this.fen,
     required this.solution,
     required this.description,
+    this.continuation = const [],
+    this.source = 'review',
     this.interval = 0,
     DateTime? nextReview,
     this.timesCorrect = 0,
+    this.attempts = 0,
+    this.correctAttempts = 0,
+    this.lastAttempt,
   }) : nextReview = nextReview ?? DateTime.now();
 
-  /// Is this item due for review?
-  bool get isDue => DateTime.now().isAfter(nextReview);
+  /// Ignore move counters, but retain side, castling and en-passant rights.
+  String get id => '${fen.split(' ').take(4).join(' ')}|$solution';
+  bool get isDue => !nextReview.isAfter(DateTime.now());
+  bool get isLearned => timesCorrect > _intervals.length;
 
-  /// Mark as answered correctly — advance interval.
-  void markCorrect() {
+  void markCorrect({DateTime? now}) {
+    final at = now ?? DateTime.now();
+    attempts++;
+    correctAttempts++;
+    lastAttempt = at;
     timesCorrect++;
-    if (interval < _intervals.length - 1) interval++;
-    nextReview = DateTime.now().add(Duration(days: _intervals[interval]));
+    interval = (timesCorrect - 1).clamp(0, _intervals.length - 1);
+    nextReview = at.add(Duration(days: _intervals[interval]));
   }
 
-  /// Mark as answered incorrectly — reset to beginning.
-  void markIncorrect() {
+  void markIncorrect({DateTime? now}) {
+    final at = now ?? DateTime.now();
+    attempts++;
+    lastAttempt = at;
     timesCorrect = 0;
     interval = 0;
-    nextReview = DateTime.now().add(const Duration(days: 1));
+    nextReview = at.add(const Duration(days: 1));
   }
-
-  /// Is this item "learned" (completed all intervals)?
-  bool get isLearned => interval >= _intervals.length - 1 && timesCorrect > 0;
 
   Map<String, dynamic> toJson() => {
     'fen': fen,
     'solution': solution,
     'description': description,
-    'interval': interval,
+        'continuation': continuation,
+        'source': source,
+        'interval': interval,
     'nextReview': nextReview.toIso8601String(),
     'timesCorrect': timesCorrect,
+        'attempts': attempts,
+        'correctAttempts': correctAttempts,
+        'lastAttempt': lastAttempt?.toIso8601String(),
   };
 
   factory SrItem.fromJson(Map<String, dynamic> json) => SrItem(
     fen: json['fen'] as String,
     solution: json['solution'] as String,
     description: json['description'] as String? ?? '',
-    interval: json['interval'] as int? ?? 0,
+        continuation:
+            (json['continuation'] as List?)?.cast<String>() ?? const [],
+        source: json['source'] as String? ?? 'review',
+        interval:
+            (json['interval'] as int? ?? 0).clamp(0, _intervals.length - 1),
     nextReview: DateTime.tryParse(json['nextReview'] as String? ?? '') ?? DateTime.now(),
     timesCorrect: json['timesCorrect'] as int? ?? 0,
+        attempts: json['attempts'] as int? ?? 0,
+        correctAttempts: json['correctAttempts'] as int? ?? 0,
+        lastAttempt: DateTime.tryParse(json['lastAttempt'] as String? ?? ''),
   );
 
   String encode() => jsonEncode(toJson());
   static SrItem decode(String s) => SrItem.fromJson(jsonDecode(s) as Map<String, dynamic>);
 }
 
-/// Get items that are due for review from a list.
-List<SrItem> getDueItems(List<SrItem> items) {
-  return items.where((item) => item.isDue && !item.isLearned).toList()
+List<SrItem> getDueItems(List<SrItem> items) =>
+    items.where((item) => item.isDue && !item.isLearned).toList()
     ..sort((a, b) => a.nextReview.compareTo(b.nextReview));
-}

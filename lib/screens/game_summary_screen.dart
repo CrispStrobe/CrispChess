@@ -6,6 +6,10 @@ import '../chess/move_analyzer.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/eval_chart.dart';
 import '../widgets/human_review_card.dart';
+import '../controllers/game_review_controller.dart';
+import '../services/game_review_service.dart' show ReviewedMove;
+import 'practice_screen.dart';
+import '../chess/spaced_repetition.dart';
 
 /// Post-game summary screen showing accuracy, eval chart, and key moments.
 class GameSummaryScreen extends StatefulWidget {
@@ -43,6 +47,38 @@ class GameSummaryScreen extends StatefulWidget {
 }
 
 class _GameSummaryScreenState extends State<GameSummaryScreen> {
+  final _reviewController = GameReviewController();
+  List<ReviewedMove>? get _review => _reviewController.review;
+  bool get _reviewing => _reviewController.running;
+  int get _done => _reviewController.done;
+  int get _saved => _reviewController.saved;
+  Object? get _reviewError => _reviewController.error;
+
+  @override
+  void initState() {
+    super.initState();
+    _reviewController.addListener(_changed);
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _reviewController.removeListener(_changed);
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  void _startReview() {
+    if (widget.positionCommand != null)
+      _reviewController.start(widget.positionCommand!,
+          playerIsWhite: widget.playerIsWhite);
+  }
+
+  void _cancelReview() => _reviewController.cancel();
+
   int _selectedMoveIndex = -1; // -1 = starting position
   List<List<ChessPiece?>>? _previewBoard;
 
@@ -91,10 +127,12 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     // Calculate accuracy
-    final playerAnnotations = widget.annotations.where((a) {
-      final idx = widget.annotations.indexOf(a);
-      return idx % 2 == 0;
-    }).toList();
+    final playerAnnotations =
+        (_review?.map((m) => m.annotation) ?? widget.annotations)
+            .where((a) =>
+                a.evaluation.whiteToMove == widget.playerIsWhite &&
+                a.evaluation.isComplete &&
+                a.evaluation.isVerified).toList();
 
     final totalMoves = playerAnnotations.length;
     int goodMoves = 0;
@@ -103,12 +141,12 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
     String? bestMoveStr;
     String? worstMoveStr;
     double worstLoss = 0;
-    double bestGain = 0;
+    double bestLoss = double.infinity;
 
     for (final a in playerAnnotations) {
       final q = a.evaluation.quality;
       if (q == MoveQuality.brilliant || q == MoveQuality.good ||
-          q == MoveQuality.neutral || q == MoveQuality.interesting) {
+          q == MoveQuality.neutral) {
         goodMoves++;
       }
       if (q == MoveQuality.blunder) blunders++;
@@ -119,9 +157,8 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
         worstLoss = loss;
         worstMoveStr = a.move;
       }
-      final gain = -a.evaluation.evaluationChange;
-      if (gain > bestGain) {
-        bestGain = gain;
+      if (a.move == a.evaluation.bestMove && loss < bestLoss) {
+        bestLoss = loss;
         bestMoveStr = a.move;
       }
     }
@@ -129,6 +166,12 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
     final accuracy = totalMoves > 0
         ? (goodMoves / totalMoves * 100).round()
         : 0;
+
+    final reviewedEvals = _review == null
+        ? widget.evalHistory
+        : _review!.every((m) => m.annotation.evaluation.isComplete)
+            ? _review!.map((m) => m.annotation.evaluation.scoreAfter).toList()
+            : <double>[];
 
     return Scaffold(
       appBar: AppBar(title: Text(l?.gameSummary ?? 'Game Summary')),
@@ -160,6 +203,52 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
           ),
 
           const SizedBox(height: 12),
+
+          if (widget.positionCommand != null)
+            Card(
+                child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l!.reviewConsistentNote),
+                          const SizedBox(height: 8),
+                          if (_reviewing) ...[
+                            LinearProgressIndicator(
+                                value: widget.movesSan.isEmpty
+                                    ? null
+                                    : _done / widget.movesSan.length),
+                            Text('$_done / ${widget.movesSan.length}'),
+                            TextButton(
+                                onPressed: _cancelReview,
+                                child: Text(l.cancelAction)),
+                          ] else
+                            FilledButton.icon(
+                                onPressed: _startReview,
+                                icon: const Icon(Icons.analytics),
+                                label: Text(l.reviewGameAction)),
+                          if (_review == null && !_reviewing)
+                            Text(l.reviewPending),
+                          if (_review?.any(
+                                  (m) => !m.annotation.evaluation.isComplete) ??
+                              false)
+                            Text(l.reviewIncomplete),
+                          if (_reviewError != null)
+                            Text('$_reviewError',
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.error)),
+                          if (_saved > 0) Text('${l.practiceSaved}: $_saved'),
+                          if (_review != null)
+                            OutlinedButton.icon(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const PracticeScreen())),
+                                icon: const Icon(Icons.school),
+                                label: Text(l.practiceMistakes)),
+                        ]))),
 
           // Accuracy
           if (totalMoves > 0)
@@ -196,7 +285,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
           const SizedBox(height: 12),
 
           // Eval chart
-          if (widget.evalHistory.length > 1)
+          if (reviewedEvals.length > 1)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -212,7 +301,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    EvalChart(evals: widget.evalHistory, height: 80),
+                    EvalChart(evals: reviewedEvals, height: 80),
                   ],
                 ),
               ),
@@ -232,6 +321,30 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
             const SizedBox(height: 12),
           ],
 
+          if (_review != null)
+            for (final move in _review!.where((m) =>
+                m.annotation.evaluation.isVerified &&
+                m.annotation.evaluation.whiteToMove == widget.playerIsWhite &&
+                m.annotation.evaluation.centipawnLoss >= 1 &&
+                m.annotation.evaluation.bestMove != m.annotation.move &&
+                m.annotation.evaluation.bestMove.isNotEmpty))
+              Card(
+                  child: ListTile(
+                title: Text(
+                    '${move.ply + 1}. ${move.annotation.move} → ${move.annotation.evaluation.bestMove}'),
+                subtitle: Text(
+                    '${move.annotation.evaluation.centipawnLoss.toStringAsFixed(1)} ${l?.evaluation ?? 'Evaluation'}'),
+                trailing: const Icon(Icons.school),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => PracticeScreen(
+                            initialItem: SrItem(
+                                fen: move.fen,
+                                solution: move.annotation.evaluation.bestMove,
+                                description: move.annotation.move,
+                                continuation: move.continuation)))),
+              )),
           // Best move
           if (bestMoveStr != null)
             Card(
@@ -241,7 +354,7 @@ class _GameSummaryScreenState extends State<GameSummaryScreen> {
                 title: Text(l?.yourBestMove ?? 'Your Best Move'),
                 subtitle: Text(bestMoveStr,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: Text('+${bestGain.toStringAsFixed(1)}',
+                trailing: Text(l?.good ?? 'Good',
                     style: TextStyle(color: Colors.green.shade700,
                         fontWeight: FontWeight.bold)),
               ),

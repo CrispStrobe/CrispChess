@@ -1127,4 +1127,210 @@ class AppLocalizationsDe extends AppLocalizations {
   String voiceFailed(Object error) {
     return 'Spracheingabe fehlgeschlagen: $error';
   }
+
+  @override
+  String get playTab => 'Spielen';
+
+  @override
+  String get reviewTab => 'Analyse';
+
+  @override
+  String get trainTab => 'Trainieren';
+
+  @override
+  String get dailyPractice => 'Dein tägliches Training';
+
+  @override
+  String get practiceMistakes => 'Meine Fehler üben';
+
+  @override
+  String get reviewGameAction => 'Diese Partie analysieren';
+
+  @override
+  String get reviewConsistentNote =>
+      'Die Analyse nutzt die eingebaute Engine mit Tiefe 8 für jede Stellung. Genauigkeit ist der Anteil analysierter Züge mit weniger als einem halben Bauern Verlust; sie ist eine Schätzung.';
+
+  @override
+  String get reviewPending =>
+      'Starte eine Analyse für vergleichbare Bewertungen und Trainingsstellungen.';
+
+  @override
+  String get reviewIncomplete =>
+      'Einige Stellungen erreichten die Analysetiefe nicht und werden bei Genauigkeit und Training nicht berücksichtigt.';
+
+  @override
+  String get cancelAction => 'Abbrechen';
+
+  @override
+  String get retryAction => 'Erneut versuchen';
+
+  @override
+  String get practiceEmpty =>
+      'Keine Stellungen fällig. Analysiere eine Partie, um Trainingsstellungen zu sammeln.';
+
+  @override
+  String get practiceCorrect =>
+      'Richtig. Sieh dir die Fortsetzung an oder spiele gegen deinen Ghost.';
+
+  @override
+  String get practiceIncorrect =>
+      'Versuche einen anderen Zug. Diese Stellung kommt morgen wieder.';
+
+  @override
+  String get showSolutionAction => 'Lösung zeigen';
+
+  @override
+  String get continuationAction => 'Fortsetzung zeigen';
+
+  @override
+  String get nextPosition => 'Nächste Stellung';
+
+  @override
+  String get practiceComplete => 'Training abgeschlossen';
+
+  @override
+  String get practiceSaved => 'Zum Üben gespeichert';
+
+  @override
+  String get addToPractice => 'Diese Stellung üben';
+
+  @override
+  String get playGhost => 'Gegen meinen Ghost spielen';
+
+  @override
+  String get ghostPracticeNote =>
+      'Dein Ghost nutzt deine Partien und Maia. Beim ersten Start wird das 25-MB-Modell geladen. Diese Übung verändert weder Partieverlauf noch Wertung.';
+
+  @override
+  String get ghostPracticeTitle => 'Gegen deinen Ghost üben';
+
+  @override
+  String get whiteToMoveLabel => 'Weiß am Zug';
+
+  @override
+  String get blackToMoveLabel => 'Schwarz am Zug';
+
+  @override
+  String get ghostThinking => 'Dein Ghost überlegt…';
+
+  @override
+  String get loadingOpponent => 'Gegner wird geladen…';
+
+  @override
+  String get practiceProgress => 'Trainingsfortschritt';
+
+  @override
+  String get puzzlePractice => 'Fünf Aufgaben lösen';
+
+  @override
+  String get endgamePractice => 'Ein Endspiel üben';
+
+  @override
+  String get recentGames => 'Eine letzte Partie analysieren';
+
+  @override
+  String get opponentPresets => 'Gegner auswählen';
+
+  @override
+  String get aroundMyLevel => 'Ungefähr meine Spielstärke';
+
+  @override
+  String get humanLike => 'Menschenähnlich';
+
+  @override
+  String get strongAnalysis => 'Starke Analyse';
+
+  @override
+  String get aroundMyLevelNote =>
+      'Maia 5M mit deiner geschätzten Spielstärke; beim ersten Start 25 MB.';
+
+  @override
+  String get humanLikeNote =>
+      'Dein Ghost: deine Eröffnungen und menschenähnliche Entscheidungen; beim ersten Start 25 MB.';
+
+  @override
+  String get strongAnalysisNote =>
+      'Volle Stärke: Lynx, wo unterstützt, sonst Frozenight. Desktop-Lynx wird beim ersten Start heruntergeladen.';
+
+  @override
+  String get advancedSettings => 'Erweiterte Einstellungen';
+
+  @override
+  String get modelManager => 'Downloads & Speicher';
+
+  @override
+  String get noModelDownloads =>
+      'Noch keine Modelle heruntergeladen. Modelle erscheinen hier bei der ersten Nutzung.';
+
+  @override
+  String get cachedModelsNote =>
+      'Das Entfernen gibt den gespeicherten Platz frei. Geladene Modelle bleiben bis zum Verlassen der Funktion oder einem Neustart verfügbar.';
+
+  @override
+  String get downloadCancelled =>
+      'Download abgebrochen. Du kannst es in der Funktion erneut versuchen.';
+
+  @override
+  String get removeDownload => 'Download entfernen';
+
+  @override
+  String get clearMistakesAction => 'Trainingsliste leeren';
+
+  @override
+  String get queueCleared => 'Trainingsliste geleert';
+
+  @override
+  String get promoteTo => 'Umwandeln in';
+
+  @override
+  String get practiceAll => 'Alle gespeicherten Stellungen üben';
+
+  @override
+  String get closeAction => 'Schließen';
+
+  @override
+  String get piecePawn => 'Bauer';
+
+  @override
+  String get pieceKnight => 'Springer';
+
+  @override
+  String get pieceBishop => 'Läufer';
+
+  @override
+  String get pieceRook => 'Turm';
+
+  @override
+  String get pieceQueen => 'Dame';
+
+  @override
+  String get pieceKing => 'König';
+
+  @override
+  String get emptySquare => 'leer';
+
+  @override
+  String get legalDestination => 'legales Zielfeld';
+
+  @override
+  String get inCheckLabel => 'im Schach';
+
+  @override
+  String get boardKeyboardHint =>
+      'Schachbrett. Mit Pfeiltasten ein Feld wählen; mit Eingabe oder Leertaste auswählen oder ziehen. Tab verlässt das Brett.';
+
+  @override
+  String get practicePositions => 'Stellungen';
+
+  @override
+  String get reviewSide => 'Welche Farbe hast du gespielt?';
+
+  @override
+  String get white => 'Weiß';
+
+  @override
+  String get black => 'Schwarz';
+
+  @override
+  String get invalidReviewPgn => 'Diese PGN konnte nicht geladen werden.';
 }

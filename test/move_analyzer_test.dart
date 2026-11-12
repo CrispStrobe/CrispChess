@@ -45,7 +45,7 @@ void main() {
       expect(blunder.quality, MoveQuality.blunder);
     });
 
-    test('MoveQuality.brilliant for significant improvement', () {
+    test('evaluation improvement alone is not evidence of brilliance', () {
       // White moves, eval goes from 0.0 to +2.0 (big improvement for White)
       final eval = MoveEvaluation(
         scoreBefore: 0.0,
@@ -55,8 +55,7 @@ void main() {
         depth: 15,
         whiteToMove: true,
       );
-      // evaluationChange = 0.0 - 2.0 = -2.0 => brilliant (< -1.0)
-      expect(eval.quality, MoveQuality.brilliant);
+      expect(eval.quality, MoveQuality.good);
     });
 
     test('MoveQuality.neutral for small change', () {

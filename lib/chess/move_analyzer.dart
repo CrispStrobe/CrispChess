@@ -17,7 +17,12 @@ class MoveEvaluation {
   final double bestMoveScore;
   final int depth;
   final bool whiteToMove;  // track whose turn it was
-  
+  final bool isComplete;
+
+  /// True only for a review comparing both positions with the same engine
+  /// and search settings. Live opponent estimates are not training evidence.
+  final bool isVerified;
+
   MoveEvaluation({
     required this.scoreBefore,
     required this.scoreAfter,
@@ -25,6 +30,8 @@ class MoveEvaluation {
     required this.bestMoveScore,
     required this.depth,
     required this.whiteToMove,
+    this.isComplete = true,
+    this.isVerified = false,
   });
   
   // Centipawn loss from the perspective of the player who moved
@@ -50,13 +57,11 @@ class MoveEvaluation {
   }
   
   MoveQuality get quality {
+    if (!isComplete) return MoveQuality.neutral;
     final change = evaluationChange;
-    
-    // If move IMPROVED position significantly
-    if (change < -1.0) {
-      return MoveQuality.brilliant;
-    }
-    
+    // A rising evaluation can be search noise. Brilliance requires evidence
+    // beyond a score difference, so never infer it from that difference.
+
     // If move improved position slightly or maintained it
     if (change < 0.3) {
       return MoveQuality.good;

@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'chess_engine.dart';
+import 'maia3_dart/onnx/model_fetch_native.dart' show downloadAssetFile;
 import 'uci_process_lifecycle.dart';
 import 'uci_search_coordinator.dart';
 
@@ -319,35 +320,20 @@ class LynxEngine
 
     // Download zip
     final zipFile = File('${dir.path}/lynx.zip');
-    final client = HttpClient();
-    try {
-      final request = await client.getUrl(Uri.parse(asset.url));
-      final response = await request.close();
-
-      // Follow redirects (GitHub releases redirect)
-      if (response.statusCode == 302 || response.statusCode == 301) {
-        final redirect = response.headers.value('location');
-        if (redirect != null) {
-          final r2 = await client.getUrl(Uri.parse(redirect));
-          final resp2 = await r2.close();
-          await resp2.pipe(zipFile.openWrite());
-        }
-      } else {
-        await response.pipe(zipFile.openWrite());
-      }
-    } finally {
-      client.close();
-    }
+    await downloadAssetFile(asset.url, zipFile, name: 'Lynx');
 
     // Extract zip
     debugPrint('[Lynx] Extracting...');
     if (Platform.isWindows) {
-      await Process.run('powershell', [
+      final extraction = await Process.run('powershell', [
         '-command',
         'Expand-Archive', '-Path', zipFile.path, '-DestinationPath', dir.path, '-Force',
       ]);
+      if (extraction.exitCode != 0) throw StateError('Lynx extraction failed');
     } else {
-      await Process.run('unzip', ['-o', zipFile.path, '-d', dir.path]);
+      final extraction =
+          await Process.run('unzip', ['-o', zipFile.path, '-d', dir.path]);
+      if (extraction.exitCode != 0) throw StateError('Lynx extraction failed');
     }
 
     // Make executable on Unix

@@ -40,6 +40,8 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 ## Features
 
 ### Play
+- Direct **Play / Review / Train** navigation; return to the board without losing the current game
+- Opponent presets: around my level, human-like, and strong analysis
 - Play as White or Black against 7+ engines with hot-swapping
 - Adjustable engine strength (0–20 skill levels, ~800–2400 ELO)
 - Move hints with arrow overlay, undo/redo, abort
@@ -97,8 +99,11 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - **Coordinate Trainer** — tap correct square, timed mode (30s), personal best
 - **Drills** — 8 structured lessons (tactics, openings, endgames) with coach feedback
 - **Endgame drills** — K+Q vs K, K+R vs K, K+P vs K, Two Bishops
-- **Spaced repetition** — re-present failed positions at increasing intervals
-- Post-game analysis with accuracy, eval chart, interactive board replay
+- **Practise my mistakes** — verified game reviews save missed positions as playable exercises, with legal continuations and isolated replays against Your Ghost
+- **Spaced repetition** — recall after 1, 3, 7, 14 and 30 days; re-analysis preserves each position's schedule
+- **Daily practice** — due mistakes, five puzzles and an endgame, with persistent recall progress
+- Post-game review uses the built-in engine at depth 8 consistently; incomplete searches are excluded from accuracy and practice
+- Accuracy estimates the share of reviewed player moves losing less than half a pawn; interactive board replay and eval chart
 - Per-move classification (brilliant/good/inaccuracy/mistake/blunder)
 - Mistakes tracker with blunder review
 
@@ -107,6 +112,10 @@ GPL-3.0 engines are never compiled into the app binary. They run as separate pro
 - Level-up celebration dialog
 - 12 achievement badges
 - Daily login streak
+
+### Downloads & accessibility
+- Shared download progress, cancellation and cached model removal for engines, board photos and speech
+- Screen-reader square and piece labels, keyboard square navigation, and system reduced-motion support
 
 ### AI Coach (BYOK)
 - Send position to Anthropic or OpenAI for natural language analysis
