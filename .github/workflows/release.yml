@@ -196,9 +196,16 @@ jobs:
         run: python3 tools/verify_macos_app.py build/macos/Build/Products/Release/CrispChess.app
       - name: Bundle CrispASR (voice moves)
         run: tool/bundle_crispasr.sh macos "$(ls -d build/macos/Build/Products/Release/*.app | head -1)"
+      - name: Launch the packaged Mac app in English and German
+        run: bash tool/smoke_macos_app.sh build/macos/Build/Products/Release/CrispChess.app "$RUNNER_TEMP/macos-smoke"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-desktop-smoke
+          path: ${{ runner.temp }}/macos-smoke
       - run: |
           cd build/macos/Build/Products/Release
-          APP=$(ls -d *.app | head -1)
+          APP=CrispChess.app
           echo "Found app: $APP"
           tar czf $GITHUB_WORKSPACE/CrispChess-macos.tar.gz "$APP"
       - uses: actions/upload-artifact@v4
