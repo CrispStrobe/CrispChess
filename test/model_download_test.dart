@@ -54,6 +54,31 @@ void main() {
     expect(requests, 2);
   });
 
+  test('engine downloads share their destination and reject conflicting URLs',
+      () async {
+    var requests = 0;
+    final started = Completer<void>();
+    final finish = Completer<void>();
+    server.listen((request) async {
+      requests++;
+      started.complete();
+      await finish.future;
+      request.response.add([5, 6, 7]);
+      await request.response.close();
+    });
+    final file = File('${dir.path}/engine.zip');
+    final first = downloadAssetFile(url(), file, name: 'Engine');
+    final second = downloadAssetFile(url(), file, name: 'Engine');
+    await started.future;
+    await expectLater(downloadAssetFile('${url()}-other', file, name: 'Engine'),
+        throwsStateError);
+    finish.complete();
+    expect(await Future.wait([first, second]), [file.path, file.path]);
+    expect(requests, 1);
+    expect(await file.readAsBytes(), [5, 6, 7]);
+    expect(ModelDownloadRegistry.instance.active, isEmpty);
+  });
+
   test('HTTP errors never become cached models', () async {
     server.listen((request) async {
       request.response.statusCode = 503;

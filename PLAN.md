@@ -10,7 +10,7 @@
 
 ## Active release handoff
 
-See [macOS release handoff](docs/MACOS_RELEASE_HANDOFF.md) for the open App Store rejection, current evidence, worktree precautions, and ordered completion steps.
+See [macOS release handoff](docs/MACOS_RELEASE_HANDOFF.md) for the approved name fix, outstanding native release gate, worktree precautions, and feature integration steps.
 
 ---
 

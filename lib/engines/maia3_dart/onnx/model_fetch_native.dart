@@ -147,7 +147,30 @@ Future<String> _downloadModel(String url, String cacheFileName,
 }
 
 /// The same bounded, cancellable transfer for separately downloaded engines.
+final _pendingAssets = <String, ({String url, Future<String> task})>{};
+
 Future<String> downloadAssetFile(String url, File file,
+    {required String name,
+    void Function(int received, int? total)? onProgress}) async {
+  final key = file.absolute.path;
+  final existing = _pendingAssets[key];
+  if (existing != null) {
+    if (existing.url != url) {
+      throw StateError('Another download targets the same file');
+    }
+    return existing.task;
+  }
+  final task =
+      _downloadAssetFile(url, file, name: name, onProgress: onProgress);
+  _pendingAssets[key] = (url: url, task: task);
+  try {
+    return await task;
+  } finally {
+    _pendingAssets.remove(key);
+  }
+}
+
+Future<String> _downloadAssetFile(String url, File file,
     {required String name,
     void Function(int received, int? total)? onProgress}) async {
   if (await file.exists()) return file.path;
@@ -180,7 +203,7 @@ Future<String> downloadAssetFile(String url, File file,
         try {
           if (download.cancelled) throw DownloadCancelled();
           sink.add(chunk);
-        received += chunk.length;
+          received += chunk.length;
           registry.progress(download, received, total);
           onProgress?.call(received, total);
         } catch (e, stack) {
@@ -206,7 +229,8 @@ Future<String> downloadAssetFile(String url, File file,
     }
     if (download.cancelled) throw DownloadCancelled();
     if (total != null && received != total) {
-      throw HttpException('download truncated ($received of $total bytes)', uri: Uri.parse(url));
+      throw HttpException('download truncated ($received of $total bytes)',
+          uri: Uri.parse(url));
     }
     await part.rename(file.path);
     return file.path;
@@ -217,5 +241,5 @@ Future<String> downloadAssetFile(String url, File file,
     client.close(force: true);
     if (await part.exists()) await part.delete();
     registry.finish(download);
-}
+  }
 }
