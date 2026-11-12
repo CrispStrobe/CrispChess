@@ -11,6 +11,10 @@ on:
         description: Replace the expected pending build after native checks and upload pass
         type: boolean
         default: false
+      new_release:
+        description: Create a new version after the prior approved build (instead of replacing a pending submission)
+        type: boolean
+        default: false
       expected_build:
         description: Current build that may be replaced (required for submission)
         type: string
@@ -59,6 +63,7 @@ jobs:
           SUBMIT_FOR_REVIEW: ${{ inputs.submit_for_review }}
           EXPECTED_BUILD: ${{ inputs.expected_build }}
           REVIEW_NOTE: ${{ inputs.review_note }}
+          NEW_RELEASE: ${{ inputs.new_release }}
           HAS_KEY: ${{ secrets.ASC_API_KEY_P8_BASE64 != '' }}
           HAS_KEY_ID: ${{ secrets.ASC_KEY_ID != '' }}
           HAS_ISSUER: ${{ secrets.ASC_ISSUER_ID != '' }}
@@ -73,6 +78,7 @@ jobs:
             [ -n "$EXPECTED_BUILD" ]
             [ -n "$REVIEW_NOTE" ]
           fi
+          if [ "$NEW_RELEASE" = true ]; then [ "$SUBMIT_FOR_REVIEW" = true ]; fi
           if [ -n "$MERGE_PULL_REQUEST" ]; then
             [ "$SUBMIT_FOR_REVIEW" = true ]
             [[ "$MERGE_PULL_REQUEST" =~ ^[0-9]+$ ]]
@@ -248,7 +254,7 @@ jobs:
           package="$PWD/dist/CrispChess-${version}-${build}.pkg"
           shasum -a 256 -c "$RUNNER_TEMP/macos-smoke/package.sha256"
           xcrun altool --upload-package "$package" --type macos --apple-id "$APPLE_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$build" --bundle-short-version-string "$version" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
-      - name: Replace the expected pending build and submit for review
+      - name: Submit the validated macOS build for review
         if: inputs.submit_for_review && inputs.dry_run == false
         env:
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
@@ -256,11 +262,16 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           EXPECTED_BUILD: ${{ inputs.expected_build }}
           REVIEW_NOTE: ${{ inputs.review_note }}
+          NEW_RELEASE: ${{ inputs.new_release }}
         run: |
           set -euo pipefail
           build=$(python3 -c 'import sys; sys.path.insert(0,"tools"); from release_version import read_version; print(read_version()[1])')
           printf '%s\n' "$REVIEW_NOTE" > "$RUNNER_TEMP/review-note.txt"
-          python3 tools/asc/replace_build.py --build "$build" --expected-build "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
+          if [ "$NEW_RELEASE" = true ]; then
+            python3 tools/asc/new_release.py --build "$build" --expected-previous "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
+          else
+            python3 tools/asc/replace_build.py --build "$build" --expected-build "$EXPECTED_BUILD" --notes-file "$RUNNER_TEMP/review-note.txt"
+          fi
           python3 tools/asc/status.py --platform MAC_OS > "$RUNNER_TEMP/macos-smoke/app-store-status.json"
       - uses: actions/upload-artifact@v6
         if: inputs.submit_for_review && inputs.dry_run == false
