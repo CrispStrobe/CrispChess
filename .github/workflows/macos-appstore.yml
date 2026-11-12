@@ -195,6 +195,9 @@ jobs:
           set -euo pipefail
           package=$(find "$PWD/dist" -maxdepth 1 -name '*.pkg' -print)
           [ -f "$package" ]
+          # Avoid Installer discovering the build product as an existing app.
+          # The signed package is already complete and is the only source for this test.
+          rm -rf "$PWD/build/macos/Build/Products/Release/CrispChess.app"
           sudo installer -dumplog -pkg "$package" -target /
           if [ ! -d /Applications/CrispChess.app ]; then
             echo "::error::Installed app was not found at the expected path; collecting package and installer diagnostics"
