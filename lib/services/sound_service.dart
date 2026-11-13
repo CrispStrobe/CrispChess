@@ -1,7 +1,7 @@
 /// Sound effects for chess moves, captures, and game events.
 ///
 /// On web: uses Web Audio API via sound_bridge.js (tone synthesis).
-/// On native: stub for now. Add audioplayers package for native sounds.
+/// On native: plays bundled synthesized samples via audioplayers.
 
 import 'package:flutter/foundation.dart';
 
@@ -33,7 +33,7 @@ class SoundService {
     if (!_enabled) return;
     debugPrint('[Sound] ${sound.name}');
     // On web, the JS bridge is called from the platform-specific import.
-    // This base class is used on native where we don't play sounds yet.
+    // Platform implementations provide audio playback.
   }
 
   void dispose() {}

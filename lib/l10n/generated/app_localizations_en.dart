@@ -182,6 +182,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get game => 'Game';
 
   @override
+  String get soundEffects => 'Sound Effects';
+
+  @override
+  String get soundEffectsSubtitle => 'Play sounds for moves and game events';
+
+  @override
   String get showValidMoves => 'Show Valid Moves';
 
   @override

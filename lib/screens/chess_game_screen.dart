@@ -23,6 +23,7 @@ import '../services/onboarding_service.dart';
 import '../services/preferences_service.dart';
 import '../services/sound_service.dart';
 import '../services/sound_service_factory.dart';
+import '../services/move_sound.dart';
 import '../voice/voice_input.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/chess_board.dart';
@@ -72,7 +73,10 @@ class PvLine {
 }
 
 class ChessGameScreen extends StatefulWidget {
-  const ChessGameScreen({super.key});
+  const ChessGameScreen({super.key, this.soundService});
+
+  @visibleForTesting
+  final SoundService? soundService;
 
   /// Store screenshots only: a ranking the real recogniser produced earlier
   /// (tool/store/store_fixtures_test.dart), used in place of the microphone
@@ -92,7 +96,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   GameState _state = const GameState();
   ChessClock? _clock;
-  final SoundService _sound = createSoundService();
+  late final SoundService _sound = widget.soundService ?? createSoundService();
   final PreferencesService _prefs = PreferencesService();
   final PuzzleDatabase _puzzleDb = PuzzleDatabase();
   late final _session = GameSessionController(_prefs);
@@ -1131,10 +1135,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           timeControl: _state.timeControl,
           chessVariant: _prefs.chessVariant,
           lc0Backend: _prefs.lc0Backend,
+          soundEnabled: _sound.enabled,
         ),
       ),
     );
+    if (!mounted) return;
     if (result != null) {
+      // Apply before any new-game/engine actions can emit another sound.
+      final soundEnabled = result['soundEnabled'] as bool? ?? _sound.enabled;
+      _sound.enabled = soundEnabled;
+      _prefs.soundEnabled = soundEnabled;
       final newPlayAsBlack = result['playAsBlack'] as bool? ?? false;
       final colorChanged = newPlayAsBlack != _state.playAsBlack;
       final newVariant = result['maia3Variant'] as String? ?? '5m';
@@ -2009,16 +2019,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _autoSaveGame() => _session.save(_game);
 
   void _playMoveSound(String uci) {
-    if (_game.inCheck) {
-      _sound.play(ChessSound.check);
-    } else if (uci.length > 4) {
-      _sound.play(ChessSound.promote);
-    } else if (uci == 'e1g1' || uci == 'e1c1' || uci == 'e8g8' || uci == 'e8c8') {
-      _sound.play(ChessSound.castle);
-    } else {
-      // Simplified: we don't track captures here, so just play move sound
-      _sound.play(ChessSound.move);
-    }
+    final history = _game.moveHistorySan;
+    _sound.play(soundForMove(
+      uci: uci,
+      san: history.isEmpty ? null : history.last,
+      inCheck: _game.inCheck,
+    ));
   }
 
   void _exportPgn() {

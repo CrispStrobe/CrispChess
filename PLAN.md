@@ -199,12 +199,14 @@ _License: all assets must be MIT/CC0/CC-BY. Use `just_audio` (MIT) or
 - [x] Persist selected board theme in preferences
 
 ### Native Sound Effects
-- [x] Platform-conditional sound service: Web Audio on web, native SystemSound + HapticFeedback on others
+- [x] Platform-conditional sound service: Web Audio on web, native samples + HapticFeedback on others
 - [x] Conditional import factory for platform-appropriate sound service
 - [x] Sound toggle in settings applies to both paths
-- [ ] Add `audioplayers` (BSD) for proper audio sample playback (upgrade from SystemSound)
-- [ ] Source or synthesize short audio samples for: move, capture, check, castle, promote, game-start, game-end, illegal (MIT/CC0 licensed only)
+- [x] Add `audioplayers` (MIT in selected 6.8.1 release) for proper audio sample playback (upgrade from SystemSound)
+- [x] Source or synthesize short audio samples for: move, capture, check, castle, promote, game-start, game-end, illegal (MIT/CC0 licensed only)
+- [ ] Resolve the Linux GStreamer system dependency against the license rule above before merging; see [native sound validation](docs/native-sound.md).
 - [ ] Test audio on Android, iOS, macOS, Linux, Windows
+  - Implementation and targeted automated tests added; physical playback, accessibility/audio-session coexistence, haptics and packaging validation remain outstanding on all five platforms. See [native sound validation](docs/native-sound.md).
 
 ### GIF Export Completion
 - [ ] Add `image` package (MIT) for GIF encoding

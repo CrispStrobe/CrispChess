@@ -182,6 +182,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get game => 'Partie';
 
   @override
+  String get soundEffects => 'Soundeffekte';
+
+  @override
+  String get soundEffectsSubtitle =>
+      'Töne für Züge und Spielereignisse abspielen';
+
+  @override
   String get showValidMoves => 'Gültige Züge anzeigen';
 
   @override
