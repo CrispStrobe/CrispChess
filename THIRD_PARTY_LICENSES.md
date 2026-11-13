@@ -277,3 +277,40 @@ None of it is redistributed with the app, and none is linked into it.
 `tool/oracle/reference_encoder.py` is a transcription of the classical branch
 of lc0's `src/neural/encoder.cc` and is therefore GPL-3.0; it is a test fixture
 and ships in no build.
+
+## audioplayers and native platform implementations
+
+- **Version:** audioplayers 6.8.1 (resolved platform versions in pubspec.lock)
+- **License:** MIT (the current release, rather than historical BSD releases)
+- **Source:** https://github.com/bluefireteam/audioplayers
+- **Purpose:** bundled native sound-effect playback on Android, iOS, macOS, Linux and Windows
+
+The original synthesized samples are project-owned MIT assets; see
+`assets/sounds/README.md`, `assets/sounds/LICENSE` and
+`tool/generate_sound_samples.py`. They use no third-party recordings.
+
+The audioplayers package family carries the following license:
+
+```text
+MIT License
+
+Copyright (c) 2017 Blue Fire
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

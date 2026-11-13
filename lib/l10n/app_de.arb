@@ -53,6 +53,8 @@
   "hintEngine": "Hinweis-Engine",
   "sameAsOpponent": "Wie Gegner",
   "game": "Partie",
+  "soundEffects": "Soundeffekte",
+  "soundEffectsSubtitle": "Töne für Züge und Spielereignisse abspielen",
   "showValidMoves": "Gültige Züge anzeigen",
   "showValidMovesSubtitle": "Legale Züge hervorheben bei Figurenauswahl",
   "allowUndo": "Rückgängig erlauben",

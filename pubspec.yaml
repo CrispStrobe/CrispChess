@@ -5,7 +5,8 @@ publish_to: "none"
 version: 2.3.2+19
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
@@ -25,6 +26,7 @@ dependencies:
   logging: ^1.2.0
   path_provider: ^2.1.0
   shared_preferences: ^2.3.0
+  audioplayers: ^6.8.1
   web: ^1.0.0
   package_info_plus: ^10.2.0
   protobuf: ^6.0.0
@@ -76,5 +78,6 @@ flutter:
     - assets/pieces/kiwen-suwi/
     - assets/pieces/totoy/
     - assets/pieces/papercut/
+    - assets/sounds/
     - assets/puzzles.json
     - assets/models/

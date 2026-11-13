@@ -170,7 +170,8 @@ All endpoints return JSON with CORS enabled.
 
 ### Prerequisites
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel, Dart 3.5+)
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) 3.44 or newer (stable channel)
+- For Linux builds: GStreamer development headers (`libgstreamer1.0-dev` and `libgstreamer-plugins-base1.0-dev` on Debian/Ubuntu). Playback also requires GStreamer and an installed WAV decoder, such as `gstreamer1.0-plugins-good`.
 - For Frozenight WASM: [Rust toolchain](https://rustup.rs/) + `wasm-pack`
 - For Lynx WASM rebuild: [.NET 10 SDK](https://dotnet.microsoft.com/) + `wasm-tools` workload
 

@@ -416,6 +416,18 @@ abstract class AppLocalizations {
   /// **'Game'**
   String get game;
 
+  /// No description provided for @soundEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound Effects'**
+  String get soundEffects;
+
+  /// No description provided for @soundEffectsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play sounds for moves and game events'**
+  String get soundEffectsSubtitle;
+
   /// No description provided for @showValidMoves.
   ///
   /// In en, this message translates to:

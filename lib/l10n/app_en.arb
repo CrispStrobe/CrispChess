@@ -88,6 +88,8 @@
   "hintEngine": "Hint Engine",
   "sameAsOpponent": "Same as opponent",
   "game": "Game",
+  "soundEffects": "Sound Effects",
+  "soundEffectsSubtitle": "Play sounds for moves and game events",
   "showValidMoves": "Show Valid Moves",
   "showValidMovesSubtitle": "Highlight legal moves when selecting a piece",
   "allowUndo": "Allow Undo",

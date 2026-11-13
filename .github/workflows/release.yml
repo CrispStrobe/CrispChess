@@ -52,7 +52,7 @@ jobs:
           cache: true
       - run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - run: flutter build linux --release
       # package:onnxruntime bundles its native library for Android, iOS, macOS
       # and Windows, and expects the system to provide it on Linux — where
@@ -92,7 +92,7 @@ jobs:
           cache: true
       - run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - run: cargo build --release
         working-directory: native/frozenight
       - run: flutter build linux --release

@@ -7,5 +7,5 @@ import 'sound_service_impl.dart'
 /// Create a sound service for the current platform.
 ///
 /// On web: uses Web Audio API tone synthesis via sound_bridge.js.
-/// On native: uses SystemSound / HapticFeedback.
+/// On native: uses bundled samples via audioplayers, plus HapticFeedback.
 SoundService createSoundService() => createPlatformSoundService();

@@ -26,6 +26,7 @@ class SettingsScreen extends StatefulWidget {
   final TimeControl timeControl;
   final ChessVariant chessVariant;
   final String lc0Backend;
+  final bool soundEnabled;
 
   const SettingsScreen({
     Key? key,
@@ -40,6 +41,7 @@ class SettingsScreen extends StatefulWidget {
     this.timeControl = TimeControl.unlimited,
     this.chessVariant = ChessVariant.standard,
     this.lc0Backend = 'auto',
+    this.soundEnabled = true,
   }) : super(key: key);
 
   @override
@@ -53,6 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _maia3Variant;
   bool _showValidMoves = true;
   bool _allowUndo = true;
+  late bool _soundEnabled;
   String _hintEngine = 'same';
   int _animationSpeed = 2;
   late TimeControl _timeControl;
@@ -103,6 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _timeControl = widget.timeControl;
     _chessVariant = widget.chessVariant;
     _lc0Backend = widget.lc0Backend;
+    _soundEnabled = widget.soundEnabled;
     _loadSavedPrefs();
   }
 
@@ -125,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _boardTheme = prefs.getString('boardTheme') ?? 'brown';
       _notationStyle = prefs.getString('notationStyle') ?? 'algebraic';
       _blindfold = prefs.getBool('blindfold') ?? false;
+      _soundEnabled = prefs.getBool('soundEnabled') ?? widget.soundEnabled;
     });
   }
 
@@ -865,6 +870,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
+                  key: const ValueKey('soundEnabled'),
+                  title: Text(l?.soundEffects ?? 'Sound Effects'),
+                  subtitle: Text(l?.soundEffectsSubtitle ?? 'Play sounds for moves and game events'),
+                  value: _soundEnabled,
+                  onChanged: (value) => setState(() => _soundEnabled = value),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
                   title: Text(l?.showValidMoves ?? 'Show Valid Moves'),
                   subtitle:
                       Text(l?.showValidMovesSubtitle ?? 'Highlight legal moves when selecting a piece'),
@@ -1108,6 +1121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _boardTheme = 'brown';
                   _notationStyle = 'algebraic';
                   _showValidMoves = true;
+                  _soundEnabled = true;
                   _playAsBlack = false;
                   _pieceTheme = 'chessnut';
                 });
@@ -1124,6 +1138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'hintDepth': _hintDepth,
             'showValidMoves': _showValidMoves,
             'allowUndo': _allowUndo,
+            'soundEnabled': _soundEnabled,
             'animationSpeed': _animationSpeed,
             'hintEngine': _hintEngine,
             'playAsBlack': _playAsBlack,
