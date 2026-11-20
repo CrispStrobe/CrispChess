@@ -23,11 +23,6 @@ on:
         description: Explanation to append to the checked replacement's App Review notes
         type: string
         default: ''
-      mac_runner:
-        description: Hosted Mac runner used for the native package check
-        type: choice
-        options: [macos-15, macos-15-intel, macos-latest]
-        default: macos-15
       dry_run:
         description: Build, sign, and validate without uploading
         type: boolean
@@ -53,10 +48,25 @@ env:
 jobs:
   build-upload:
     name: Build, sign, and validate Mac App Store package
-    runs-on: ${{ inputs.mac_runner }}
-    timeout-minutes: 60
+    # ITMS-90725: from April 2027 App Store Connect only accepts builds made
+    # with the 27 SDKs (Xcode 27). The macos-15/-latest images only have
+    # Xcode 26.x, so this job runs on the xcode-27 image (the former
+    # mac_runner choice is gone) and fails before signing if the SDK is older.
+    runs-on: xcode-27
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v6
+      - name: Select the newest Xcode 27 and require the macOS 27 SDK
+        run: |
+          set -euo pipefail
+          XC=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
+          SDK=$(xcrun --sdk macosx --show-sdk-version)
+          echo "macosx SDK: $SDK"
+          if [ "${SDK%%.*}" -lt 27 ]; then
+            echo "::error::macOS SDK $SDK < 27 (ITMS-90725)"; exit 1
+          fi
       - name: Preflight secrets
         env:
           MERGE_PULL_REQUEST: ${{ inputs.merge_pull_request }}
@@ -120,7 +130,10 @@ jobs:
         run: |
           set -euo pipefail
           keychain="$RUNNER_TEMP/crispchess-macos.keychain-db"
-          keychain_password="ci-$(uuidgen)"
+          # Empty password: on the xcode-27 image unlock-keychain rejects the
+          # password the keychain was just created with (runner-images#14837).
+          # The keychain lives in RUNNER_TEMP on a single-use VM.
+          keychain_password=""
           echo "$P12_B64" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
