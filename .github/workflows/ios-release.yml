@@ -214,10 +214,15 @@ jobs:
           # Distribution signing (imported cert + installed App Store profile) —
           # the standard "sign at export" CI pattern. No account, no dev cert, no
           # -allowProvisioningUpdates (which churns certs).
+          # Xcode 27 refuses iOS deployment targets below 15.0, and several
+          # pods still declare 11-14. Runner itself is 15.0 (Podfile and
+          # project), so raising every target to 15.0 changes nothing for the
+          # app and keeps the fix out of the generated Pods project.
           PATH="/usr/bin:$PATH" xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
             -archivePath build/ios/archive/Runner.xcarchive \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             clean archive
           PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
