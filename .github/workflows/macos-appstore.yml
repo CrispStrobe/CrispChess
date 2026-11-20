@@ -58,12 +58,6 @@ jobs:
     # mac_runner choice is gone) and fails before signing if the SDK is older.
     runs-on: xcode-27
     timeout-minutes: 75
-    # The xcode-27 image starts jobs without a UTF-8 locale; codesign then
-    # decodes a non-ASCII signing identity name wrongly ("no identity found",
-    # seen in CrispDeck's dry run 44795486899).
-    env:
-      LANG: en_US.UTF-8
-      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@v6
       - name: Select the newest Xcode 27 and require the macOS 27 SDK
@@ -198,7 +192,10 @@ jobs:
           cp macos/Runner/Release.entitlements "$RUNNER_TEMP/release.entitlements"
           /usr/libexec/PlistBuddy -c "Set :com.apple.application-identifier $application_identifier" "$RUNNER_TEMP/release.entitlements"
           /usr/libexec/PlistBuddy -c "Set :com.apple.developer.team-identifier $team_identifier" "$RUNNER_TEMP/release.entitlements"
-          identity=$(security find-identity -v -p codesigning "$SIGNING_KEYCHAIN" | sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' | head -1)
+          # Sign by SHA-1: on the xcode-27 image (macOS 27) codesign no longer
+          # matches the non-ASCII identity name ("no identity found", dry run
+          # 44805278751), while the fingerprint is unambiguous.
+          identity="$DISTRIBUTION_SHA1"
           find "$app_path/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -111 \) -print0 | while IFS= read -r -d '' item; do
             codesign --force --timestamp --options runtime --sign "$identity" "$item"
           done
