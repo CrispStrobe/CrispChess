@@ -39,7 +39,11 @@ concurrency:
 env:
   BUNDLE_ID: com.crispstrobe.crispchess
   APPLE_ID: "6788864039"
-  FLUTTER_VERSION: "3.44.2"
+  # 3.44.8+ is required on Xcode 27: older engines fail release_unpack_macos
+  # ('FlutterMacOS ... does not contain architectures "arm64 x86_64"',
+  # flutter/flutter#188346, fixed by #189792). ios-release.yml stays on
+  # 3.44.2; iOS device archives are not affected.
+  FLUTTER_VERSION: "3.44.9"
   DRY_RUN: ${{ inputs.dry_run }}
   # CrispASR release whose universal macOS framework is embedded for voice
   # moves (tool/macos_crispasr.sh). Keep in step with release.yml.
@@ -168,6 +172,12 @@ jobs:
           [ -n "$installer_identity" ] || { echo "::error::No Mac Installer Distribution identity"; exit 1; }
           echo "INSTALLER_IDENTITY=$installer_identity" >> "$GITHUB_ENV"
       - name: Build and sign sandboxed app
+        env:
+          # Xcode 27 only builds for macOS 12.0+; the project and Podfile still
+          # say 10.15, which it rejects for Runner and every pod. Flutter passes
+          # FLUTTER_XCODE_* to xcodebuild as build settings, so this raises all
+          # targets (and LSMinimumSystemVersion) to 12.0 for the store build.
+          FLUTTER_XCODE_MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
           set -euo pipefail
           flutter build macos --release
