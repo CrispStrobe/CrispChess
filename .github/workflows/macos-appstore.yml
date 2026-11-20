@@ -58,6 +58,12 @@ jobs:
     # mac_runner choice is gone) and fails before signing if the SDK is older.
     runs-on: xcode-27
     timeout-minutes: 75
+    # The xcode-27 image starts jobs without a UTF-8 locale; codesign then
+    # decodes a non-ASCII signing identity name wrongly ("no identity found",
+    # seen in CrispDeck's dry run 44795486899).
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@v6
       - name: Select the newest Xcode 27 and require the macOS 27 SDK
