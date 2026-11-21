@@ -20,16 +20,20 @@ import Flutter
 class StockfishJSBridge: NSObject, WKScriptMessageHandler, WKURLSchemeHandler {
     private var webView: WKWebView?
     private var channel: FlutterMethodChannel?
-    private weak var host: FlutterViewController?
+    // The registrar outlives the bridge's need for it (owned by the engine);
+    // its viewController is resolved lazily, once the scene has attached it.
+    private weak var registrar: FlutterPluginRegistrar?
     private var jsSource: String = ""
     private var pendingInit: FlutterResult?
 
     /// Wire up the `crispchess/stockfish` method channel on the Flutter engine.
-    func register(with controller: FlutterViewController) {
-        host = controller
+    /// Called from AppDelegate.didInitializeImplicitFlutterEngine (UIScene
+    /// lifecycle), before any FlutterViewController is on screen.
+    func register(with registrar: FlutterPluginRegistrar) {
+        self.registrar = registrar
         let ch = FlutterMethodChannel(
             name: "crispchess/stockfish",
-            binaryMessenger: controller.binaryMessenger
+            binaryMessenger: registrar.messenger()
         )
         ch.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result: result)
@@ -91,12 +95,22 @@ class StockfishJSBridge: NSObject, WKScriptMessageHandler, WKURLSchemeHandler {
 
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.isHidden = true
-        // Keep it in the view hierarchy so JS/Workers run reliably.
-        host?.view.addSubview(wv)
+        // Keep it in the view hierarchy so JS/Workers run reliably. The
+        // engine's view controller (attached by FlutterSceneDelegate) hosts it.
+        hostView()?.addSubview(wv)
         webView = wv
 
         pendingInit = result   // completed when the harness posts "__ready__"
         wv.load(URLRequest(url: URL(string: "sfengine://app/harness.html")!))
+    }
+
+    /// The Flutter view to park the hidden web view in: the registrar's view
+    /// controller, else the root view controller of the foreground scene.
+    private func hostView() -> UIView? {
+        if let view = registrar?.viewController?.view { return view }
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let windows = scenes.flatMap { $0.windows }
+        return (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController?.view
     }
 
     private func send(command: String) {

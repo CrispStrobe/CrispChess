@@ -3,7 +3,7 @@
 name: iOS 27 launch probe
 on:
   push:
-    branches: [tmp/ios27-scene-probe]
+    branches: [tmp/ios27-scene-probe, tmp/ios27-scene-fix]
   workflow_dispatch:
 concurrency:
   group: ios27-probe-${{ github.ref }}
