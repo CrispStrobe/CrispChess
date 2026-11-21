@@ -1,0 +1,98 @@
+# TEMPORARY probe (branch tmp/ios27-scene-probe): does the app survive launch on
+# the iOS 27 simulator when built with the iOS 27 SDK (UIScene requirement)?
+name: iOS 27 launch probe
+on:
+  push:
+    branches: [tmp/ios27-scene-probe]
+  workflow_dispatch:
+concurrency:
+  group: ios27-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      APP_DIR: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode 27
+        run: |
+          XC=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+      - run: flutter config --no-enable-swift-package-manager
+      - run: flutter pub get
+      - name: Build for simulator
+        run: flutter build ios --simulator --debug
+      - name: Boot simulator, install, launch, watch 15 s
+        run: |
+          set -uo pipefail
+          APP=$(ls -d "$APP_DIR"/build/ios/iphonesimulator/*.app | head -1)
+          BID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")
+          EXE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          echo "app=$APP bid=$BID exe=$EXE"
+          /usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest' "$APP/Info.plist" || echo "(no UIApplicationSceneManifest)"
+          xcrun simctl list runtimes
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          best=None
+          for rt,devs in d.items():
+            if "iOS" not in rt: continue
+            ver=tuple(int(x) for x in rt.split("iOS-")[1].split("-"))
+            for x in devs:
+              if x["name"].startswith("iPhone") and (best is None or ver>best[0]): best=(ver,x["udid"],x["name"],rt)
+          print(best[1]); print(best, file=sys.stderr)')
+          echo "UDID=$UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          mkdir -p "$RUNNER_TEMP/diag"
+          rm -f ~/Library/Logs/DiagnosticReports/*"$EXE"*.ips || true
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BID" || echo "::warning::simctl launch returned non-zero"
+          ok=1
+          for i in $(seq 1 15); do
+            sleep 1
+            line=$(xcrun simctl spawn "$UDID" launchctl list | grep "$BID" || true)
+            pid=$(echo "$line" | awk '{print $1}')
+            echo "t=${i}s: ${line:-<not listed>}"
+            if ! [[ "$pid" =~ ^[0-9]+$ ]]; then ok=0; fi
+          done
+          sleep 3
+          ls -la ~/Library/Logs/DiagnosticReports/ | tail -20 || true
+          if ls ~/Library/Logs/DiagnosticReports/*"$EXE"*.ips >/dev/null 2>&1; then
+            ok=0
+            cp ~/Library/Logs/DiagnosticReports/*"$EXE"*.ips "$RUNNER_TEMP/diag/"
+            for f in "$RUNNER_TEMP"/diag/*.ips; do
+              echo "== $f"; head -c 400 "$f"; echo
+              python3 - "$f" <<'PY'
+          import json,sys
+          t=open(sys.argv[1]).read().split("\n",1)
+          j=json.loads(t[1])
+          print("exception:", j.get("exception"))
+          ft=j.get("faultingThread",0)
+          imgs=j.get("usedImages",[])
+          for fr in j["threads"][ft]["frames"][:12]:
+            im=imgs[fr["imageIndex"]].get("name","?") if fr.get("imageIndex") is not None and fr["imageIndex"]<len(imgs) else "?"
+            print("  ", im, fr.get("symbol","?"))
+          PY
+            done
+          fi
+          xcrun simctl spawn "$UDID" log show --last 2m --style compact --predicate "process == \"$EXE\"" 2>/dev/null | tail -60 > "$RUNNER_TEMP/diag/syslog.txt" || true
+          tail -40 "$RUNNER_TEMP/diag/syslog.txt"
+          if [ "$ok" = 1 ]; then echo "RESULT: alive 15 s, no crash report"; else echo "::error::RESULT: app not alive for 15 s or crash report present"; exit 1; fi
+
+      - name: Upload crash reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diag
+          path: ${{ runner.temp }}/diag
+          if-no-files-found: ignore
