@@ -29,6 +29,19 @@ jobs:
           cache: true
       - run: flutter config --no-enable-swift-package-manager
       - run: flutter pub get
+      # Probe-only workaround: the onnxruntime-c/-objc 1.15.1 pod archives
+      # (onnxruntimepackages.z14.web.core.windows.net) currently 404, so pod
+      # install fails. Override package:onnxruntime with a copy whose podspec
+      # drops the onnxruntime-objc pod; ORT is bound lazily via
+      # DynamicLibrary.process(), so app launch does not need it.
+      - name: Drop the unreachable onnxruntime pod (probe only)
+        run: |
+          set -euo pipefail
+          SRC=$(python3 -c 'import json; c=json.load(open(".dart_tool/package_config.json")); print([p["rootUri"] for p in c["packages"] if p["name"]=="onnxruntime"][0].replace("file://",""))')
+          cp -R "$SRC" "$RUNNER_TEMP/onnxruntime_probe"
+          sed -i '' "/s.dependency 'onnxruntime-objc'/d" "$RUNNER_TEMP/onnxruntime_probe/ios/onnxruntime.podspec"
+          printf '\ndependency_overrides:\n  onnxruntime:\n    path: %s\n' "$RUNNER_TEMP/onnxruntime_probe" >> pubspec.yaml
+          flutter pub get
       - name: Build for simulator
         run: flutter build ios --simulator --debug
       - name: Boot simulator, install, launch, watch 15 s
