@@ -40,7 +40,13 @@ jobs:
           SRC=$(python3 -c 'import json; c=json.load(open(".dart_tool/package_config.json")); print([p["rootUri"] for p in c["packages"] if p["name"]=="onnxruntime"][0].replace("file://",""))')
           cp -R "$SRC" "$RUNNER_TEMP/onnxruntime_probe"
           sed -i '' "/s.dependency 'onnxruntime-objc'/d" "$RUNNER_TEMP/onnxruntime_probe/ios/onnxruntime.podspec"
-          printf '\ndependency_overrides:\n  onnxruntime:\n    path: %s\n' "$RUNNER_TEMP/onnxruntime_probe" >> pubspec.yaml
+          python3 - "$RUNNER_TEMP/onnxruntime_probe" <<'PY'
+          import sys
+          s = open("pubspec.yaml").read()
+          s = s.replace("dependency_overrides:\n", "dependency_overrides:\n  onnxruntime:\n    path: %s\n" % sys.argv[1], 1)
+          open("pubspec.yaml", "w").write(s)
+          PY
+          grep -n -A4 '^dependency_overrides' pubspec.yaml
           flutter pub get
       - name: Build for simulator
         run: flutter build ios --simulator --debug
