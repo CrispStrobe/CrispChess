@@ -31,6 +31,17 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  # ONNX Runtime: Microsoft's pod archive hosts are gone (onnxruntimepackages
+  # 404s, download.onnxruntime.ai fails TLS), which blocks `pod install` on any
+  # runner without a warm CocoaPods cache (the `onnxruntime` Flutter plugin pins
+  # onnxruntime-objc 1.15.1). Use our CrispStrobe/onnxruntime-spm mirror instead,
+  # as cometbeat does: the C framework from its 1.24.2 GitHub Release, the
+  # Objective-C bindings from its repo. The local podspecs are labelled 1.15.1
+  # to satisfy the plugin's pin; ORT keeps the C ABI stable within 1.x, and
+  # the app binds ORT through the C API (dart:ffi).
+  pod 'onnxruntime-c', :podspec => 'Podspecs/onnxruntime-c.podspec.json'
+  pod 'onnxruntime-objc', :podspec => 'Podspecs/onnxruntime-objc.podspec.json'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
