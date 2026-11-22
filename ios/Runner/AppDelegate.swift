@@ -1,8 +1,13 @@
 import UIKit
 import Flutter
 
+// UIScene lifecycle (required for apps built with the iOS 27 SDK: UIKit
+// traps at launch otherwise). Info.plist's UIApplicationSceneManifest hands
+// the window to FlutterSceneDelegate, so `window` is nil here and the
+// FlutterViewController must not be touched in didFinishLaunching. Plugins
+// and our own channel are wired when the implicit engine is ready instead.
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   // Retains the WebKit-backed Stockfish bridge for the app's lifetime.
   private var stockfishBridge: StockfishJSBridge?
 
@@ -10,16 +15,18 @@ import Flutter
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
     // Wire the crispchess/stockfish method channel (iOS runs Stockfish as
     // downloaded JS inside WebKit — no GPL code in the app binary).
-    if let controller = window?.rootViewController as? FlutterViewController {
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "StockfishJSBridge") {
       let bridge = StockfishJSBridge()
-      bridge.register(with: controller)
+      bridge.register(with: registrar)
       stockfishBridge = bridge
     }
-
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
